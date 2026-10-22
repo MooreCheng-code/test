@@ -1,0 +1,12 @@
+metric,value
+total_rows,6819
+total_columns,96
+feature_count,95
+target_column,Bankrupt?
+non_bankrupt_count_0,6599
+non_bankrupt_percent_0,96.77%
+bankrupt_count_1,220
+bankrupt_percent_1,3.23%
+imbalance_ratio_0_to_1,30.00:1
+missing_values_total,0
+duplicate_rows_total,0

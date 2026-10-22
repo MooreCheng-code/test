@@ -1,0 +1,17 @@
+{
+  "model": "M5",
+  "imbalance": "S3",
+  "best_params": {
+    "subsample": 0.6071695513247772,
+    "n_estimators": 300,
+    "learning_rate": 0.01373336360334273,
+    "num_leaves": 43,
+    "colsample_bytree": 0.7788897740771944,
+    "reg_lambda": 0.02704489144262553,
+    "min_child_samples": 38
+  },
+  "inner_best_loss": 1.676044311148229,
+  "n_trials": 60,
+  "study_name": "optuna_e2b_M5",
+  "created_at": "2026-10-22T09:03:16.833242"
+}

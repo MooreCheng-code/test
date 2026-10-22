@@ -1,0 +1,16 @@
+repeat,fold,selected_feature,direction,train_auc
+0,0,Persistent EPS in the Last Four Seasons,negative,0.8796012581168832
+0,1,Persistent EPS in the Last Four Seasons,negative,0.8881807326645875
+0,2,Persistent EPS in the Last Four Seasons,negative,0.8783855045739055
+0,3,Persistent EPS in the Last Four Seasons,negative,0.8965089857467465
+0,4,Persistent EPS in the Last Four Seasons,negative,0.8856548821633641
+1,0,Persistent EPS in the Last Four Seasons,negative,0.8907306885822511
+1,1,Persistent EPS in the Last Four Seasons,negative,0.8831466655918366
+1,2,Persistent EPS in the Last Four Seasons,negative,0.8847068485144673
+1,3,Persistent EPS in the Last Four Seasons,negative,0.8888802118758639
+1,4,Persistent EPS in the Last Four Seasons,negative,0.8811313593408605
+2,0,Persistent EPS in the Last Four Seasons,negative,0.8785562094155844
+2,1,Persistent EPS in the Last Four Seasons,negative,0.8853189977882014
+2,2,Persistent EPS in the Last Four Seasons,negative,0.8940981756440163
+2,3,Persistent EPS in the Last Four Seasons,negative,0.8823539784664527
+2,4,Persistent EPS in the Last Four Seasons,negative,0.8879951565473102

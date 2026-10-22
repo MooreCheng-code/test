@@ -1,0 +1,50 @@
+{
+  "created_at": "2026-10-22T20:44:20.014844",
+  "seed": 42,
+  "n_training_samples": 5455,
+  "n_bankrupt_positives": 176,
+  "models": {
+    "M3": {
+      "imbalance": "S0",
+      "params": {
+        "n_estimators": 600,
+        "max_depth": null,
+        "min_samples_leaf": 2,
+        "max_features": 0.3
+      }
+    },
+    "M4": {
+      "imbalance": "S0",
+      "params": {
+        "n_estimators": 250,
+        "learning_rate": 0.046776815926747296,
+        "max_depth": 2,
+        "subsample": 0.879563935600964,
+        "colsample_bytree": 0.9017127339966642,
+        "reg_lambda": 1.6902875531341541,
+        "min_child_weight": 7.300913224180319
+      }
+    },
+    "M5": {
+      "imbalance": "S3",
+      "params": {
+        "subsample": 0.6071695513247772,
+        "n_estimators": 300,
+        "learning_rate": 0.01373336360334273,
+        "num_leaves": 43,
+        "colsample_bytree": 0.7788897740771944,
+        "reg_lambda": 0.02704489144262553,
+        "min_child_samples": 38
+      }
+    }
+  },
+  "preprocessing": {
+    "scaler": "quantile",
+    "use_winsorizer": false,
+    "use_corr_filter": true,
+    "use_large_indicator": false
+  },
+  "thresholds_file": "thresholds.json",
+  "primary_calibrator": "calibrator_platt.joblib",
+  "notice": "IMPORTANT: OOF metrics and threshold values in this directory were derived on the training set where hyperparameters were tuned. They must NOT be reported as unbiased generalization performance. True unbiased performance is evaluated in E6 on the holdout test set."
+}

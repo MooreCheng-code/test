@@ -1,0 +1,17 @@
+{
+  "model": "M4",
+  "imbalance": "S0",
+  "best_params": {
+    "n_estimators": 250,
+    "learning_rate": 0.046776815926747296,
+    "max_depth": 2,
+    "subsample": 0.879563935600964,
+    "colsample_bytree": 0.9017127339966642,
+    "reg_lambda": 1.6902875531341541,
+    "min_child_weight": 7.300913224180319
+  },
+  "inner_best_loss": 1.6647351646998159,
+  "n_trials": 60,
+  "study_name": "optuna_e2b_M4",
+  "created_at": "2026-10-22T08:42:38.813865"
+}

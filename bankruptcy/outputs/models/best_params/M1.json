@@ -1,0 +1,12 @@
+{
+  "model": "M1",
+  "imbalance": "S0",
+  "best_params": {
+    "C": 0.11616457722286455,
+    "penalty": "l2"
+  },
+  "inner_best_loss": 1.7449592949580932,
+  "n_trials": 38,
+  "study_name": "optuna_e2b_M1",
+  "created_at": "2026-10-22T07:37:49.195496"
+}

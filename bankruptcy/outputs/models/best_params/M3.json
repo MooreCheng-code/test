@@ -1,0 +1,14 @@
+{
+  "model": "M3",
+  "imbalance": "S0",
+  "best_params": {
+    "n_estimators": 600,
+    "max_depth": null,
+    "min_samples_leaf": 2,
+    "max_features": 0.3
+  },
+  "inner_best_loss": 1.6668346908351293,
+  "n_trials": 60,
+  "study_name": "optuna_e2b_M3",
+  "created_at": "2026-10-22T08:26:02.999680"
+}

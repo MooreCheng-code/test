@@ -1,0 +1,4 @@
+model,recommended_strategy,recommended_scaler,alert_ratio_95_mean,alert_ratio_90_mean,pr_auc_mean,roc_auc_mean,rule_applied,secondary_metrics_consistent,secondary_note
+M1,S0,quantile,10.313492063492067,6.961481481481481,0.3938268305799034,0.9232038450403378,"Rule 3: No strategy significantly superior to S0; selected simplest configuration (S0, quantile)",True,Baseline S0 selected by parsimony; secondary metrics serve as E2 reference.
+M2,S0,quantile,11.838994708994708,6.8452910052910045,0.429637843068073,0.9345141538950782,"Rule 3: No strategy significantly superior to S0; selected simplest configuration (S0, quantile)",True,Baseline S0 selected by parsimony; secondary metrics serve as E2 reference.
+M4,S0,quantile,10.864126984126983,6.6903703703703705,0.4148580097426118,0.9334860908794558,"Rule 3: No strategy significantly superior to S0; selected simplest configuration (S0, quantile)",True,Baseline S0 selected by parsimony; secondary metrics serve as E2 reference.

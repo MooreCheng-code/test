@@ -1,0 +1,24 @@
+column_1,column_2,abs_pearson_corr,tier
+Current Liabilities/Liability,Current Liability to Liability,1.0,>0.99
+Current Liabilities/Equity,Current Liability to Equity,1.0,>0.99
+Debt ratio %,Net worth/Assets,0.9999999999999993,>0.99
+Operating Gross Margin,Gross Profit to Sales,0.9999999924887606,>0.99
+Net Value Per Share (A),Net Value Per Share (C),0.9998372673766628,>0.99
+Operating Gross Margin,Realized Sales Gross Margin,0.9995182781255221,>0.99
+Realized Sales Gross Margin,Gross Profit to Sales,0.9995182260040115,>0.99
+Net Value Per Share (B),Net Value Per Share (A),0.9993420298970497,>0.99
+Net Value Per Share (B),Net Value Per Share (C),0.9991785547277325,>0.99
+Operating Profit Per Share (Yuan ¥),Operating profit/Paid-in capital,0.9986961505784385,>0.99
+After-tax Net Profit Growth Rate,Regular Net Profit Growth Rate,0.9961861926223086,>0.99
+Pre-tax net Interest Rate,Continuous interest rate (after tax),0.9936165193085659,>0.99
+ROA(C) before interest and depreciation before interest,ROA(B) before interest and depreciation after tax,0.9868494970182541,>0.95
+Pre-tax net Interest Rate,After-tax net Interest Rate,0.9863790242582028,>0.95
+After-tax net Interest Rate,Continuous interest rate (after tax),0.984452328775917,>0.95
+Current Liabilities/Equity,Liability to Equity,0.963908387166064,>0.95
+Current Liability to Equity,Liability to Equity,0.963908387166064,>0.95
+Per Share Net profit before tax (Yuan ¥),Net profit before tax/Paid-in capital,0.9627228889556713,>0.95
+ROA(A) before interest and % after tax,Net Income to Total Assets,0.9615519166312979,>0.95
+Persistent EPS in the Last Four Seasons,Net profit before tax/Paid-in capital,0.9594608424800604,>0.95
+Borrowing dependency,Liability to Equity,0.9558567721071973,>0.95
+ROA(A) before interest and % after tax,ROA(B) before interest and depreciation after tax,0.9557406252835042,>0.95
+Persistent EPS in the Last Four Seasons,Per Share Net profit before tax (Yuan ¥),0.9555910456161516,>0.95

@@ -1,0 +1,336 @@
+2026-10-21 20:33:53,752 [INFO] [M1] Starting Repeat 0 Fold 0 (3 trials) at 2026-10-21T20:33:53.752420 ...
+2026-10-21 20:38:43,378 [INFO] [M1] Starting Repeat 0 Fold 0 (3 trials) at 2026-10-21T20:38:43.378269 ...
+2026-10-21 20:38:52,890 [INFO] [M1] Finished r0f0 in 9.5s | Inner Loss: 2.0769 | Outer Loss: 1.3898 | Bias: -0.6870 | ROC-AUC: 0.9394 | PR-AUC: 0.4149 | AR@95: 4.75x
+2026-10-21 20:38:52,893 [INFO] [M1] Starting Repeat 0 Fold 1 (3 trials) at 2026-10-21T20:38:52.893240 ...
+2026-10-21 20:39:21,355 [INFO] [M1] Finished r0f1 in 28.5s | Inner Loss: 1.8592 | Outer Loss: 1.9808 | Bias: +0.1216 | ROC-AUC: 0.9139 | PR-AUC: 0.3753 | AR@95: 10.14x
+2026-10-21 20:39:21,360 [INFO] [M2] Starting Repeat 0 Fold 0 (3 trials) at 2026-10-21T20:39:21.360071 ...
+2026-10-21 20:39:53,270 [INFO] [M2] Finished r0f0 in 31.9s | Inner Loss: 1.7227 | Outer Loss: 1.3462 | Bias: -0.3764 | ROC-AUC: 0.9487 | PR-AUC: 0.5107 | AR@95: 6.11x
+2026-10-21 20:39:53,277 [INFO] [M2] Starting Repeat 0 Fold 1 (3 trials) at 2026-10-21T20:39:53.277678 ...
+2026-10-21 20:40:26,624 [INFO] [M2] Finished r0f1 in 33.3s | Inner Loss: 1.7205 | Outer Loss: 1.7286 | Bias: +0.0081 | ROC-AUC: 0.9438 | PR-AUC: 0.4261 | AR@95: 9.80x
+2026-10-21 20:40:26,630 [INFO] [M3] Starting Repeat 0 Fold 0 (3 trials) at 2026-10-21T20:40:26.630609 ...
+2026-10-21 20:40:46,016 [INFO] [M3] Finished r0f0 in 19.4s | Inner Loss: 1.6959 | Outer Loss: 1.2722 | Bias: -0.4238 | ROC-AUC: 0.9488 | PR-AUC: 0.5096 | AR@95: 5.61x
+2026-10-21 20:40:46,027 [INFO] [M3] Starting Repeat 0 Fold 1 (3 trials) at 2026-10-21T20:40:46.027771 ...
+2026-10-21 20:41:06,287 [INFO] [M3] Finished r0f1 in 20.3s | Inner Loss: 1.6889 | Outer Loss: 1.7775 | Bias: +0.0886 | ROC-AUC: 0.9442 | PR-AUC: 0.4115 | AR@95: 10.80x
+2026-10-21 20:41:06,292 [INFO] [M4] Starting Repeat 0 Fold 0 (3 trials) at 2026-10-21T20:41:06.292700 ...
+2026-10-21 20:41:30,967 [INFO] [M4] Finished r0f0 in 24.7s | Inner Loss: 1.7455 | Outer Loss: 1.2531 | Bias: -0.4923 | ROC-AUC: 0.9480 | PR-AUC: 0.5869 | AR@95: 5.00x
+2026-10-21 20:41:30,975 [INFO] [M4] Starting Repeat 0 Fold 1 (3 trials) at 2026-10-21T20:41:30.975058 ...
+2026-10-21 20:41:55,491 [INFO] [M4] Finished r0f1 in 24.5s | Inner Loss: 1.7075 | Outer Loss: 1.7178 | Bias: +0.0103 | ROC-AUC: 0.9467 | PR-AUC: 0.4097 | AR@95: 8.40x
+2026-10-21 20:41:55,498 [INFO] [M5] Starting Repeat 0 Fold 0 (3 trials) at 2026-10-21T20:41:55.498787 ...
+2026-10-21 20:42:16,467 [INFO] [M5] Finished r0f0 in 21.0s | Inner Loss: 1.6907 | Outer Loss: 1.3807 | Bias: -0.3100 | ROC-AUC: 0.9436 | PR-AUC: 0.5480 | AR@95: 6.14x
+2026-10-21 20:42:16,474 [INFO] [M5] Starting Repeat 0 Fold 1 (3 trials) at 2026-10-21T20:42:16.474675 ...
+2026-10-21 20:42:36,314 [INFO] [M5] Finished r0f1 in 19.8s | Inner Loss: 1.6985 | Outer Loss: 1.6724 | Bias: -0.0261 | ROC-AUC: 0.9443 | PR-AUC: 0.3483 | AR@95: 6.06x
+2026-10-21 20:42:36,424 [INFO] Evaluating default untuned baseline for M3 ...
+2026-10-21 20:43:07,865 [INFO] Loaded M1_r0_f0 from cache (Outer Loss: 1.3898).
+2026-10-21 20:43:07,873 [INFO] Loaded M1_r0_f1 from cache (Outer Loss: 1.9808).
+2026-10-21 20:43:07,881 [INFO] Loaded M2_r0_f0 from cache (Outer Loss: 1.3462).
+2026-10-21 20:43:07,888 [INFO] Loaded M2_r0_f1 from cache (Outer Loss: 1.7286).
+2026-10-21 20:43:07,896 [INFO] Loaded M3_r0_f0 from cache (Outer Loss: 1.2722).
+2026-10-21 20:43:07,904 [INFO] Loaded M3_r0_f1 from cache (Outer Loss: 1.7775).
+2026-10-21 20:43:07,911 [INFO] Loaded M4_r0_f0 from cache (Outer Loss: 1.2531).
+2026-10-21 20:43:07,919 [INFO] Loaded M4_r0_f1 from cache (Outer Loss: 1.7178).
+2026-10-21 20:43:07,926 [INFO] Loaded M5_r0_f0 from cache (Outer Loss: 1.3807).
+2026-10-21 20:43:07,933 [INFO] Loaded M5_r0_f1 from cache (Outer Loss: 1.6724).
+2026-10-21 20:43:08,011 [INFO] Evaluating default untuned baseline for M3 ...
+2026-10-21 20:43:11,468 [INFO] Evaluating default untuned baseline for M5 ...
+2026-10-21 20:43:15,391 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-21 20:43:15,398 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-21 20:43:15,456 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-21 20:43:15,460 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-21 20:45:36,589 [INFO] [M1] Starting Repeat 0 Fold 0 (25 trials) at 2026-10-21T20:45:36.589358 ...
+2026-10-21 20:47:38,063 [INFO] [M1] Finished r0f0 in 121.5s | Inner Loss: 1.7925 | Outer Loss: 1.2261 | Bias: -0.5664 | ROC-AUC: 0.9474 | PR-AUC: 0.4824 | AR@95: 4.06x
+2026-10-21 20:47:38,066 [INFO] [M1] Starting Repeat 0 Fold 1 (25 trials) at 2026-10-21T20:47:38.066275 ...
+2026-10-21 20:49:44,634 [INFO] [M1] Finished r0f1 in 126.6s | Inner Loss: 1.7081 | Outer Loss: 1.8829 | Bias: +0.1748 | ROC-AUC: 0.9379 | PR-AUC: 0.3772 | AR@95: 9.74x
+2026-10-21 20:49:44,638 [INFO] [M1] Starting Repeat 0 Fold 2 (25 trials) at 2026-10-21T20:49:44.638711 ...
+2026-10-21 20:51:56,260 [INFO] [M1] Finished r0f2 in 131.6s | Inner Loss: 1.6964 | Outer Loss: 1.7902 | Bias: +0.0937 | ROC-AUC: 0.9285 | PR-AUC: 0.4390 | AR@95: 9.46x
+2026-10-21 20:51:56,265 [INFO] [M1] Starting Repeat 0 Fold 3 (25 trials) at 2026-10-21T20:51:56.265171 ...
+2026-10-21 20:54:00,486 [INFO] [M1] Finished r0f3 in 124.2s | Inner Loss: 1.6269 | Outer Loss: 2.1043 | Bias: +0.4774 | ROC-AUC: 0.9037 | PR-AUC: 0.3587 | AR@95: 10.86x
+2026-10-21 20:54:00,489 [INFO] [M1] Starting Repeat 0 Fold 4 (25 trials) at 2026-10-21T20:54:00.489788 ...
+2026-10-21 20:56:01,602 [INFO] [M1] Finished r0f4 in 121.1s | Inner Loss: 1.8129 | Outer Loss: 1.6101 | Bias: -0.2027 | ROC-AUC: 0.9421 | PR-AUC: 0.3517 | AR@95: 8.46x
+2026-10-21 20:56:01,606 [INFO] [M2] Starting Repeat 0 Fold 0 (40 trials) at 2026-10-21T20:56:01.606905 ...
+2026-10-21 21:02:22,624 [INFO] [M2] Finished r0f0 in 381.0s | Inner Loss: 1.6940 | Outer Loss: 1.2999 | Bias: -0.3941 | ROC-AUC: 0.9459 | PR-AUC: 0.5128 | AR@95: 5.31x
+2026-10-21 21:02:22,631 [INFO] [M2] Starting Repeat 0 Fold 1 (40 trials) at 2026-10-21T21:02:22.631200 ...
+2026-10-21 21:07:38,857 [INFO] [M2] Finished r0f1 in 316.2s | Inner Loss: 1.6949 | Outer Loss: 1.7275 | Bias: +0.0326 | ROC-AUC: 0.9470 | PR-AUC: 0.4460 | AR@95: 8.29x
+2026-10-21 21:07:38,866 [INFO] [M2] Starting Repeat 0 Fold 2 (40 trials) at 2026-10-21T21:07:38.866337 ...
+2026-10-21 21:13:13,388 [INFO] [M2] Finished r0f2 in 334.5s | Inner Loss: 1.7525 | Outer Loss: 1.4495 | Bias: -0.3029 | ROC-AUC: 0.9562 | PR-AUC: 0.4750 | AR@95: 5.17x
+2026-10-21 21:13:13,389 [WARNING] STOPPING CONDITION TRIGGERED: ROC-AUC = 0.9562 > 0.95 on M2_r0_f2
+2026-10-21 21:13:13,395 [INFO] [M2] Starting Repeat 0 Fold 3 (40 trials) at 2026-10-21T21:13:13.395961 ...
+2026-10-21 21:19:29,188 [INFO] [M2] Finished r0f3 in 375.8s | Inner Loss: 1.4535 | Outer Loss: 2.1559 | Bias: +0.7023 | ROC-AUC: 0.9164 | PR-AUC: 0.2857 | AR@95: 9.74x
+2026-10-21 21:19:29,195 [INFO] [M2] Starting Repeat 0 Fold 4 (40 trials) at 2026-10-21T21:19:29.195266 ...
+2026-10-21 21:25:53,467 [INFO] [M2] Finished r0f4 in 384.3s | Inner Loss: 1.7056 | Outer Loss: 1.8467 | Bias: +0.1411 | ROC-AUC: 0.9279 | PR-AUC: 0.3523 | AR@95: 9.29x
+2026-10-21 21:25:53,472 [INFO] [M3] Starting Repeat 0 Fold 0 (40 trials) at 2026-10-21T21:25:53.472002 ...
+2026-10-21 21:30:11,184 [INFO] [M3] Finished r0f0 in 257.7s | Inner Loss: 1.6176 | Outer Loss: 1.3320 | Bias: -0.2856 | ROC-AUC: 0.9447 | PR-AUC: 0.5376 | AR@95: 6.75x
+2026-10-21 21:30:11,190 [INFO] [M3] Starting Repeat 0 Fold 1 (40 trials) at 2026-10-21T21:30:11.190447 ...
+2026-10-21 21:34:20,757 [INFO] [M3] Finished r0f1 in 249.6s | Inner Loss: 1.6678 | Outer Loss: 1.6761 | Bias: +0.0082 | ROC-AUC: 0.9496 | PR-AUC: 0.4415 | AR@95: 8.54x
+2026-10-21 21:34:20,762 [INFO] [M3] Starting Repeat 0 Fold 2 (40 trials) at 2026-10-21T21:34:20.762102 ...
+2026-10-21 21:38:35,765 [INFO] [M3] Finished r0f2 in 255.0s | Inner Loss: 1.6767 | Outer Loss: 1.5758 | Bias: -0.1009 | ROC-AUC: 0.9516 | PR-AUC: 0.4180 | AR@95: 6.69x
+2026-10-21 21:38:35,765 [WARNING] STOPPING CONDITION TRIGGERED: ROC-AUC = 0.9516 > 0.95 on M3_r0_f2
+2026-10-21 21:38:35,770 [INFO] [M3] Starting Repeat 0 Fold 3 (40 trials) at 2026-10-21T21:38:35.770504 ...
+2026-10-21 21:42:50,018 [INFO] [M3] Finished r0f3 in 254.2s | Inner Loss: 1.4751 | Outer Loss: 2.0395 | Bias: +0.5644 | ROC-AUC: 0.9236 | PR-AUC: 0.3001 | AR@95: 9.51x
+2026-10-21 21:42:50,022 [INFO] [M3] Starting Repeat 0 Fold 4 (40 trials) at 2026-10-21T21:42:50.022236 ...
+2026-10-21 21:47:14,857 [INFO] [M3] Finished r0f4 in 264.8s | Inner Loss: 1.6390 | Outer Loss: 1.6863 | Bias: +0.0473 | ROC-AUC: 0.9375 | PR-AUC: 0.3695 | AR@95: 6.97x
+2026-10-21 21:47:14,864 [INFO] [M4] Starting Repeat 0 Fold 0 (40 trials) at 2026-10-21T21:47:14.864545 ...
+2026-10-21 21:51:34,376 [INFO] [M4] Finished r0f0 in 259.5s | Inner Loss: 1.6700 | Outer Loss: 1.3566 | Bias: -0.3134 | ROC-AUC: 0.9458 | PR-AUC: 0.5632 | AR@95: 5.56x
+2026-10-21 21:51:34,383 [INFO] [M4] Starting Repeat 0 Fold 1 (40 trials) at 2026-10-21T21:51:34.383540 ...
+2026-10-21 21:55:46,757 [INFO] [M4] Finished r0f1 in 252.4s | Inner Loss: 1.6448 | Outer Loss: 1.7064 | Bias: +0.0615 | ROC-AUC: 0.9488 | PR-AUC: 0.4565 | AR@95: 9.34x
+2026-10-21 21:55:46,765 [INFO] [M4] Starting Repeat 0 Fold 2 (40 trials) at 2026-10-21T21:55:46.765134 ...
+2026-10-21 22:00:43,276 [INFO] [M4] Finished r0f2 in 296.5s | Inner Loss: 1.6412 | Outer Loss: 1.4882 | Bias: -0.1530 | ROC-AUC: 0.9597 | PR-AUC: 0.5022 | AR@95: 6.31x
+2026-10-21 22:00:43,276 [WARNING] STOPPING CONDITION TRIGGERED: ROC-AUC = 0.9597 > 0.95 on M4_r0_f2
+2026-10-21 22:00:43,285 [INFO] [M4] Starting Repeat 0 Fold 3 (40 trials) at 2026-10-21T22:00:43.285282 ...
+2026-10-21 22:06:40,008 [INFO] [M4] Finished r0f3 in 356.7s | Inner Loss: 1.4892 | Outer Loss: 2.1938 | Bias: +0.7046 | ROC-AUC: 0.9176 | PR-AUC: 0.3463 | AR@95: 11.37x
+2026-10-21 22:06:40,015 [INFO] [M4] Starting Repeat 0 Fold 4 (40 trials) at 2026-10-21T22:06:40.015839 ...
+2026-10-21 22:11:10,760 [INFO] [M4] Finished r0f4 in 270.7s | Inner Loss: 1.6747 | Outer Loss: 1.6837 | Bias: +0.0090 | ROC-AUC: 0.9403 | PR-AUC: 0.3763 | AR@95: 8.00x
+2026-10-21 22:11:10,768 [INFO] [M5] Starting Repeat 0 Fold 0 (40 trials) at 2026-10-21T22:11:10.768084 ...
+2026-10-21 22:15:21,780 [INFO] [M5] Finished r0f0 in 251.0s | Inner Loss: 1.6373 | Outer Loss: 1.4785 | Bias: -0.1588 | ROC-AUC: 0.9393 | PR-AUC: 0.4943 | AR@95: 6.72x
+2026-10-21 22:15:21,788 [INFO] [M5] Starting Repeat 0 Fold 1 (40 trials) at 2026-10-21T22:15:21.788761 ...
+2026-10-21 22:19:41,240 [INFO] [M5] Finished r0f1 in 259.5s | Inner Loss: 1.6497 | Outer Loss: 1.6379 | Bias: -0.0117 | ROC-AUC: 0.9496 | PR-AUC: 0.4410 | AR@95: 8.06x
+2026-10-21 22:19:41,248 [INFO] [M5] Starting Repeat 0 Fold 2 (40 trials) at 2026-10-21T22:19:41.248335 ...
+2026-10-21 22:24:03,236 [INFO] [M5] Finished r0f2 in 262.0s | Inner Loss: 1.6263 | Outer Loss: 1.4395 | Bias: -0.1868 | ROC-AUC: 0.9616 | PR-AUC: 0.5098 | AR@95: 6.14x
+2026-10-21 22:24:03,237 [WARNING] STOPPING CONDITION TRIGGERED: ROC-AUC = 0.9616 > 0.95 on M5_r0_f2
+2026-10-21 22:24:03,274 [INFO] [M5] Starting Repeat 0 Fold 3 (40 trials) at 2026-10-21T22:24:03.274256 ...
+2026-10-21 22:27:35,976 [INFO] [M5] Finished r0f3 in 212.7s | Inner Loss: 1.4811 | Outer Loss: 2.1697 | Bias: +0.6886 | ROC-AUC: 0.9124 | PR-AUC: 0.3426 | AR@95: 12.97x
+2026-10-21 22:27:35,983 [INFO] [M5] Starting Repeat 0 Fold 4 (40 trials) at 2026-10-21T22:27:35.983523 ...
+2026-10-21 22:32:12,259 [INFO] [M5] Finished r0f4 in 276.3s | Inner Loss: 1.6601 | Outer Loss: 1.7619 | Bias: +0.1018 | ROC-AUC: 0.9402 | PR-AUC: 0.3893 | AR@95: 9.09x
+2026-10-21 22:32:12,397 [INFO] Evaluating default untuned baseline for M3 ...
+2026-10-21 22:32:21,042 [INFO] Evaluating default untuned baseline for M5 ...
+2026-10-21 22:32:31,597 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-21 22:32:31,604 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-21 22:32:31,664 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-21 22:32:31,680 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-21 23:11:52,006 [INFO] Loaded M1_r0_f0 from cache (Outer Loss: 1.2261).
+2026-10-21 23:11:52,015 [INFO] Loaded M1_r0_f1 from cache (Outer Loss: 1.8829).
+2026-10-21 23:11:52,023 [INFO] Loaded M1_r0_f2 from cache (Outer Loss: 1.7902).
+2026-10-21 23:11:52,035 [INFO] Loaded M1_r0_f3 from cache (Outer Loss: 2.1043).
+2026-10-21 23:11:52,042 [INFO] Loaded M1_r0_f4 from cache (Outer Loss: 1.6101).
+2026-10-21 23:11:52,043 [INFO] [M1] Starting Repeat 1 Fold 0 (25 trials) at 2026-10-21T23:11:52.043682 ...
+2026-10-21 23:13:42,268 [INFO] [M1] Finished r1f0 in 110.2s | Inner Loss: 1.8594 | Outer Loss: 1.7329 | Bias: -0.1265 | ROC-AUC: 0.9369 | PR-AUC: 0.4672 | AR@95: 8.81x
+2026-10-21 23:13:42,271 [INFO] [M1] Starting Repeat 1 Fold 1 (25 trials) at 2026-10-21T23:13:42.271749 ...
+2026-10-21 23:16:15,562 [INFO] [M1] Finished r1f1 in 153.3s | Inner Loss: 1.7492 | Outer Loss: 1.6962 | Bias: -0.0530 | ROC-AUC: 0.9322 | PR-AUC: 0.4227 | AR@95: 9.23x
+2026-10-21 23:16:15,565 [INFO] [M1] Starting Repeat 1 Fold 2 (25 trials) at 2026-10-21T23:16:15.565812 ...
+2026-10-21 23:18:55,273 [INFO] [M1] Finished r1f2 in 159.7s | Inner Loss: 1.7564 | Outer Loss: 1.9463 | Bias: +0.1900 | ROC-AUC: 0.9200 | PR-AUC: 0.3258 | AR@95: 12.49x
+2026-10-21 23:18:55,277 [INFO] [M1] Starting Repeat 1 Fold 3 (25 trials) at 2026-10-21T23:18:55.277128 ...
+2026-10-21 23:21:08,122 [INFO] [M1] Finished r1f3 in 132.8s | Inner Loss: 1.7981 | Outer Loss: 1.3720 | Bias: -0.4262 | ROC-AUC: 0.9354 | PR-AUC: 0.3756 | AR@95: 5.03x
+2026-10-21 23:21:08,125 [INFO] [M1] Starting Repeat 1 Fold 4 (25 trials) at 2026-10-21T23:21:08.125494 ...
+2026-10-21 23:23:14,523 [INFO] [M1] Finished r1f4 in 126.4s | Inner Loss: 1.8329 | Outer Loss: 1.5156 | Bias: -0.3173 | ROC-AUC: 0.9521 | PR-AUC: 0.4442 | AR@95: 6.40x
+2026-10-21 23:23:14,523 [INFO] NOTE: Single fold ROC-AUC = 0.9521 in (0.95, 0.97] on M1_r1_f4. Continuing.
+2026-10-21 23:23:14,526 [INFO] [M1] Starting Repeat 2 Fold 0 (25 trials) at 2026-10-21T23:23:14.526588 ...
+2026-10-21 23:26:38,797 [INFO] [M1] Finished r2f0 in 204.3s | Inner Loss: 1.9184 | Outer Loss: 1.2065 | Bias: -0.7119 | ROC-AUC: 0.9707 | PR-AUC: 0.5424 | AR@95: 5.44x
+2026-10-21 23:26:38,797 [ERROR] STOPPING CONDITION TRIGGERED: ROC-AUC = 0.9707 > 0.97 on M1_r2_f0
+2026-10-21 23:37:32,932 [INFO] Loaded M1_r0_f0 from cache (Outer Loss: 1.2261).
+2026-10-21 23:37:32,933 [INFO] Loaded M1_r0_f1 from cache (Outer Loss: 1.8829).
+2026-10-21 23:37:32,934 [INFO] Loaded M1_r0_f2 from cache (Outer Loss: 1.7902).
+2026-10-21 23:37:32,936 [INFO] Loaded M1_r0_f3 from cache (Outer Loss: 2.1043).
+2026-10-21 23:37:32,937 [INFO] Loaded M1_r0_f4 from cache (Outer Loss: 1.6101).
+2026-10-21 23:37:32,938 [INFO] Loaded M1_r1_f0 from cache (Outer Loss: 1.7329).
+2026-10-21 23:37:32,939 [INFO] Loaded M1_r1_f1 from cache (Outer Loss: 1.6962).
+2026-10-21 23:37:32,940 [INFO] Loaded M1_r1_f2 from cache (Outer Loss: 1.9463).
+2026-10-21 23:37:32,941 [INFO] Loaded M1_r1_f3 from cache (Outer Loss: 1.3720).
+2026-10-21 23:37:32,943 [INFO] Loaded M1_r1_f4 from cache (Outer Loss: 1.5156).
+2026-10-21 23:37:32,944 [INFO] [M1] Starting Repeat 2 Fold 0 (25 trials) at 2026-10-21T23:37:32.944229 ...
+2026-10-21 23:40:49,506 [INFO] [M1] Finished r2f0 in 196.6s | Inner Loss: 1.9184 | Outer Loss: 1.2065 | Bias: -0.7119 | ROC-AUC: 0.9707 (Matched: 0.9592, Jump: +0.0115) | PR-AUC: 0.5424 | AR@95: 5.44x
+2026-10-21 23:40:49,507 [INFO] NOTE: Single fold ROC-AUC = 0.9707 > 0.95 on M1_r2_f0 (Matched Default: 0.9592, Single Feat: 0.9146, Jump: +0.0115). Continuing.
+2026-10-21 23:40:49,510 [INFO] [M1] Starting Repeat 2 Fold 1 (25 trials) at 2026-10-21T23:40:49.510311 ...
+2026-10-21 23:43:34,615 [INFO] [M1] Finished r2f1 in 165.1s | Inner Loss: 1.6279 | Outer Loss: 2.2826 | Bias: +0.6547 | ROC-AUC: 0.9065 (Matched: 0.9027, Jump: +0.0037) | PR-AUC: 0.4529 | AR@95: 19.74x
+2026-10-21 23:43:34,617 [INFO] [M1] Starting Repeat 2 Fold 2 (25 trials) at 2026-10-21T23:43:34.617419 ...
+2026-10-21 23:45:43,600 [INFO] [M1] Finished r2f2 in 129.0s | Inner Loss: 1.7320 | Outer Loss: 1.8869 | Bias: +0.1549 | ROC-AUC: 0.9208 (Matched: 0.9167, Jump: +0.0040) | PR-AUC: 0.3309 | AR@95: 9.06x
+2026-10-21 23:45:43,603 [INFO] [M1] Starting Repeat 2 Fold 3 (25 trials) at 2026-10-21T23:45:43.603905 ...
+2026-10-21 23:49:38,345 [INFO] [M1] Finished r2f3 in 234.7s | Inner Loss: 1.8349 | Outer Loss: 1.6589 | Bias: -0.1761 | ROC-AUC: 0.9318 (Matched: 0.9263, Jump: +0.0055) | PR-AUC: 0.4451 | AR@95: 9.43x
+2026-10-21 23:49:38,349 [INFO] [M1] Starting Repeat 2 Fold 4 (25 trials) at 2026-10-21T23:49:38.349124 ...
+2026-10-21 23:51:56,274 [INFO] [M1] Finished r2f4 in 137.9s | Inner Loss: 1.7621 | Outer Loss: 1.6490 | Bias: -0.1131 | ROC-AUC: 0.9408 (Matched: 0.9370, Jump: +0.0038) | PR-AUC: 0.4040 | AR@95: 7.57x
+2026-10-21 23:51:56,283 [INFO] Loaded M2_r0_f0 from cache (Outer Loss: 1.2999).
+2026-10-21 23:51:56,293 [INFO] Loaded M2_r0_f1 from cache (Outer Loss: 1.7275).
+2026-10-21 23:51:56,301 [INFO] Loaded M2_r0_f2 from cache (Outer Loss: 1.4495).
+2026-10-21 23:51:56,311 [INFO] Loaded M2_r0_f3 from cache (Outer Loss: 2.1559).
+2026-10-21 23:51:56,320 [INFO] Loaded M2_r0_f4 from cache (Outer Loss: 1.8467).
+2026-10-21 23:51:56,321 [INFO] [M2] Starting Repeat 1 Fold 0 (40 trials) at 2026-10-21T23:51:56.321653 ...
+2026-10-21 23:58:03,588 [INFO] [M2] Finished r1f0 in 367.3s | Inner Loss: 1.7290 | Outer Loss: 1.7076 | Bias: -0.0214 | ROC-AUC: 0.9452 (Matched: 0.9348, Jump: +0.0104) | PR-AUC: 0.4119 | AR@95: 7.72x
+2026-10-21 23:58:03,596 [INFO] [M2] Starting Repeat 1 Fold 1 (40 trials) at 2026-10-21T23:58:03.596675 ...
+2026-10-22 00:03:39,961 [INFO] [M2] Finished r1f1 in 336.4s | Inner Loss: 1.6623 | Outer Loss: 2.0036 | Bias: +0.3413 | ROC-AUC: 0.9178 (Matched: 0.9224, Jump: -0.0047) | PR-AUC: 0.4594 | AR@95: 20.26x
+2026-10-22 00:03:39,969 [INFO] [M2] Starting Repeat 1 Fold 2 (40 trials) at 2026-10-22T00:03:39.969612 ...
+2026-10-22 00:10:04,384 [INFO] [M2] Finished r1f2 in 384.4s | Inner Loss: 1.6579 | Outer Loss: 1.8949 | Bias: +0.2371 | ROC-AUC: 0.9321 (Matched: 0.9298, Jump: +0.0023) | PR-AUC: 0.3461 | AR@95: 11.03x
+2026-10-22 00:10:04,388 [INFO] [M2] Starting Repeat 1 Fold 3 (40 trials) at 2026-10-22T00:10:04.388186 ...
+2026-10-22 00:16:59,907 [INFO] [M2] Finished r1f3 in 415.5s | Inner Loss: 1.7117 | Outer Loss: 1.5045 | Bias: -0.2072 | ROC-AUC: 0.9450 (Matched: 0.9552, Jump: -0.0102) | PR-AUC: 0.3687 | AR@95: 6.66x
+2026-10-22 00:16:59,913 [INFO] [M2] Starting Repeat 1 Fold 4 (40 trials) at 2026-10-22T00:16:59.913728 ...
+2026-10-22 00:22:25,160 [INFO] [M2] Finished r1f4 in 325.2s | Inner Loss: 1.6659 | Outer Loss: 1.5812 | Bias: -0.0847 | ROC-AUC: 0.9469 (Matched: 0.9475, Jump: -0.0007) | PR-AUC: 0.4710 | AR@95: 8.69x
+2026-10-22 00:22:25,165 [INFO] [M2] Starting Repeat 2 Fold 0 (40 trials) at 2026-10-22T00:22:25.165429 ...
+2026-10-22 00:27:30,573 [INFO] [M2] Finished r2f0 in 305.4s | Inner Loss: 1.8657 | Outer Loss: 1.1064 | Bias: -0.7593 | ROC-AUC: 0.9703 (Matched: 0.9727, Jump: -0.0024) | PR-AUC: 0.5272 | AR@95: 4.00x
+2026-10-22 00:27:30,573 [INFO] NOTE: Single fold ROC-AUC = 0.9703 > 0.95 on M2_r2_f0 (Matched Default: 0.9727, Single Feat: 0.9146, Jump: -0.0024). Continuing.
+2026-10-22 00:27:30,579 [INFO] [M2] Starting Repeat 2 Fold 1 (40 trials) at 2026-10-22T00:27:30.579499 ...
+2026-10-22 00:32:38,256 [INFO] [M2] Finished r2f1 in 307.7s | Inner Loss: 1.6081 | Outer Loss: 1.9866 | Bias: +0.3785 | ROC-AUC: 0.9232 (Matched: 0.9164, Jump: +0.0068) | PR-AUC: 0.5295 | AR@95: 12.49x
+2026-10-22 00:32:38,263 [INFO] [M2] Starting Repeat 2 Fold 2 (40 trials) at 2026-10-22T00:32:38.263183 ...
+2026-10-22 00:37:42,162 [INFO] [M2] Finished r2f2 in 303.9s | Inner Loss: 1.6627 | Outer Loss: 2.0191 | Bias: +0.3564 | ROC-AUC: 0.9253 (Matched: 0.9151, Jump: +0.0102) | PR-AUC: 0.4281 | AR@95: 10.86x
+2026-10-22 00:37:42,170 [INFO] [M2] Starting Repeat 2 Fold 3 (40 trials) at 2026-10-22T00:37:42.170766 ...
+2026-10-22 00:43:50,481 [INFO] [M2] Finished r2f3 in 368.3s | Inner Loss: 1.7366 | Outer Loss: 1.5661 | Bias: -0.1705 | ROC-AUC: 0.9521 (Matched: 0.9470, Jump: +0.0051) | PR-AUC: 0.4363 | AR@95: 6.37x
+2026-10-22 00:43:50,481 [INFO] NOTE: Single fold ROC-AUC = 0.9521 > 0.95 on M2_r2_f3 (Matched Default: 0.9470, Single Feat: 0.9001, Jump: +0.0051). Continuing.
+2026-10-22 00:43:50,488 [INFO] [M2] Starting Repeat 2 Fold 4 (40 trials) at 2026-10-22T00:43:50.488656 ...
+2026-10-22 00:51:35,584 [INFO] [M2] Finished r2f4 in 465.1s | Inner Loss: 1.7192 | Outer Loss: 1.6667 | Bias: -0.0524 | ROC-AUC: 0.9407 (Matched: 0.9307, Jump: +0.0100) | PR-AUC: 0.3393 | AR@95: 8.06x
+2026-10-22 00:51:35,598 [INFO] Loaded M3_r0_f0 from cache (Outer Loss: 1.3320).
+2026-10-22 00:51:35,607 [INFO] Loaded M3_r0_f1 from cache (Outer Loss: 1.6761).
+2026-10-22 00:51:35,615 [INFO] Loaded M3_r0_f2 from cache (Outer Loss: 1.5758).
+2026-10-22 00:51:35,625 [INFO] Loaded M3_r0_f3 from cache (Outer Loss: 2.0395).
+2026-10-22 00:51:35,633 [INFO] Loaded M3_r0_f4 from cache (Outer Loss: 1.6863).
+2026-10-22 00:51:35,634 [INFO] [M3] Starting Repeat 1 Fold 0 (40 trials) at 2026-10-22T00:51:35.634478 ...
+2026-10-22 00:55:52,280 [INFO] [M3] Finished r1f0 in 256.6s | Inner Loss: 1.7214 | Outer Loss: 1.7660 | Bias: +0.0445 | ROC-AUC: 0.9413 (Matched: 0.9418, Jump: -0.0005) | PR-AUC: 0.4950 | AR@95: 9.64x
+2026-10-22 00:55:52,284 [INFO] [M3] Starting Repeat 1 Fold 1 (40 trials) at 2026-10-22T00:55:52.284193 ...
+2026-10-22 01:00:05,945 [INFO] [M3] Finished r1f1 in 253.7s | Inner Loss: 1.5607 | Outer Loss: 1.7798 | Bias: +0.2191 | ROC-AUC: 0.9270 (Matched: 0.9263, Jump: +0.0007) | PR-AUC: 0.4938 | AR@95: 10.31x
+2026-10-22 01:00:05,952 [INFO] [M3] Starting Repeat 1 Fold 2 (40 trials) at 2026-10-22T01:00:05.952469 ...
+2026-10-22 01:04:30,377 [INFO] [M3] Finished r1f2 in 264.4s | Inner Loss: 1.6790 | Outer Loss: 1.7348 | Bias: +0.0558 | ROC-AUC: 0.9341 (Matched: 0.9394, Jump: -0.0054) | PR-AUC: 0.3751 | AR@95: 7.17x
+2026-10-22 01:04:30,381 [INFO] [M3] Starting Repeat 1 Fold 3 (40 trials) at 2026-10-22T01:04:30.381646 ...
+2026-10-22 01:08:54,916 [INFO] [M3] Finished r1f3 in 264.5s | Inner Loss: 1.7058 | Outer Loss: 1.5218 | Bias: -0.1840 | ROC-AUC: 0.9535 (Matched: 0.9534, Jump: +0.0001) | PR-AUC: 0.3662 | AR@95: 6.40x
+2026-10-22 01:08:54,916 [INFO] NOTE: Single fold ROC-AUC = 0.9535 > 0.95 on M3_r1_f3 (Matched Default: 0.9534, Single Feat: 0.8731, Jump: +0.0001). Continuing.
+2026-10-22 01:08:54,921 [INFO] [M3] Starting Repeat 1 Fold 4 (40 trials) at 2026-10-22T01:08:54.921596 ...
+2026-10-22 01:13:00,763 [INFO] [M3] Finished r1f4 in 245.8s | Inner Loss: 1.6288 | Outer Loss: 1.5545 | Bias: -0.0743 | ROC-AUC: 0.9505 (Matched: 0.9504, Jump: +0.0001) | PR-AUC: 0.4892 | AR@95: 8.20x
+2026-10-22 01:13:00,763 [INFO] NOTE: Single fold ROC-AUC = 0.9505 > 0.95 on M3_r1_f4 (Matched Default: 0.9504, Single Feat: 0.9035, Jump: +0.0001). Continuing.
+2026-10-22 01:13:00,768 [INFO] [M3] Starting Repeat 2 Fold 0 (40 trials) at 2026-10-22T01:13:00.768611 ...
+2026-10-22 01:17:27,176 [INFO] [M3] Finished r2f0 in 266.4s | Inner Loss: 1.8476 | Outer Loss: 1.2348 | Bias: -0.6128 | ROC-AUC: 0.9656 (Matched: 0.9720, Jump: -0.0063) | PR-AUC: 0.5432 | AR@95: 6.97x
+2026-10-22 01:17:27,176 [INFO] NOTE: Single fold ROC-AUC = 0.9656 > 0.95 on M3_r2_f0 (Matched Default: 0.9720, Single Feat: 0.9146, Jump: -0.0063). Continuing.
+2026-10-22 01:17:27,179 [INFO] [M3] Starting Repeat 2 Fold 1 (40 trials) at 2026-10-22T01:17:27.179959 ...
+2026-10-22 01:22:06,506 [INFO] [M3] Finished r2f1 in 279.3s | Inner Loss: 1.5673 | Outer Loss: 1.8308 | Bias: +0.2635 | ROC-AUC: 0.9317 (Matched: 0.9240, Jump: +0.0077) | PR-AUC: 0.5463 | AR@95: 9.11x
+2026-10-22 01:22:06,511 [INFO] [M3] Starting Repeat 2 Fold 2 (40 trials) at 2026-10-22T01:22:06.511593 ...
+2026-10-22 01:26:04,560 [INFO] [M3] Finished r2f2 in 238.0s | Inner Loss: 1.6289 | Outer Loss: 1.8572 | Bias: +0.2283 | ROC-AUC: 0.9333 (Matched: 0.9267, Jump: +0.0066) | PR-AUC: 0.4454 | AR@95: 10.09x
+2026-10-22 01:26:04,569 [INFO] [M3] Starting Repeat 2 Fold 3 (40 trials) at 2026-10-22T01:26:04.569506 ...
+2026-10-22 01:30:04,809 [INFO] [M3] Finished r2f3 in 240.2s | Inner Loss: 1.7068 | Outer Loss: 1.5521 | Bias: -0.1547 | ROC-AUC: 0.9488 (Matched: 0.9506, Jump: -0.0018) | PR-AUC: 0.4410 | AR@95: 7.26x
+2026-10-22 01:30:04,813 [INFO] [M3] Starting Repeat 2 Fold 4 (40 trials) at 2026-10-22T01:30:04.813639 ...
+2026-10-22 01:33:56,436 [INFO] [M3] Finished r2f4 in 231.6s | Inner Loss: 1.6376 | Outer Loss: 1.6793 | Bias: +0.0417 | ROC-AUC: 0.9455 (Matched: 0.9459, Jump: -0.0005) | PR-AUC: 0.4238 | AR@95: 7.71x
+2026-10-22 01:33:56,452 [INFO] Loaded M4_r0_f0 from cache (Outer Loss: 1.3566).
+2026-10-22 01:33:56,460 [INFO] Loaded M4_r0_f1 from cache (Outer Loss: 1.7064).
+2026-10-22 01:33:56,469 [INFO] Loaded M4_r0_f2 from cache (Outer Loss: 1.4882).
+2026-10-22 01:33:56,477 [INFO] Loaded M4_r0_f3 from cache (Outer Loss: 2.1938).
+2026-10-22 01:33:56,484 [INFO] Loaded M4_r0_f4 from cache (Outer Loss: 1.6837).
+2026-10-22 01:33:56,485 [INFO] [M4] Starting Repeat 1 Fold 0 (40 trials) at 2026-10-22T01:33:56.485981 ...
+2026-10-22 01:39:46,008 [INFO] [M4] Finished r1f0 in 349.5s | Inner Loss: 1.7322 | Outer Loss: 1.7678 | Bias: +0.0356 | ROC-AUC: 0.9390 (Matched: 0.9420, Jump: -0.0031) | PR-AUC: 0.5044 | AR@95: 9.72x
+2026-10-22 01:39:46,015 [INFO] [M4] Starting Repeat 1 Fold 1 (40 trials) at 2026-10-22T01:39:46.015777 ...
+2026-10-22 01:45:10,430 [INFO] [M4] Finished r1f1 in 324.4s | Inner Loss: 1.6588 | Outer Loss: 1.8997 | Bias: +0.2409 | ROC-AUC: 0.9246 (Matched: 0.9256, Jump: -0.0010) | PR-AUC: 0.4716 | AR@95: 12.57x
+2026-10-22 01:45:10,437 [INFO] [M4] Starting Repeat 1 Fold 2 (40 trials) at 2026-10-22T01:45:10.437821 ...
+2026-10-22 01:50:41,055 [INFO] [M4] Finished r1f2 in 330.6s | Inner Loss: 1.6572 | Outer Loss: 1.7929 | Bias: +0.1358 | ROC-AUC: 0.9386 (Matched: 0.9278, Jump: +0.0108) | PR-AUC: 0.4099 | AR@95: 10.54x
+2026-10-22 01:50:41,062 [INFO] [M4] Starting Repeat 1 Fold 3 (40 trials) at 2026-10-22T01:50:41.062698 ...
+2026-10-22 01:54:23,002 [INFO] [M4] Finished r1f3 in 221.9s | Inner Loss: 1.7838 | Outer Loss: 1.5671 | Bias: -0.2168 | ROC-AUC: 0.9419 (Matched: 0.9523, Jump: -0.0104) | PR-AUC: 0.3748 | AR@95: 6.20x
+2026-10-22 01:54:23,008 [INFO] [M4] Starting Repeat 1 Fold 4 (40 trials) at 2026-10-22T01:54:23.008838 ...
+2026-10-22 01:59:39,419 [INFO] [M4] Finished r1f4 in 316.4s | Inner Loss: 1.6493 | Outer Loss: 1.7030 | Bias: +0.0537 | ROC-AUC: 0.9455 (Matched: 0.9316, Jump: +0.0139) | PR-AUC: 0.4420 | AR@95: 7.60x
+2026-10-22 01:59:39,426 [INFO] [M4] Starting Repeat 2 Fold 0 (40 trials) at 2026-10-22T01:59:39.426720 ...
+2026-10-22 02:03:36,099 [INFO] [M4] Finished r2f0 in 236.7s | Inner Loss: 1.8029 | Outer Loss: 1.1387 | Bias: -0.6642 | ROC-AUC: 0.9731 (Matched: 0.9589, Jump: +0.0142) | PR-AUC: 0.5442 | AR@95: 5.75x
+2026-10-22 02:03:36,099 [INFO] NOTE: Single fold ROC-AUC = 0.9731 > 0.95 on M4_r2_f0 (Matched Default: 0.9589, Single Feat: 0.9146, Jump: +0.0142). Continuing.
+2026-10-22 02:03:36,110 [INFO] [M4] Starting Repeat 2 Fold 1 (40 trials) at 2026-10-22T02:03:36.110760 ...
+2026-10-22 02:07:47,332 [INFO] [M4] Finished r2f1 in 251.2s | Inner Loss: 1.5235 | Outer Loss: 1.9832 | Bias: +0.4597 | ROC-AUC: 0.9208 (Matched: 0.9208, Jump: -0.0000) | PR-AUC: 0.5144 | AR@95: 13.34x
+2026-10-22 02:07:47,340 [INFO] [M4] Starting Repeat 2 Fold 2 (40 trials) at 2026-10-22T02:07:47.340177 ...
+2026-10-22 02:12:35,084 [INFO] [M4] Finished r2f2 in 287.7s | Inner Loss: 1.6010 | Outer Loss: 2.1004 | Bias: +0.4994 | ROC-AUC: 0.9162 (Matched: 0.9022, Jump: +0.0140) | PR-AUC: 0.3715 | AR@95: 13.97x
+2026-10-22 02:12:35,091 [INFO] [M4] Starting Repeat 2 Fold 3 (40 trials) at 2026-10-22T02:12:35.091364 ...
+2026-10-22 02:16:18,025 [INFO] [M4] Finished r2f3 in 222.9s | Inner Loss: 1.7157 | Outer Loss: 1.5368 | Bias: -0.1789 | ROC-AUC: 0.9552 (Matched: 0.9476, Jump: +0.0076) | PR-AUC: 0.4337 | AR@95: 9.06x
+2026-10-22 02:16:18,025 [INFO] NOTE: Single fold ROC-AUC = 0.9552 > 0.95 on M4_r2_f3 (Matched Default: 0.9476, Single Feat: 0.9001, Jump: +0.0076). Continuing.
+2026-10-22 02:16:18,037 [INFO] [M4] Starting Repeat 2 Fold 4 (40 trials) at 2026-10-22T02:16:18.037596 ...
+2026-10-22 02:20:41,444 [INFO] [M4] Finished r2f4 in 263.4s | Inner Loss: 1.7305 | Outer Loss: 1.6542 | Bias: -0.0763 | ROC-AUC: 0.9345 (Matched: 0.9157, Jump: +0.0187) | PR-AUC: 0.3173 | AR@95: 6.71x
+2026-10-22 02:20:41,468 [INFO] Loaded M5_r0_f0 from cache (Outer Loss: 1.4785).
+2026-10-22 02:20:41,484 [INFO] Loaded M5_r0_f1 from cache (Outer Loss: 1.6379).
+2026-10-22 02:20:41,502 [INFO] Loaded M5_r0_f2 from cache (Outer Loss: 1.4395).
+2026-10-22 02:20:41,510 [INFO] Loaded M5_r0_f3 from cache (Outer Loss: 2.1697).
+2026-10-22 02:20:41,520 [INFO] Loaded M5_r0_f4 from cache (Outer Loss: 1.7619).
+2026-10-22 02:20:41,522 [INFO] [M5] Starting Repeat 1 Fold 0 (40 trials) at 2026-10-22T02:20:41.522192 ...
+2026-10-22 02:24:10,383 [INFO] [M5] Finished r1f0 in 208.9s | Inner Loss: 1.7828 | Outer Loss: 1.8430 | Bias: +0.0602 | ROC-AUC: 0.9339 (Matched: 0.9372, Jump: -0.0032) | PR-AUC: 0.4967 | AR@95: 10.08x
+2026-10-22 02:24:10,392 [INFO] [M5] Starting Repeat 1 Fold 1 (40 trials) at 2026-10-22T02:24:10.392586 ...
+2026-10-22 02:27:33,793 [INFO] [M5] Finished r1f1 in 203.4s | Inner Loss: 1.6951 | Outer Loss: 1.8607 | Bias: +0.1656 | ROC-AUC: 0.9284 (Matched: 0.9201, Jump: +0.0083) | PR-AUC: 0.5033 | AR@95: 11.23x
+2026-10-22 02:27:33,800 [INFO] [M5] Starting Repeat 1 Fold 2 (40 trials) at 2026-10-22T02:27:33.800903 ...
+2026-10-22 02:31:33,536 [INFO] [M5] Finished r1f2 in 239.7s | Inner Loss: 1.6152 | Outer Loss: 1.7772 | Bias: +0.1620 | ROC-AUC: 0.9310 (Matched: 0.9349, Jump: -0.0040) | PR-AUC: 0.4226 | AR@95: 8.80x
+2026-10-22 02:31:33,544 [INFO] [M5] Starting Repeat 1 Fold 3 (40 trials) at 2026-10-22T02:31:33.544279 ...
+2026-10-22 02:35:52,250 [INFO] [M5] Finished r1f3 in 258.7s | Inner Loss: 1.7158 | Outer Loss: 1.5265 | Bias: -0.1893 | ROC-AUC: 0.9451 (Matched: 0.9510, Jump: -0.0058) | PR-AUC: 0.3530 | AR@95: 6.40x
+2026-10-22 02:35:52,258 [INFO] [M5] Starting Repeat 1 Fold 4 (40 trials) at 2026-10-22T02:35:52.258524 ...
+2026-10-22 02:39:48,836 [INFO] [M5] Finished r1f4 in 236.6s | Inner Loss: 1.6942 | Outer Loss: 1.5799 | Bias: -0.1143 | ROC-AUC: 0.9473 (Matched: 0.9394, Jump: +0.0079) | PR-AUC: 0.4494 | AR@95: 6.37x
+2026-10-22 02:39:48,843 [INFO] [M5] Starting Repeat 2 Fold 0 (40 trials) at 2026-10-22T02:39:48.843659 ...
+2026-10-22 02:43:19,797 [INFO] [M5] Finished r2f0 in 211.0s | Inner Loss: 1.8639 | Outer Loss: 1.1763 | Bias: -0.6877 | ROC-AUC: 0.9727 (Matched: 0.9662, Jump: +0.0065) | PR-AUC: 0.5651 | AR@95: 6.36x
+2026-10-22 02:43:19,798 [INFO] NOTE: Single fold ROC-AUC = 0.9727 > 0.95 on M5_r2_f0 (Matched Default: 0.9662, Single Feat: 0.9146, Jump: +0.0065). Continuing.
+2026-10-22 02:43:19,805 [INFO] [M5] Starting Repeat 2 Fold 1 (40 trials) at 2026-10-22T02:43:19.805068 ...
+2026-10-22 02:48:04,375 [INFO] [M5] Finished r2f1 in 284.6s | Inner Loss: 1.5438 | Outer Loss: 1.9254 | Bias: +0.3816 | ROC-AUC: 0.9219 (Matched: 0.9240, Jump: -0.0021) | PR-AUC: 0.5291 | AR@95: 14.26x
+2026-10-22 02:48:04,384 [INFO] [M5] Starting Repeat 2 Fold 2 (40 trials) at 2026-10-22T02:48:04.384212 ...
+2026-10-22 02:51:27,498 [INFO] [M5] Finished r2f2 in 203.1s | Inner Loss: 1.5840 | Outer Loss: 2.1079 | Bias: +0.5239 | ROC-AUC: 0.9207 (Matched: 0.9151, Jump: +0.0056) | PR-AUC: 0.3772 | AR@95: 13.46x
+2026-10-22 02:51:27,505 [INFO] [M5] Starting Repeat 2 Fold 3 (40 trials) at 2026-10-22T02:51:27.505692 ...
+2026-10-22 02:55:04,042 [INFO] [M5] Finished r2f3 in 216.5s | Inner Loss: 1.7141 | Outer Loss: 1.3914 | Bias: -0.3227 | ROC-AUC: 0.9602 (Matched: 0.9575, Jump: +0.0027) | PR-AUC: 0.4972 | AR@95: 5.89x
+2026-10-22 02:55:04,042 [INFO] NOTE: Single fold ROC-AUC = 0.9602 > 0.95 on M5_r2_f3 (Matched Default: 0.9575, Single Feat: 0.9001, Jump: +0.0027). Continuing.
+2026-10-22 02:55:04,050 [INFO] [M5] Starting Repeat 2 Fold 4 (40 trials) at 2026-10-22T02:55:04.050545 ...
+2026-10-22 02:58:39,268 [INFO] [M5] Finished r2f4 in 215.2s | Inner Loss: 1.6764 | Outer Loss: 1.7708 | Bias: +0.0944 | ROC-AUC: 0.9332 (Matched: 0.9435, Jump: -0.0103) | PR-AUC: 0.3585 | AR@95: 8.31x
+2026-10-22 07:25:50,720 [INFO] Loaded M1_r0_f0 from cache (Outer Loss: 1.2261).
+2026-10-22 07:25:50,722 [INFO] Loaded M1_r0_f1 from cache (Outer Loss: 1.8829).
+2026-10-22 07:25:50,724 [INFO] Loaded M1_r0_f2 from cache (Outer Loss: 1.7902).
+2026-10-22 07:25:50,725 [INFO] Loaded M1_r0_f3 from cache (Outer Loss: 2.1043).
+2026-10-22 07:25:50,726 [INFO] Loaded M1_r0_f4 from cache (Outer Loss: 1.6101).
+2026-10-22 07:25:50,728 [INFO] Loaded M1_r1_f0 from cache (Outer Loss: 1.7329).
+2026-10-22 07:25:50,730 [INFO] Loaded M1_r1_f1 from cache (Outer Loss: 1.6962).
+2026-10-22 07:25:50,731 [INFO] Loaded M1_r1_f2 from cache (Outer Loss: 1.9463).
+2026-10-22 07:25:50,733 [INFO] Loaded M1_r1_f3 from cache (Outer Loss: 1.3720).
+2026-10-22 07:25:50,734 [INFO] Loaded M1_r1_f4 from cache (Outer Loss: 1.5156).
+2026-10-22 07:25:50,742 [INFO] Loaded M1_r2_f0 from cache (Outer Loss: 1.2065).
+2026-10-22 07:25:50,749 [INFO] Loaded M1_r2_f1 from cache (Outer Loss: 2.2826).
+2026-10-22 07:25:50,756 [INFO] Loaded M1_r2_f2 from cache (Outer Loss: 1.8869).
+2026-10-22 07:25:50,764 [INFO] Loaded M1_r2_f3 from cache (Outer Loss: 1.6589).
+2026-10-22 07:25:50,774 [INFO] Loaded M1_r2_f4 from cache (Outer Loss: 1.6490).
+2026-10-22 07:25:50,775 [INFO] Loaded M2_r0_f0 from cache (Outer Loss: 1.2999).
+2026-10-22 07:25:50,776 [INFO] Loaded M2_r0_f1 from cache (Outer Loss: 1.7275).
+2026-10-22 07:25:50,778 [INFO] Loaded M2_r0_f2 from cache (Outer Loss: 1.4495).
+2026-10-22 07:25:50,779 [INFO] Loaded M2_r0_f3 from cache (Outer Loss: 2.1559).
+2026-10-22 07:25:50,781 [INFO] Loaded M2_r0_f4 from cache (Outer Loss: 1.8467).
+2026-10-22 07:25:50,791 [INFO] Loaded M2_r1_f0 from cache (Outer Loss: 1.7076).
+2026-10-22 07:25:50,799 [INFO] Loaded M2_r1_f1 from cache (Outer Loss: 2.0036).
+2026-10-22 07:25:50,806 [INFO] Loaded M2_r1_f2 from cache (Outer Loss: 1.8949).
+2026-10-22 07:25:50,814 [INFO] Loaded M2_r1_f3 from cache (Outer Loss: 1.5045).
+2026-10-22 07:25:50,821 [INFO] Loaded M2_r1_f4 from cache (Outer Loss: 1.5812).
+2026-10-22 07:25:50,831 [INFO] Loaded M2_r2_f0 from cache (Outer Loss: 1.1064).
+2026-10-22 07:25:50,838 [INFO] Loaded M2_r2_f1 from cache (Outer Loss: 1.9866).
+2026-10-22 07:25:50,847 [INFO] Loaded M2_r2_f2 from cache (Outer Loss: 2.0191).
+2026-10-22 07:25:50,854 [INFO] Loaded M2_r2_f3 from cache (Outer Loss: 1.5661).
+2026-10-22 07:25:50,862 [INFO] Loaded M2_r2_f4 from cache (Outer Loss: 1.6667).
+2026-10-22 07:25:50,864 [INFO] Loaded M3_r0_f0 from cache (Outer Loss: 1.3320).
+2026-10-22 07:25:50,866 [INFO] Loaded M3_r0_f1 from cache (Outer Loss: 1.6761).
+2026-10-22 07:25:50,867 [INFO] Loaded M3_r0_f2 from cache (Outer Loss: 1.5758).
+2026-10-22 07:25:50,868 [INFO] Loaded M3_r0_f3 from cache (Outer Loss: 2.0395).
+2026-10-22 07:25:50,869 [INFO] Loaded M3_r0_f4 from cache (Outer Loss: 1.6863).
+2026-10-22 07:25:50,878 [INFO] Loaded M3_r1_f0 from cache (Outer Loss: 1.7660).
+2026-10-22 07:25:50,888 [INFO] Loaded M3_r1_f1 from cache (Outer Loss: 1.7798).
+2026-10-22 07:25:50,896 [INFO] Loaded M3_r1_f2 from cache (Outer Loss: 1.7348).
+2026-10-22 07:25:50,902 [INFO] Loaded M3_r1_f3 from cache (Outer Loss: 1.5218).
+2026-10-22 07:25:50,910 [INFO] Loaded M3_r1_f4 from cache (Outer Loss: 1.5545).
+2026-10-22 07:25:50,918 [INFO] Loaded M3_r2_f0 from cache (Outer Loss: 1.2348).
+2026-10-22 07:25:50,925 [INFO] Loaded M3_r2_f1 from cache (Outer Loss: 1.8308).
+2026-10-22 07:25:50,932 [INFO] Loaded M3_r2_f2 from cache (Outer Loss: 1.8572).
+2026-10-22 07:25:50,940 [INFO] Loaded M3_r2_f3 from cache (Outer Loss: 1.5521).
+2026-10-22 07:25:50,950 [INFO] Loaded M3_r2_f4 from cache (Outer Loss: 1.6793).
+2026-10-22 07:25:50,951 [INFO] Loaded M4_r0_f0 from cache (Outer Loss: 1.3566).
+2026-10-22 07:25:50,952 [INFO] Loaded M4_r0_f1 from cache (Outer Loss: 1.7064).
+2026-10-22 07:25:50,954 [INFO] Loaded M4_r0_f2 from cache (Outer Loss: 1.4882).
+2026-10-22 07:25:50,956 [INFO] Loaded M4_r0_f3 from cache (Outer Loss: 2.1938).
+2026-10-22 07:25:50,957 [INFO] Loaded M4_r0_f4 from cache (Outer Loss: 1.6837).
+2026-10-22 07:25:50,964 [INFO] Loaded M4_r1_f0 from cache (Outer Loss: 1.7678).
+2026-10-22 07:25:50,972 [INFO] Loaded M4_r1_f1 from cache (Outer Loss: 1.8997).
+2026-10-22 07:25:50,980 [INFO] Loaded M4_r1_f2 from cache (Outer Loss: 1.7929).
+2026-10-22 07:25:50,986 [INFO] Loaded M4_r1_f3 from cache (Outer Loss: 1.5671).
+2026-10-22 07:25:50,994 [INFO] Loaded M4_r1_f4 from cache (Outer Loss: 1.7030).
+2026-10-22 07:25:51,002 [INFO] Loaded M4_r2_f0 from cache (Outer Loss: 1.1387).
+2026-10-22 07:25:51,010 [INFO] Loaded M4_r2_f1 from cache (Outer Loss: 1.9832).
+2026-10-22 07:25:51,017 [INFO] Loaded M4_r2_f2 from cache (Outer Loss: 2.1004).
+2026-10-22 07:25:51,027 [INFO] Loaded M4_r2_f3 from cache (Outer Loss: 1.5368).
+2026-10-22 07:25:51,035 [INFO] Loaded M4_r2_f4 from cache (Outer Loss: 1.6542).
+2026-10-22 07:25:51,036 [INFO] Loaded M5_r0_f0 from cache (Outer Loss: 1.4785).
+2026-10-22 07:25:51,038 [INFO] Loaded M5_r0_f1 from cache (Outer Loss: 1.6379).
+2026-10-22 07:25:51,040 [INFO] Loaded M5_r0_f2 from cache (Outer Loss: 1.4395).
+2026-10-22 07:25:51,041 [INFO] Loaded M5_r0_f3 from cache (Outer Loss: 2.1697).
+2026-10-22 07:25:51,042 [INFO] Loaded M5_r0_f4 from cache (Outer Loss: 1.7619).
+2026-10-22 07:25:51,050 [INFO] Loaded M5_r1_f0 from cache (Outer Loss: 1.8430).
+2026-10-22 07:25:51,059 [INFO] Loaded M5_r1_f1 from cache (Outer Loss: 1.8607).
+2026-10-22 07:25:51,067 [INFO] Loaded M5_r1_f2 from cache (Outer Loss: 1.7772).
+2026-10-22 07:25:51,075 [INFO] Loaded M5_r1_f3 from cache (Outer Loss: 1.5265).
+2026-10-22 07:25:51,082 [INFO] Loaded M5_r1_f4 from cache (Outer Loss: 1.5799).
+2026-10-22 07:25:51,090 [INFO] Loaded M5_r2_f0 from cache (Outer Loss: 1.1763).
+2026-10-22 07:25:51,097 [INFO] Loaded M5_r2_f1 from cache (Outer Loss: 1.9254).
+2026-10-22 07:25:51,104 [INFO] Loaded M5_r2_f2 from cache (Outer Loss: 2.1079).
+2026-10-22 07:25:51,112 [INFO] Loaded M5_r2_f3 from cache (Outer Loss: 1.3914).
+2026-10-22 07:25:51,123 [INFO] Loaded M5_r2_f4 from cache (Outer Loss: 1.7708).
+2026-10-22 07:25:51,709 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-22 07:25:51,715 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-22 07:25:51,774 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-22 07:25:51,778 [INFO] Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-10-22 07:25:53,709 [INFO] [E2b - M1] Running 38 trials (target: 38) with 10 inner folds ...
+2026-10-22 07:37:49,196 [INFO] [E2b - M1] Saved final params to C:\Users\moore\Desktop\破產預測\bankruptcy\outputs\models\best_params\M1.json
+2026-10-22 07:37:49,398 [INFO] [E2b - M2] Running 60 trials (target: 60) with 10 inner folds ...
+2026-10-22 08:06:13,311 [INFO] [E2b - M2] Saved final params to C:\Users\moore\Desktop\破產預測\bankruptcy\outputs\models\best_params\M2.json
+2026-10-22 08:06:13,483 [INFO] [E2b - M3] Running 60 trials (target: 60) with 10 inner folds ...
+2026-10-22 08:26:03,000 [INFO] [E2b - M3] Saved final params to C:\Users\moore\Desktop\破產預測\bankruptcy\outputs\models\best_params\M3.json
+2026-10-22 08:26:03,194 [INFO] [E2b - M4] Running 60 trials (target: 60) with 10 inner folds ...
+2026-10-22 08:42:38,815 [INFO] [E2b - M4] Saved final params to C:\Users\moore\Desktop\破產預測\bankruptcy\outputs\models\best_params\M4.json
+2026-10-22 08:42:39,021 [INFO] [E2b - M5] Running 60 trials (target: 60) with 10 inner folds ...
+2026-10-22 09:03:16,834 [INFO] [E2b - M5] Saved final params to C:\Users\moore\Desktop\破產預測\bankruptcy\outputs\models\best_params\M5.json
