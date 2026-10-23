@@ -1,0 +1,68 @@
+section,description,value,source_file,column,row_identifier
+1. 資料與設定,全體樣本數,6819,data/data.csv,row_count,all
+1. 資料與設定,全體財務特徵數,95,data/data.csv,col_count_minus_target,features
+1. 資料與設定,全體破產公司數,220,data/data.csv,Bankrupt?.sum(),target==1
+1. 資料與設定,全體破產盛行率,3.2263%,data/data.csv,220/6819,percentage
+1. 資料與設定,訓練集樣本數,5455,outputs/models/splits.joblib,len(train_idx),train
+1. 資料與設定,測試集樣本數,1364,outputs/models/splits.joblib,len(test_idx),test
+1. 資料與設定,訓練集盛行率,3.2264%,outputs/models/splits.joblib,176/5455,train
+1. 資料與設定,測試集盛行率,3.2258%,outputs/models/splits.joblib,44/1364,test
+1. 資料與設定,QuantileScaler輸出分布,normal,outputs/models/final/model_M3.joblib,scaler.scaler_.output_distribution,M3
+2. E0 基準,Dummy PR-AUC,0.0323,outputs/tables/e0_baselines_summary.csv,fold_pr_auc_mean,Dummy
+2. E0 基準,Dummy AR@0.95,31.0x,outputs/tables/e0_baselines_summary.csv,fold_alert_ratio@recall_0.95_mean,Dummy
+2. E0 基準,單特徵 15折PR-AUC均值,0.3012,outputs/tables/e0_baselines_summary.csv,fold_pr_auc_mean,Single Strongest Feature
+2. E0 基準,單特徵 OOF PR-AUC,0.2809,outputs/tables/e0_baselines_summary.csv,oof_pr_auc_mean,Single Strongest Feature
+2. E0 基準,單特徵 15折ROC-AUC均值,0.8861,outputs/tables/e0_baselines_summary.csv,fold_roc_auc_mean,Single Strongest Feature
+2. E0 基準,單特徵 15折AR@0.95均值,16.1x,outputs/tables/e0_baselines_summary.csv,fold_alert_ratio@recall_0.95_mean,Single Strongest Feature
+2. E0 基準,基準LR 15折PR-AUC均值,0.3938,outputs/tables/e0_baselines_summary.csv,fold_pr_auc_mean,Base Logistic Regression (S0)
+2. E0 基準,基準LR OOF PR-AUC,0.3655,outputs/tables/e0_baselines_summary.csv,oof_pr_auc_mean,Base Logistic Regression (S0)
+2. E0 基準,基準LR 15折AR@0.95均值,10.3x,outputs/tables/e0_baselines_summary.csv,fold_alert_ratio@recall_0.95_mean,Base Logistic Regression (S0)
+2. EDA,EDA最強單特徵全訓練集ROC-AUC,0.8892,outputs/tables/univariate_auc.csv,1 - raw_auc,Persistent EPS in the Last Four Seasons
+2. E1 前處理,CorrelationFilter保留特徵數,72,outputs/models/final/model_M3.joblib,corr_filter.selected_features_,M3 pipeline
+2. E2 調參,M3調參後15折AR@0.95標準差,1.35x,outputs/tables/e2a_nested_summary.csv,ar95_fold_std,M3
+2. E3 模型集成,E_A ECDF版15折損失均值,1.6344,outputs/tables/e3b_ensemble_summary.csv,loss_fold_mean,E_A
+2. E3 模型集成,E_A Pooled OOF損失,1.6525,outputs/tables/e3b_ensemble_summary.csv,loss_pooled_oof,E_A
+2. E3 模型集成,E_A 折內排名版15折損失均值,1.6327,outputs/tables/e3b_ensemble_summary.csv,internal_loss_fold_mean,E_A
+2. E3 模型集成,E_A ECDF版15折AR@0.95均值,8.06x,outputs/tables/e3b_ensemble_summary.csv,ar95_fold_mean,E_A
+2. E3 模型集成,E_A 折內排名版15折AR@0.95均值,8.04x,outputs/tables/e3b_ensemble_summary.csv,internal_ar95_fold_mean,E_A
+2. E3 模型集成,E_A 15折PR-AUC均值,0.4598,outputs/tables/e3b_ensemble_summary.csv,pr_auc_fold_mean,E_A
+2. E3 模型集成,E_A Pooled OOF PR-AUC,0.4410,outputs/tables/e3b_ensemble_summary.csv,pr_auc_pooled_oof,E_A
+2. E3 模型集成,5模型兩兩比較Holm p值全數,1.0,outputs/tables/e3a_pairwise_models.csv,min(p_value_holm),10 pairs x 5 metrics
+2. E3 模型集成,4集成x5單模型比較最小Holm p值,0.6195,outputs/tables/e3b_ensemble_vs_single_paired.csv,min(diff_loss_p_nb)*20,4 candidates x 5 models
+2. E3d 難抓樣本,3個repeat皆被5模型全漏抓家數,1,outputs/tables/e3d_hard_positives.csv,missed_by_all_in_n_repeats==3,all
+2. E3d 難抓樣本,至少1個repeat被5模型全漏抓家數,4,outputs/tables/e3d_hard_positives.csv,missed_by_all_models_any_repeat==True,all
+2. E4 門檻,E_A R80建議邊際,0.02,outputs/tables/operating_points_for_report.csv,recommended_margin,E_A R80
+2. E4 門檻,E_A R90建議邊際,0.06,outputs/tables/operating_points_for_report.csv,recommended_margin,E_A R90
+2. E4 門檻,E_A R95建議邊際,0.04,outputs/tables/operating_points_for_report.csv,recommended_margin,E_A R95
+2. E4 校準,Platt Brier Skill Score,0.1839,outputs/tables/e4b_calibration_summary.csv,brier_skill_score,Platt Scaling (Sigmoid)
+2. E4 校準,Isotonic Brier Skill Score,0.2650,outputs/tables/e4b_calibration_summary.csv,brier_skill_score,Isotonic Regression
+2. E4 校準,Isotonic AR@0.95,10.02x,outputs/tables/e4b_calibration_summary.csv,ar95_mean,Isotonic Regression
+2. E5 特徵重要度,k=10損失增加差值,+0.1335,outputs/tables/e5b_compact_vs_full_paired.csv,loss_diff_mean,k=10
+2. E5 特徵重要度,k=10 Holm校正p值,0.0251,outputs/tables/e5b_compact_vs_full_paired.csv,loss_p_holm,k=10
+2. E5 特徵重要度,k=20損失增加差值,+0.0841,outputs/tables/e5b_compact_vs_full_paired.csv,loss_diff_mean,k=20
+2. E5 特徵重要度,k=20 Holm校正p值,0.1423,outputs/tables/e5b_compact_vs_full_paired.csv,loss_p_holm,k=20
+2. E5 特徵重要度,k=30損失增加差值,+0.0354,outputs/tables/e5b_compact_vs_full_paired.csv,loss_diff_mean,k=30
+2. E5 特徵重要度,k=30 Holm校正p值,0.4485,outputs/tables/e5b_compact_vs_full_paired.csv,loss_p_holm,k=30
+2. E6 測試集,E_A R90測試集捕獲數,43/44,outputs/e6/e6_operating_points.csv,positives_caught,E_A R90
+2. E6 測試集,E_A R90測試集召回率,97.73%,outputs/e6/e6_operating_points.csv,actual_recall,E_A R90
+2. E6 測試集,E_A R90測試集預警倍數,7.66x,outputs/e6/e6_operating_points.csv,alert_ratio,E_A R90
+2. E6 測試集,E_A R90測試集精確率,12.76%,outputs/e6/e6_operating_points.csv,precision,E_A R90
+2. E6 測試集,E_A R95測試集捕獲數,44/44,outputs/e6/e6_operating_points.csv,positives_caught,E_A R95
+2. E6 測試集,E_A R95測試集召回率,100.00%,outputs/e6/e6_operating_points.csv,actual_recall,E_A R95
+2. E6 測試集,E_A R95測試集預警倍數,11.91x,outputs/e6/e6_operating_points.csv,alert_ratio,E_A R95
+2. E6 測試集,E_A R95測試集精確率,8.40%,outputs/e6/e6_operating_points.csv,precision,E_A R95
+2. E6 測試集,E_A測試集PR-AUC點估計,0.5676,outputs/e6/e6_ranking_metrics.csv,point_estimate,E_A pr_auc
+2. E6 測試集,E_A測試集ROC-AUC點估計,0.9621,outputs/e6/e6_ranking_metrics.csv,point_estimate,E_A roc_auc
+2. E6 測試集,E_A測試集AR@0.95點估計,5.25x,outputs/e6/e6_ranking_metrics.csv,point_estimate,E_A ar@r_95
+2. E6 測試集,E_A與M3 PR-AUC差值95%CI,"[-0.0226, +0.1044]",outputs/e6/e6_paired_bootstrap.csv,ci_lower..upper,E_A - M3 pr_auc
+2. E7a 盛行率,R90在pi=1%之CV精確率,3.61%,outputs/tables/e7a_prevalence_sensitivity.csv,cv_precision_mean,E_A R90 pi=0.01
+2. E7a 盛行率,R90在pi=1%之測試集精確率,4.24%,outputs/tables/e7a_prevalence_sensitivity.csv,test_precision,E_A R90 pi=0.01
+2. E7a 盛行率,R90在pi=1%之CV審查成本,27.7,outputs/tables/e7a_prevalence_sensitivity.csv,cv_effort_per_positive,E_A R90 pi=0.01
+2. E7a 盛行率,R90在pi=1%之測試集審查成本,23.6,outputs/tables/e7a_prevalence_sensitivity.csv,test_effort_per_positive,E_A R90 pi=0.01
+2. E7a 盛行率,R95在pi=1%之CV精確率,2.36%,outputs/tables/e7a_prevalence_sensitivity.csv,cv_precision_mean,E_A R95 pi=0.01
+2. E7a 盛行率,R95在pi=1%之測試集精確率,2.70%,outputs/tables/e7a_prevalence_sensitivity.csv,test_precision,E_A R95 pi=0.01
+2. E7a 盛行率,R95在pi=1%之CV審查成本,42.3,outputs/tables/e7a_prevalence_sensitivity.csv,cv_effort_per_positive,E_A R95 pi=0.01
+2. E7a 盛行率,R95在pi=1%之測試集審查成本,37.0,outputs/tables/e7a_prevalence_sensitivity.csv,test_effort_per_positive,E_A R95 pi=0.01
+2. E7b 種子穩定性,損失種子標準差比折間標準誤,23.74%,outputs/tables/e7b_seed_stability.csv,ratio_seed_to_fold_se,loss
+2. E7b 種子穩定性,AR95種子標準差比折間標準誤,26.91%,outputs/tables/e7b_seed_stability.csv,ratio_seed_to_fold_se,ar95
+2. E7b 種子穩定性,PR-AUC種子標準差比折間標準誤,8.33%,outputs/tables/e7b_seed_stability.csv,ratio_seed_to_fold_se,pr_auc

@@ -1,6 +1,6 @@
 # 破產預測專案成果摘要 (RESULTS_SUMMARY.md)
 
-本文件為專案最終技術報告之唯一數據入口與核心成果彙整。所有數據均直接引自 `outputs/` 目錄下之已固化與評估表格，並附上精確來源路徑。
+本文件為專案最終技術報告之唯一數據入口與核心成果彙整。本報告中所有數值皆由 `scripts/make_results_summary.py` 自 `outputs/` 目錄之資料表讀取並自動產出，資料來源與行列對齊記錄於 `outputs/tables/results_summary_sources.csv`。
 
 ---
 
@@ -19,13 +19,13 @@
 ## 1. 資料與實驗設定摘要
 
 - **資料規模與標籤分布**：
-  - 全體資料：6,819 筆企業財報樣本，95 個財務特徵，破產標籤（`Bankrupt?`）共 220 筆（盛行率 3.2258%）。
+  - 全體資料：6819 筆企業財報樣本，95 個財務特徵，破產標籤（`Bankrupt?`）共 220 筆（盛行率 3.2263%）。
   - 資料切分：80/20 固定分層切分（Stratified Split，種子 42）：
-    - **訓練集 (Training Set)**：5,455 筆，包含 176 家破產企業（盛行率 3.2264%）。
-    - **最終測試集 (Holdout Test Set)**：1,364 筆，包含 44 家破產企業（盛行率 3.2258%），嚴格一次性解封鎖定。
+    - **訓練集 (Training Set)**：5455 筆，包含 176 家破產企業（盛行率 3.2264%）。
+    - **最終測試集 (Holdout Test Set)**：1364 筆，包含 44 家破產企業（盛行率 3.2258%），嚴格一次性解封鎖定。
   - 交叉驗證架構：外層 5 折 $\times$ 3 次重複（15 折重複分層交叉驗證，Repeated Stratified K-Fold）。切分索引固化於 `outputs/models/splits.joblib`。
 - **前處理管線 (Preprocessing Pipeline)**：
-  - 特徵選擇器 (`FeatureSelector`) $\to$ 常數與完全重複特徵剔除 (`DropConstantAndDuplicate`，剔除 1 常數 + 2 重複特徵) $\to$ Winsorizer 關閉 $\to$ LargeValueIndicator 關閉 $\to$ 分位數轉換 (`QuantileScaler`, output_distribution='uniform') $\to$ 相關性過濾 (`CorrelationFilter`, $|r| > 0.95$ 貪婪剔除，保留 72 個特徵)。
+  - 特徵選擇器 (`FeatureSelector`) $\to$ 常數與完全重複特徵剔除 (`DropConstantAndDuplicate`，剔除 1 常數 + 2 重複特徵) $\to$ Winsorizer 關閉 $\to$ LargeValueIndicator 關閉 $\to$ 分位數轉換 (`QuantileScaler`, output_distribution='normal') $\to$ 相關性過濾 (`CorrelationFilter`, $|r| > 0.95$ 貪婪剔除，保留 72 個特徵)。
 - **最終模型組成與位置**：
   - **主要模型 $E_A$ (Primary Ensemble)**：M3 (ExtraTrees) + M4 (XGBoost) + M5 (LightGBM) 的經驗累積分布函數 (ECDF) 百分位等權平均。
   - **控制組單一模型 M3 (Control Single Model)**：ExtraTreesClassifier。
@@ -39,36 +39,45 @@
 
 ## 2. 各階段一句話結論與關鍵數字 (E0～E7)
 
+- **EDA（探索性資料分析）**：
+  在全量訓練集（5,455 筆）上，最強單變數財務指標 `Persistent EPS in the Last Four Seasons` 之 ROC-AUC 為 0.8892（反轉方向後）。揭示財務體質對破產具強大排序能力。
+  *數據來源：`outputs/tables/univariate_auc.csv`*
+
 - **E0（基準線建立）**：
-  隨機猜測 PR-AUC 僅 0.0323、AR@0.95 為 31.0x；單一最強財務特徵（`Persistent EPS in the Last Four Seasons`）AR@0.95 達到 16.1x（PR-AUC 0.2842）；基準邏輯斯迴歸（S0）AR@0.95 達到 10.3x（PR-AUC 0.3546）。證實財務指標具備強大非隨機預測力。
+  隨機猜測折均 PR-AUC 僅 0.0323、AR@0.95 為 31.0x；最強單特徵 15 折平均 PR-AUC 為 0.3012（OOF 合併為 0.2809），折均 AR@0.95 為 16.1x（折均 ROC-AUC 為 0.8861）；基準羅吉斯迴歸 S0 之 15 折平均 PR-AUC 為 0.3938（OOF 合併為 0.3655），折均 AR@0.95 為 10.3x。
   *數據來源：`outputs/tables/e0_baselines_summary.csv`*
 
 - **E1（前處理與不平衡策略消融）**：
-  42 組前處理與重抽樣策略比較顯示，SMOTE 等重抽樣策略相對無重抽樣（S0）的 95% Nadeau-Bengio 配對信賴區間全數跨越 0（無檢出統計差異）；關閉 Winsorizer 略優並保留 72 個過濾特徵。確立前處理設定：Winsorizer 關、CorrFilter 開、QuantileScaler 開。
+  42 組前處理與重抽樣策略比較顯示，SMOTE 等重抽樣策略相對無重抽樣（S0）的 95% Nadeau-Bengio 配對信賴區間全數跨越 0（未檢出差異）；關閉 Winsorizer 與預設相比未檢出差異，因無證據需要且較簡單而關閉，保留 72 個過濾特徵。確立前處理設定：Winsorizer 關、CorrFilter 開、QuantileScaler 開。
   *數據來源：`outputs/tables/e1a_paired_vs_s0.csv`、`outputs/tables/e1b_ablation.csv`*
 
 - **E2（巢狀超參數調優）**：
-  M1～M5 經 15 折巢狀調參後，相對預設參數均無檢出統計差異（Nadeau-Bengio 區間均跨越 0，$p_{\text{Holm}} = 1.0$），調參地景極度平坦；M3 (ExtraTrees) 折間標準差最小（1.35x）。確立最佳參數固化。
+  M1～M5 經 15 折巢狀調參後，相對預設參數均未檢出差異（Nadeau-Bengio 區間均跨越 0，$p_{\text{Holm}} = 1.0$），調參地景極度平坦；M3 (ExtraTrees) 折間標準差最小（1.35x）。確立最佳參數固化。
   *數據來源：`outputs/tables/e2a_nested_summary.csv`、`outputs/tables/e2b_final_params_summary.csv`*
 
 - **E3（模型比較與集成）**：
-  5 個單一機器學習模型在統計上無法區分（20 組配對經 Holm 校正後 $p_{\text{Holm}} = 0.6195 \gg 0.05$）；ECDF 排名等權集成 $E_A$ 相比單一最佳模型展現穩定性小幅改善（折均 AR@0.95 為 8.04x、PR-AUC 為 0.4439、3 點預警損失為 1.6366）。選定 $E_A$ 為主要模型、M3 為控制組。
+  5 個單一機器學習模型兩兩比較（10 對模型 $\times$ 5 個指標共 50 組檢定），Nadeau-Bengio 調整之 Holm 校正 $p$ 值全數為 $p_{\text{Holm}} = 1.0$，統計上無法區分；4 個集成與 5 個單一模型配對比較（20 組配對）最小之 Holm $p$ 值為 $p_{\text{Holm}} = 0.6195 > 0.05$；ECDF 排名等權集成 $E_A$ 展現數值上的穩定小幅改善：15 折平均 AR@0.95 為 8.06x（折內排名版為 8.04x）、15 折平均 PR-AUC 為 0.4598（Pooled OOF 為 0.4410）、15 折平均損失為 1.6344（折內排名版為 1.6327，Pooled OOF 為 1.6525）。選定 $E_A$ 為主要模型、M3 為控制組。
   *數據來源：`outputs/tables/e3a_pairwise_models.csv`、`outputs/tables/e3b_ensemble_summary.csv`*
 
+- **E3d（難抓樣本探索）**：
+  訓練集 176 家破產企業在 5 模型 $\times$ 3 repeat（共 15 次評估）中，3 個 repeat 皆被 5 個模型全數漏抓者僅 1 家（原始列號 2246，漏抓 15 次）；在至少 1 個 repeat 中被 5 模型全數漏抓者共 4 家。
+  *數據來源：`outputs/tables/e3d_hard_positives.csv`*
+
 - **E4（工作點固化與機率校準）**：
-  確定在未校準連續排名上固化門檻以避免 ties，引入安全邊際 $m$（$E_A$: R80 $m=0.02$, R90 $m=0.06$, R95 $m=0.04$, R100 $m=0.00$）；Platt Scaling 嚴格保序維持 AR@0.95（8.06x，BSS 0.1839），Isotonic 出現階梯 ties 破壞尾端排名（AR 惡化至 10.02x）。固化門檻與校準器存於 `outputs/models/final/`。
+  確定在未校準連續排名上固化門檻以避免 ties，引入安全邊際 $m$（$E_A$: R80 $m=0.02$, R90 $m=0.06$, R95 $m=0.04$, R100 $m=0.00$）；Platt Scaling 嚴格保序（BSS 為 0.1839），Isotonic 出現階梯 ties 破壞尾端排名使 AR 惡化至 10.02x（BSS 為 0.2650）。固化門檻與校準器存於 `outputs/models/final/`。
   *數據來源：`outputs/tables/operating_points_for_report.csv`、`outputs/tables/e4b_calibration_summary.csv`*
 
 - **E5（特徵重要度、可解釋性與精簡特徵集）**：
-  SHAP 分析確立獲利能力、流動性與負債比率為三大關鍵風險因子（Family 38 負債比率家族 100% 進入前 20 名）；精簡特徵巢狀消融顯示 $k=10$ 時損失顯著增加 $+0.1335$（$p_{\text{Holm}} = 0.0251$），而 $k=20$ 與 $k=30$ 與全特徵無檢出統計差異；產出 12 個核心特徵（`core_features.txt`）與 18 個擴大核心特徵（`core_features_extended.txt`）。
+  SHAP 分析顯示模型主要依賴獲利能力、流動性與負債比率三大面向（Family 38 負債比率家族 100% 進入前 20 名）；精簡特徵巢狀消融顯示 $k=10$ 時損失增加 +0.1335（$p_{\text{Holm}} = 0.0251$），而 $k=20$（差值 +0.0841, $p_{\text{Holm}} = 0.1423$）與 $k=30$（差值 +0.0354, $p_{\text{Holm}} = 0.4485$）與全特徵未檢出統計差異（但 $k=20$ 的點估計較全特徵差，未檢出差異受限於每折約 35 個破產樣本之檢定力）；產出 12 個核心特徵（`core_features.txt`）與 18 個擴大核心特徵（`core_features_extended.txt`）。
   *數據來源：`outputs/tables/e5b_compact_vs_full_paired.csv`、`outputs/tables/e5b_core_features.csv`*
 
 - **E6（最終測試集正式評估，嚴格一次性解封）**：
-  測試集（1,364 筆，44 家破產）一次性解封鎖定（`outputs/logs/E6_LOCK`），所有工作點全數達成目標召回率（$R=0.90$ 捕獲 43/44 家、$R=0.95$ 捕獲 44/44 家）；$E_A - M3$ 配對 Bootstrap 差值 95% CI 跨越 0，統計上無法區分；測試集點估計（PR-AUC 0.5676, AR@0.95 5.25x）高於 15 折 CV 均值，顯示測試集看起來較容易、不可將 100% 召回當作未來保證，專題結論以 CV 為主、測試集為確認。
+  測試集（1,364 筆，44 家破產）一次性解封鎖定（`outputs/logs/E6_LOCK`），所有工作點全數達成目標召回率（$R=0.90$ 捕獲 43/44，實際召回 97.73%，預警倍數 7.66x，精確率 12.76%；$R=0.95$ 捕獲 44/44，實際召回 100.00%，預警倍數 11.91x，精確率 8.40%）；$E_A - M3$ 配對 Bootstrap 差值 95% CI 為 [-0.0226, +0.1044]，區間跨越 0，統計上無法區分；測試集點估計（PR-AUC 0.5676, ROC-AUC 0.9621, AR@0.95 5.25x）優於（較低）15 折 CV 均值，顯示測試集看起來較容易、不可將 100% 召回當作未來保證，專題結論以 CV 估計為主、測試集為確認。
   *數據來源：`outputs/e6/e6_operating_points.csv`、`outputs/e6/e6_vs_cv.csv`、`outputs/e6/e6_ranking_metrics.csv`、`outputs/e6/e6_paired_bootstrap.csv`*
 
 - **E7（盛行率敏感度與隨機種子穩定性）**：
-  E7a 解析推導顯示，在真實世界較低破產盛行率（例如 1.0%）下，$E_A$ $R=0.90$ 精確率為 3.61%（CV）/ 4.24%（測試集），每抓 1 家需審查 27.7 家（CV）/ 23.6 家（測試集）；E7b 跨 5 組隨機種子評估顯示，種子標準差為 15 折平均標準誤（$\sigma_{\text{fold}} / \sqrt{15}$）的 8.3%～26.9%，證實種子造成的變動遠小於折間變動（註明：E7b 使用 E2b 參數，絕對水準偏樂觀，僅供種子穩定性評估）。
+  - **E7a**：以解析公式推導母體破產率 $\pi \in \{0.5\%, 1\%, 2\%, 3.2\%, 5\%\}$ 下的營運指標；假設條件特徵分布不變，在市場破產率為 1.0% 時，$E_A$ $R=0.90$ 精確率為 3.61%（CV）/ 4.24%（測試集），每抓 1 家需審查 27.7 家（CV）/ 23.6 家（測試集）；$R=0.95$ 精確率為 2.36%（CV）/ 2.70%（測試集），每抓 1 家需審查 42.3 家（CV）/ 37.0 家（測試集）。
+  - **E7b**：5 組隨機種子（SMOTE 與分類器隨機性）外層 15 折評估顯示，種子標準差為 15 折平均標準誤（$\sigma_{\text{fold}} / \sqrt{15}$）的 8.33%（PR-AUC）、23.74%（損失）、26.91%（AR@0.95），證實種子造成的變動遠小於折間變動（註明：E7b 使用 E2b 參數，絕對水準偏樂觀，僅供種子穩定性評估）。
   *數據來源：`outputs/tables/e7a_prevalence_sensitivity.csv`、`outputs/tables/e7b_seed_stability.csv`*
 
 ---
@@ -119,9 +128,9 @@
 
 | 評估指標 | 5 組種子 15 折均值 | 種子標準差 ($\sigma_{\text{seed}}$) | 15 折平均之標準誤 ($\text{SE}_{\text{fold}} = \sigma_{\text{fold}}/\sqrt{15}$) | 變動比值 ($\sigma_{\text{seed}} / \text{SE}_{\text{fold}}$) | 結論口徑 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **3 點 log 預警損失** | 1.6150 (範圍: [1.5940, 1.6303]) | **0.0147** | **0.0620** | **23.74%** | 種子變動遠小於折間變動 |
-| **AR@0.95** | 7.9045x (範圍: [7.7266, 8.0489]) | **0.1479x** | **0.5496x** | **26.91%** | 種子變動遠小於折間變動 |
-| **PR-AUC** | 0.4758 (範圍: [0.4743, 0.4785]) | **0.0017** | **0.0204** | **8.33%** | 種子變動遠小於折間變動 |
+| **3 點 log 預警損失** | 1.6150 (範圍: [1.5940, 1.6303]) | **0.0147** | **0.0620** | **23.74%** | 種子造成的變動遠小於折間變動 |
+| **AR@0.95** | 7.9045x (範圍: [7.7266, 8.0489]) | **0.1479x** | **0.5496x** | **26.91%** | 種子造成的變動遠小於折間變動 |
+| **PR-AUC** | 0.4758 (範圍: [0.4743, 0.4785]) | **0.0017** | **0.0204** | **8.33%** | 種子造成的變動遠小於折間變動 |
 
 > **方法學註記**：E7b 使用 E2b 最終參數，這些參數是在完整訓練集上調出，因此 E7b 絕對水準偏樂觀，不可當作預期表現；無偏泛化估計以巢狀 CV（E2a/E3）與 E6 為準。E7b 僅用於評估隨機種子穩定性。
 
@@ -131,43 +140,51 @@
 
 1. **缺乏企業識別碼與時間戳記**：資料集無公司 ID 與財報年份，無法排除同一公司跨年度被重複抽樣的可能性，亦無法執行真實世界的時間序列切分（Out-of-Time 驗證）。
 2. **正樣本極度稀缺與高折間噪音**：外層每折僅約 35 個破產正樣本，95% 召回高度取決於邊界 1～2 家樣本，單折評估指標具有不可避免的長右尾變異。
-3. **破產盛行率與母體偏離**：資料集破產率 3.23% 遠高於真實商業世界的母體破產率（通常 $< 0.5\% \sim 1\%$），絕對機率與預警倍數在實際落地時需做母體先驗勝算比調整。
+3. **破產盛行率與母體偏離**：資料集破產率 3.23% 高於真實商業世界的母體破產率（通常假設 $< 0.5\% \sim 1\%$，此為假設值，需以資料來源查證），絕對機率與預警倍數在實際落地時需做母體先驗勝算比調整。
 4. **ECDF 參考分布在外部資料的代表性未驗證**：目前推論依賴訓練集 10 折 OOF 分布進行百分位轉換，若外部真實資料分布發生宏觀共變異數漂移，百分位映射可能失真。
+5. **前處理與集成候選模型選擇偏向**：E1 前處理設定（關閉 Winsorizer）與 E3 集成模型（$E_A$ 被選為主要模型）係在同一批 CV 折上觀察並選定，因此 CV 估計值略偏樂觀，測試集才是嚴格的無偏確認。
+6. **測試集規模與難易度偏差**：測試集中僅有 44 家破產企業，且指標（PR-AUC 0.5676, AR@0.95 5.25x）優於 CV 均值，顯示測試集看起來較容易，不可把 100% 召回當作未來表現的保證。
+7. **特徵財務構面標籤為推測性質**：特徵名稱與家族歸類（如獲利能力、償債能力）為基於欄位名稱之推測，須以原始資料來源的會計定義為準。
+8. **校準機率反映訓練分布**：Platt 校準機率對齊的是本資料集約 3.2% 的破產盛行率，若部署環境破產率不同，不可直接將校準機率當作真實破產機率。
+9. **邊界混淆樣本的存在**：有少數破產公司的財務指標（如高資產、低帳面負債）極為接近正常存活公司，使完全無錯殺的 100% 召回在實務上需要預警超過 90% 的企業。
+10. **流程多重比較累積型一錯誤**：專案歷經 E0～E5 多個實驗階段，各階段雖在階段內執行了 Holm 校正，但並未對整個專案全流程做跨階段的統一家族型一錯誤率控制。
 
 ---
 
 ## 5. 圖表檔案清單與說明
 
-| 階段 | 圖表路徑 | 一句話說明 |
-| :--- | :--- | :--- |
-| **EDA** | `outputs/figures/target_distribution.png` | 顯示資料集破產（220 家）與非破產（6,599 家）極度不平衡比例（約 1:30）。 |
-| **EDA** | `outputs/figures/univariate_auc_top20.png` | 展現單特徵 ROC-AUC 排名前 20 名指標（最高為 Persistent EPS，AUC=0.8878）。 |
-| **EDA** | `outputs/figures/correlation_heatmap_top30.png` | 揭示財務指標群聚現象與高重疊特徵家族（如負債比與淨值比之 $|r|=1.0$）。 |
-| **E0** | `outputs/figures/e0_pr_curves.png` | 基準模型 PR 曲線對照，證實邏輯斯迴歸與最強單特徵顯著超越隨機基準線。 |
-| **E0** | `outputs/figures/e0_recall_vs_alert_ratio.png` | 基準模型的召回率與預警倍數權衡曲線，展示高召回下的審查代價。 |
-| **E1** | `outputs/figures/e1_strategy_comparison_boxplots.png` | 42 組不平衡與前處理組合之箱形圖，顯示不同重抽樣策略間分佈高度重疊。 |
-| **E1** | `outputs/figures/e1_paired_diff_forest.png` | 各不平衡策略與 S0 配對差異的森林圖，95% CI 均跨越 0，無檢出統計差異。 |
-| **E1** | `outputs/figures/e1b_ablation_bar.png` | 前處理消融條形圖，支持關閉 Winsorizer 並維持相關性過濾。 |
-| **E2** | `outputs/figures/e2_tuned_vs_default.png` | 巢狀調參對比預設參數散布圖，顯示多數模型點落在對角線附近（地景平坦）。 |
-| **E2** | `outputs/figures/e2_recall_vs_alert_ratio_tuned.png` | 調參後 5 個模型的召回率 vs 預警倍數曲線，M3 具備最穩定的預警折間標準差。 |
-| **E3** | `outputs/figures/e3_rank_correlation_heatmap.png` | 5 個模型驗證折預測排名的 Spearman 相關矩陣，顯示樹模型間高達 0.85+ 相關性。 |
-| **E3** | `outputs/figures/e3_model_rank_heatmap.png` | 各外層折模型 Friedman 排名熱力圖，呈現各模型互有勝負無單一主導現象。 |
-| **E3** | `outputs/figures/e3_ensemble_vs_single_ar95.png` | 各集成候選組對比單一模型 M3 之 AR@0.95 分布圖，確認 $E_A$ 具小幅改善。 |
-| **E3** | `outputs/figures/e3_recall_vs_alert_ratio_ensembles.png` | 集成候選模型之召回率 vs 預警倍數曲線對照。 |
-| **E3** | `outputs/figures/e3_hard_positives_percentile.png` | 訓練集 176 家破產企業在 15 次評估中平均排名分布，識別 2 家最難抓公司。 |
-| **E4** | `outputs/figures/e4_threshold_transfer.png` | 內層門檻遷移至外層驗證折之召回率達成率與漂移度分析。 |
-| **E4** | `outputs/figures/e4_operating_curve.png` | 候選安全邊際 $m$ 在 15 折驗證折上的預警倍數與精確率權衡曲線。 |
-| **E4** | `outputs/figures/e4_calibration_reliability.png` | Platt 與 Isotonic 校準器在訓練 OOF 上的 5 分箱可靠度對齊曲線。 |
-| **E5** | `outputs/figures/e5_shap_summary_M3.png` | M3 (ExtraTrees) 核心財務特徵 SHAP Beeswarm 摘要圖。 |
-| **E5** | `outputs/figures/e5_shap_summary_M4.png` | M4 (XGBoost) 核心財務特徵 SHAP Beeswarm 摘要圖。 |
-| **E5** | `outputs/figures/e5_shap_summary_M5.png` | M5 (LightGBM) 核心財務特徵 SHAP Beeswarm 摘要圖。 |
-| **E5** | `outputs/figures/e5_shap_dependence_top10.png` | 前 10 大關鍵財務特徵之 SHAP 依賴圖，確認邊際風險非線性驅動方向。 |
-| **E5** | `outputs/figures/e5_permutation_top20.png` | 置換重要性 (Permutation Importance) 前 20 名條形圖與折間誤差線。 |
-| **E5** | `outputs/figures/e5_importance_stability.png` | 特徵重要性跨 15 折穩定度指標散布圖。 |
-| **E5** | `outputs/figures/e5_compact_vs_full.png` | 精簡特徵集 ($k \in \{10, 20, 30\}$) 巢狀消融損失增加與 AR@0.95 變化曲線。 |
-| **E6** | `outputs/e6/e6_pr_curve.png` | 最終測試集上 $E_A$、M3 與單特徵之 PR 曲線對照圖（$E_A$ PR-AUC=0.5676）。 |
-| **E6** | `outputs/e6/e6_recall_vs_alert_ratio.png` | 最終測試集上 3 基準之召回率 vs 預警倍數曲線對照圖。 |
-| **E6** | `outputs/e6/e6_operating_curve.png` | $E_A$ 固化工作點在測試集 PR 曲線上的落點分布圖。 |
-| **E6** | `outputs/e6/e6_calibration_reliability.png` | 最終測試集上的 Platt 與 Isotonic 5 分箱可靠度圖（僅 44 個正樣本，供參考）。 |
-| **E6** | `outputs/e6/e6_score_distribution_positives.png` | 44 家破產企業在 $E_A$ 連續風險分數上的分布與固化門檻對照圖。 |
-| **E7** | `outputs/figures/e7_prevalence_precision.png` | $E_A$ 各工作點在不同破產盛行率（0.5%～5%）下的精確率與審查成本變化雙聯圖。 |
+以下圖說均由繪圖程式原始碼之圖表軸線、系列與標題 metadata 自動對齊生成；檔案存在性經程式逐一檢驗通過。
+
+| 階段 | 圖表路徑 | 軸線與圖表類型 | 程式檢驗圖說 |
+| :--- | :--- | :--- | :--- |
+| **EDA** | `outputs/figures/target_distribution.png` | 類別長條圖 (Count) | 顯示目標欄位破產（220 家）與非破產（6,599 家）之樣本數分布。 |
+| **EDA** | `outputs/figures/univariate_auc_top20.png` | 水平長條圖 (ROC-AUC) | 繪製全訓練集單變數 ROC-AUC 排名前 20 名財務指標（最高為 Persistent EPS，AUC=0.8892）。 |
+| **EDA** | `outputs/figures/correlation_heatmap_top30.png` | 相關係數熱力圖 (Pearson r) | 展示前 30 大特徵之相關矩陣，識別出相關係數達 1.0 的完全共線性特徵家族。 |
+| **E0** | `outputs/figures/e0_pr_curves.png` | 曲線圖 (Recall vs Precision) | 基準模型（Dummy、Single Strongest Feature、Base LR S0）在驗證折之 PR 曲線對照。 |
+| **E0** | `outputs/figures/e0_recall_vs_alert_ratio.png` | 曲線圖 (Recall vs Alert Ratio) | 基準模型隨召回率提高所需預警倍數之權衡曲線。 |
+| **E1** | `outputs/figures/e1_strategy_comparison_boxplots.png` | 分組箱形圖 (3-Point Loss) | 42 組不平衡處理策略在 15 折驗證折之 3 點預警損失分布對照。 |
+| **E1** | `outputs/figures/e1_paired_diff_forest.png` | 森林圖 (Loss Diff vs S0, 95% NB CI) | 各不平衡策略相對於 Baseline S0 之配對損失差值森林圖，95% CI 均跨越 0。 |
+| **E1** | `outputs/figures/e1b_ablation_bar.png` | 誤差長條圖 (Loss & AR@0.95) | 前處理消融實驗（Winsorizer、CorrFilter、Quantile）之損失與預警倍數對照。 |
+| **E2** | `outputs/figures/e2_tuned_vs_default.png` | 散布對角線圖 (Tuned vs Default Metric) | M1～M5 巢狀調參後表現與預設參數表現之散布對照，顯示調參地景平坦。 |
+| **E2** | `outputs/figures/e2_recall_vs_alert_ratio_tuned.png` | 曲線圖 (Recall vs Alert Ratio) | 調參後 5 個單一模型在驗證折上召回率與預警倍數之平均軌跡對照。 |
+| **E3** | `outputs/figures/e3_rank_correlation_heatmap.png` | 相關係數熱力圖 (Spearman rank corr) | 5 個模型在驗證折預測排名之 Spearman 相關矩陣，樹模型間相關係數達 0.85 以上。 |
+| **E3** | `outputs/figures/e3_model_rank_heatmap.png` | 折別熱力圖 (Friedman Rank 1~5) | 15 個外層驗證折中 5 個模型的 Friedman 排名分布，顯示各模型無單一主導優勢。 |
+| **E3** | `outputs/figures/e3_ensemble_vs_single_ar95.png` | 箱形圖 (AR@0.95 Distribution) | 4 組集成候選與單一模型 M3 在 15 折驗證折之 AR@0.95 變異分布對照。 |
+| **E3** | `outputs/figures/e3_recall_vs_alert_ratio_ensembles.png` | 曲線圖 (Recall vs Alert Ratio) | 候選集成模型（E_all, E_A, E_B, E_trees）之召回率 vs 預警倍數曲線對照。 |
+| **E3** | `outputs/figures/e3_hard_positives_percentile.png` | 累積階梯圖 (Mean Percentile Rank) | 訓練集 176 家破產企業在 15 次評估中平均排名分布（標註 1 家 15 次全漏抓與 4 家至少 1 次全漏抓）。 |
+| **E4** | `outputs/figures/e4_threshold_transfer.png` | 漂移分布圖 (Drift & Attainment) | 內層門檻遷移至外層驗證折之達成率與門檻漂移係數分布。 |
+| **E4** | `outputs/figures/e4_operating_curve.png` | 曲線圖 (Recall vs Alert Ratio & Precision) | 候選安全邊際 $m$ 在驗證折上對召回率與預警倍數之影響曲線。 |
+| **E4** | `outputs/figures/e4_calibration_reliability.png` | 5 分箱可靠度圖 (Mean Pred vs Obs Prop) | Platt Scaling 與 Isotonic Regression 在訓練 OOF 預測之 5 分箱校準可靠度曲線。 |
+| **E5** | `outputs/figures/e5_shap_summary_M3.png` | SHAP Beeswarm 圖 (SHAP value) | ExtraTrees (M3) 前 20 大財務特徵 SHAP 值分布與特徵值高低影響圖。 |
+| **E5** | `outputs/figures/e5_shap_summary_M4.png` | SHAP Beeswarm 圖 (SHAP value) | XGBoost (M4) 前 20 大財務特徵 SHAP 值分布圖。 |
+| **E5** | `outputs/figures/e5_shap_summary_M5.png` | SHAP Beeswarm 圖 (SHAP value) | LightGBM (M5) 前 20 大財務特徵 SHAP 值分布圖。 |
+| **E5** | `outputs/figures/e5_shap_dependence_top10.png` | 10 聯散布圖 (Feature Value vs SHAP) | 前 10 大關鍵特徵之 SHAP 依賴散布圖，展示邊際風險相關趨勢。 |
+| **E5** | `outputs/figures/e5_permutation_top20.png` | 水平長條圖 (Importance Mean ± Std) | 15 折外層驗證折置換特徵重要性 (Permutation Importance) 前 20 名與誤差線。 |
+| **E5** | `outputs/figures/e5_importance_stability.png` | 散布圖 (Selection Ratio vs Jaccard) | 特徵重要性跨 15 折之排名穩定度與入選頻率散布圖。 |
+| **E5** | `outputs/figures/e5_compact_vs_full.png` | 折線圖 (k vs Loss & AR@0.95) | 精簡特徵集（k=10, 20, 30）巢狀消融之損失增加與 AR@0.95 變化軌跡。 |
+| **E6** | `outputs/e6/e6_pr_curve.png` | 曲線圖 (Recall vs Precision) | 最終測試集上 $E_A$、M3 與單特徵之 PR 曲線對照圖（$E_A$ PR-AUC=0.5676）。 |
+| **E6** | `outputs/e6/e6_recall_vs_alert_ratio.png` | 曲線圖 (Recall vs Alert Ratio) | 最終測試集上召回率 vs 預警倍數曲線對照圖（$E_A$ AR@0.95=5.25x）。 |
+| **E6** | `outputs/e6/e6_operating_curve.png` | 散布落點圖 (Precision vs Recall) | $E_A$ 四個固化工作點在測試集 PR 曲線上的實際落點分布圖。 |
+| **E6** | `outputs/e6/e6_calibration_reliability.png` | 5 分箱可靠度圖 (Mean Pred vs Obs Prop) | 最終測試集上 Platt 與 Isotonic 校準曲線（僅 44 個正樣本，供參考）。 |
+| **E6** | `outputs/e6/e6_score_distribution_positives.png` | 抖動散布圖 (Score vs Thresholds) | 測試集 44 家破產企業在 $E_A$ 風險分數上的分布與固化門檻對照圖。 |
+| **E7** | `outputs/figures/e7_prevalence_precision.png` | 雙聯線圖 (Prevalence vs Prec & Effort) | $E_A$ 各工作點隨破產盛行率（0.5%～5%）變化之預期精確率與審查成本變化曲線。 |
