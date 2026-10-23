@@ -107,3 +107,68 @@ def test_clopper_pearson_ci():
     low, high = clopper_pearson_ci(0, 44, 0.95)
     assert low == 0.0
     assert 0.0 < high < 0.10
+
+
+def test_e6_report_cv_baselines_match_source_csvs():
+    """
+    Verifies that all CV comparison metrics reported in E6_REPORT.md and e6_vs_cv.csv
+    match the raw numbers from their respective authoritative source tables.
+    """
+    import re
+    project_root = Path(__file__).resolve().parent.parent
+    e6_report_file = project_root / "outputs" / "e6" / "E6_REPORT.md"
+    assert e6_report_file.exists(), "E6_REPORT.md must exist in outputs/e6/"
+
+    content = e6_report_file.read_text(encoding="utf-8")
+
+    # 1. Verify E6_REPORT.md Section 5 CV baseline metrics
+    tables_dir = project_root / "outputs" / "tables"
+    e3b_df = pd.read_csv(tables_dir / "e3b_ensemble_summary.csv")
+    ea_row = e3b_df[e3b_df["candidate"] == "E_A"].iloc[0]
+
+    e2a_df = pd.read_csv(tables_dir / "e2a_nested_summary.csv")
+    m3_row = e2a_df[e2a_df["model"] == "M3"].iloc[0]
+
+    e0_df = pd.read_csv(tables_dir / "e0_baselines_summary.csv")
+    s_row = e0_df[e0_df["model"] == "Single Strongest Feature"].iloc[0]
+
+    expected_ea_roc = f"{float(ea_row['roc_auc_fold_mean']):.4f} ± {float(ea_row['roc_auc_fold_std']):.4f}"
+    expected_ea_pr = f"{float(ea_row['pr_auc_fold_mean']):.4f} ± {float(ea_row['pr_auc_fold_std']):.4f}"
+    expected_ea_ar = f"{float(ea_row['ar95_fold_mean']):.2f}x ± {float(ea_row['ar95_fold_std']):.2f}x"
+
+    expected_m3_roc = f"{float(m3_row['roc_auc_fold_mean']):.4f} ± {float(m3_row['roc_auc_fold_std']):.4f}"
+    expected_m3_pr = f"{float(m3_row['pr_auc_fold_mean']):.4f} ± {float(m3_row['pr_auc_fold_std']):.4f}"
+    expected_m3_ar = f"{float(m3_row['ar95_fold_mean']):.2f}x ± {float(m3_row['ar95_fold_std']):.2f}x"
+
+    expected_s_roc = f"{float(s_row['fold_roc_auc_mean']):.4f} ± {float(s_row['fold_roc_auc_std']):.4f}"
+    expected_s_pr = f"{float(s_row['fold_pr_auc_mean']):.4f} ± {float(s_row['fold_pr_auc_std']):.4f}"
+    expected_s_ar = f"{float(s_row['fold_alert_ratio@recall_0.95_mean']):.2f}x ± {float(s_row['fold_alert_ratio@recall_0.95_std']):.2f}x"
+
+    assert expected_ea_roc in content, f"Expected E_A ROC CV '{expected_ea_roc}' in E6_REPORT.md"
+    assert expected_ea_pr in content, f"Expected E_A PR CV '{expected_ea_pr}' in E6_REPORT.md"
+    assert expected_ea_ar in content, f"Expected E_A AR@0.95 CV '{expected_ea_ar}' in E6_REPORT.md"
+
+    assert expected_m3_roc in content, f"Expected M3 ROC CV '{expected_m3_roc}' in E6_REPORT.md"
+    assert expected_m3_pr in content, f"Expected M3 PR CV '{expected_m3_pr}' in E6_REPORT.md"
+    assert expected_m3_ar in content, f"Expected M3 AR@0.95 CV '{expected_m3_ar}' in E6_REPORT.md"
+
+    assert expected_s_roc in content, f"Expected Single Feature ROC CV '{expected_s_roc}' in E6_REPORT.md"
+    assert expected_s_pr in content, f"Expected Single Feature PR CV '{expected_s_pr}' in E6_REPORT.md"
+    assert expected_s_ar in content, f"Expected Single Feature AR@0.95 CV '{expected_s_ar}' in E6_REPORT.md"
+
+    # Ensure stale hardcoded numbers do not exist in E6_REPORT.md
+    assert "0.8878 ± 0.0381" not in content, "Stale value '0.8878 ± 0.0381' must not be in E6_REPORT.md"
+    assert "0.2842 ± 0.0766" not in content, "Stale value '0.2842 ± 0.0766' must not be in E6_REPORT.md"
+    assert "13.91x ± 2.77x" not in content, "Stale value '13.91x ± 2.77x' must not be in E6_REPORT.md"
+
+    # 2. Verify e6_vs_cv.csv operating points match operating_points_for_report.csv
+    vs_cv_file = project_root / "outputs" / "e6" / "e6_vs_cv.csv"
+    assert vs_cv_file.exists(), "e6_vs_cv.csv must exist"
+    vs_cv_df = pd.read_csv(vs_cv_file)
+    op_report_df = pd.read_csv(tables_dir / "operating_points_for_report.csv")
+
+    for _, r in vs_cv_df.iterrows():
+        match = op_report_df[(op_report_df["group"] == r["group"]) & (np.isclose(op_report_df["target_recall"], r["target_recall"]))].iloc[0]
+        assert np.isclose(r["cv_recall_mean"], match["actual_recall_mean"], atol=1e-6)
+        assert np.isclose(r["cv_alert_ratio_mean"], match["alert_ratio_mean"], atol=1e-6)
+

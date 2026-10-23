@@ -673,14 +673,104 @@ def generate_e6_report(
     md += "\n\n"
 
     md += "## 5. 測試集相對 CV 的難易度\n\n"
-    md += "以下列出主要模型 $E_A$ 與單一最強特徵基準在 15 折 CV 與未拆封測試集上的關鍵表現指標對照：\n\n"
+    md += "以下列出主要模型 $E_A$、單一控制模型 M3 與單一最強特徵基準在 15 折 CV 與未拆封測試集上的關鍵表現指標對照：\n\n"
+
+    # Dynamically read 15-fold CV baseline values from source CSVs
+    tables_dir = project_root / "outputs" / "tables"
+    e3b_df = pd.read_csv(tables_dir / "e3b_ensemble_summary.csv")
+    ea_row = e3b_df[e3b_df["candidate"] == "E_A"].iloc[0]
+
+    e2a_df = pd.read_csv(tables_dir / "e2a_nested_summary.csv")
+    m3_row = e2a_df[e2a_df["model"] == "M3"].iloc[0]
+
+    e0_df = pd.read_csv(tables_dir / "e0_baselines_summary.csv")
+    s_row = e0_df[e0_df["model"] == "Single Strongest Feature"].iloc[0]
+
+    def get_test_str(m_name: str, metric_name: str, is_ratio: bool = False) -> tuple[str, float]:
+        sub = rank_df[(rank_df["model"] == m_name) & (rank_df["metric"] == metric_name)].iloc[0]
+        pt = float(sub["point_estimate"])
+        lo = float(sub["ci_lower_2.5"])
+        hi = float(sub["ci_upper_97.5"])
+        if is_ratio:
+            return f"{pt:.2f}x [{lo:.2f}x, {hi:.2f}x]", pt
+        return f"{pt:.4f} [{lo:.4f}, {hi:.4f}]", pt
+
+    ea_roc_test, ea_roc_pt = get_test_str("E_A", "roc_auc")
+    ea_pr_test, ea_pr_pt = get_test_str("E_A", "pr_auc")
+    ea_ar_test, ea_ar_pt = get_test_str("E_A", "ar@r_95", is_ratio=True)
+
+    m3_roc_test, m3_roc_pt = get_test_str("M3", "roc_auc")
+    m3_pr_test, m3_pr_pt = get_test_str("M3", "pr_auc")
+    m3_ar_test, m3_ar_pt = get_test_str("M3", "ar@r_95", is_ratio=True)
+
+    s_roc_test, s_roc_pt = get_test_str("Single_Feature", "roc_auc")
+    s_pr_test, s_pr_pt = get_test_str("Single_Feature", "pr_auc")
+    s_ar_test, s_ar_pt = get_test_str("Single_Feature", "ar@r_95", is_ratio=True)
+
     difficulty_rows = [
-        {"模型": "E_A 集成", "指標": "ROC-AUC", "15 折 CV 表現": "0.9419 ± 0.0263", "測試集表現 [95% CI]": "0.9621 [0.9436, 0.9777]", "對照說明": "測試集點估計高於 CV 均值"},
-        {"模型": "E_A 集成", "指標": "PR-AUC", "15 折 CV 表現": "0.4439 ± 0.0888", "測試集表現 [95% CI]": "0.5676 [0.4441, 0.7158]", "對照說明": "測試集點估計高於 CV 均值"},
-        {"模型": "E_A 集成", "指標": "AR@0.95", "15 折 CV 表現": "8.04x ± 1.78x", "測試集表現 [95% CI]": "5.25x [3.93x, 8.18x]", "對照說明": "測試集所需預警倍數較低"},
-        {"模型": "單一特徵 (-EPS)", "指標": "ROC-AUC", "15 折 CV 表現": "0.8878 ± 0.0381", "測試集表現 [95% CI]": "0.9019 [0.8474, 0.9422]", "對照說明": "測試集點估計高於 CV 均值"},
-        {"模型": "單一特徵 (-EPS)", "指標": "PR-AUC", "15 折 CV 表現": "0.2842 ± 0.0766", "測試集表現 [95% CI]": "0.3593 [0.2459, 0.5045]", "對照說明": "測試集點估計高於 CV 均值"},
-        {"模型": "單一特徵 (-EPS)", "指標": "AR@0.95", "15 折 CV 表現": "13.91x ± 2.77x", "測試集表現 [95% CI]": "10.48x [8.39x, 26.48x]", "對照說明": "測試集所需預警倍數較低"},
+        {
+            "模型": "E_A 集成",
+            "指標": "ROC-AUC",
+            "15 折 CV 表現": f"{float(ea_row['roc_auc_fold_mean']):.4f} ± {float(ea_row['roc_auc_fold_std']):.4f}",
+            "測試集表現 [95% CI]": ea_roc_test,
+            "對照說明": "測試集點估計優於（高於）CV 均值" if ea_roc_pt > float(ea_row["roc_auc_fold_mean"]) else "測試集點估計低於 CV 均值",
+        },
+        {
+            "模型": "E_A 集成",
+            "指標": "PR-AUC",
+            "15 折 CV 表現": f"{float(ea_row['pr_auc_fold_mean']):.4f} ± {float(ea_row['pr_auc_fold_std']):.4f}",
+            "測試集表現 [95% CI]": ea_pr_test,
+            "對照說明": "測試集點估計優於（高於）CV 均值" if ea_pr_pt > float(ea_row["pr_auc_fold_mean"]) else "測試集點估計低於 CV 均值",
+        },
+        {
+            "模型": "E_A 集成",
+            "指標": "AR@0.95",
+            "15 折 CV 表現": f"{float(ea_row['ar95_fold_mean']):.2f}x ± {float(ea_row['ar95_fold_std']):.2f}x",
+            "測試集表現 [95% CI]": ea_ar_test,
+            "對照說明": "測試集所需預警倍數較低（優於 CV）" if ea_ar_pt < float(ea_row["ar95_fold_mean"]) else "測試集所需預警倍數較高",
+        },
+        {
+            "模型": "M3 (ExtraTrees)",
+            "指標": "ROC-AUC",
+            "15 折 CV 表現": f"{float(m3_row['roc_auc_fold_mean']):.4f} ± {float(m3_row['roc_auc_fold_std']):.4f}",
+            "測試集表現 [95% CI]": m3_roc_test,
+            "對照說明": "測試集點估計優於（高於）CV 均值" if m3_roc_pt > float(m3_row["roc_auc_fold_mean"]) else "測試集點估計低於 CV 均值",
+        },
+        {
+            "模型": "M3 (ExtraTrees)",
+            "指標": "PR-AUC",
+            "15 折 CV 表現": f"{float(m3_row['pr_auc_fold_mean']):.4f} ± {float(m3_row['pr_auc_fold_std']):.4f}",
+            "測試集表現 [95% CI]": m3_pr_test,
+            "對照說明": "測試集點估計優於（高於）CV 均值" if m3_pr_pt > float(m3_row["pr_auc_fold_mean"]) else "測試集點估計低於 CV 均值",
+        },
+        {
+            "模型": "M3 (ExtraTrees)",
+            "指標": "AR@0.95",
+            "15 折 CV 表現": f"{float(m3_row['ar95_fold_mean']):.2f}x ± {float(m3_row['ar95_fold_std']):.2f}x",
+            "測試集表現 [95% CI]": m3_ar_test,
+            "對照說明": "測試集所需預警倍數較低（優於 CV）" if m3_ar_pt < float(m3_row["ar95_fold_mean"]) else "測試集所需預警倍數較高",
+        },
+        {
+            "模型": "單一特徵 (-EPS)",
+            "指標": "ROC-AUC",
+            "15 折 CV 表現": f"{float(s_row['fold_roc_auc_mean']):.4f} ± {float(s_row['fold_roc_auc_std']):.4f}",
+            "測試集表現 [95% CI]": s_roc_test,
+            "對照說明": "測試集點估計優於（高於）CV 均值" if s_roc_pt > float(s_row["fold_roc_auc_mean"]) else "測試集點估計低於 CV 均值",
+        },
+        {
+            "模型": "單一特徵 (-EPS)",
+            "指標": "PR-AUC",
+            "15 折 CV 表現": f"{float(s_row['fold_pr_auc_mean']):.4f} ± {float(s_row['fold_pr_auc_std']):.4f}",
+            "測試集表現 [95% CI]": s_pr_test,
+            "對照說明": "測試集點估計優於（高於）CV 均值" if s_pr_pt > float(s_row["fold_pr_auc_mean"]) else "測試集點估計低於 CV 均值",
+        },
+        {
+            "模型": "單一特徵 (-EPS)",
+            "指標": "AR@0.95",
+            "15 折 CV 表現": f"{float(s_row['fold_alert_ratio@recall_0.95_mean']):.2f}x ± {float(s_row['fold_alert_ratio@recall_0.95_std']):.2f}x",
+            "測試集表現 [95% CI]": s_ar_test,
+            "對照說明": "測試集所需預警倍數較低（優於 CV）" if s_ar_pt < float(s_row["fold_alert_ratio@recall_0.95_mean"]) else "測試集所需預警倍數較高",
+        },
     ]
     md += df_to_markdown(pd.DataFrame(difficulty_rows))
     md += "\n\n"
