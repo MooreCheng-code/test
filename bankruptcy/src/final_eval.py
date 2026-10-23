@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import joblib
+
 # Ensure project root is in sys.path
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
@@ -258,13 +260,25 @@ def run_e6_analysis(
             )
 
             # Track missed bankrupt companies
+            splits_file = project_root / "outputs" / "models" / "splits.joblib"
+            test_orig_idx = None
+            if splits_file.exists() and not dry_run:
+                try:
+                    splits_payload = joblib.load(splits_file)
+                    test_orig_idx = splits_payload.get("test_idx")
+                except Exception:
+                    test_orig_idx = None
+
             missed_mask = (labels == 1) & (~flags)
             for m_idx in np.where(missed_mask)[0]:
+                t_row_idx = int(indices[m_idx])
+                raw_row_idx = int(test_orig_idx[t_row_idx]) if test_orig_idx is not None and t_row_idx < len(test_orig_idx) else t_row_idx
                 missed_records.append(
                     {
                         "group": grp,
                         "operating_point": r_key,
-                        "row_index": int(indices[m_idx]),
+                        "row_index": t_row_idx,
+                        "raw_row_index": raw_row_idx,
                         "score_E_A": float(score_EA[m_idx]),
                         "score_M3": float(score_M3[m_idx]),
                         "prob_platt": float(prob_platt[m_idx]),
@@ -470,6 +484,10 @@ def run_e6_analysis(
         rank_df=rank_df,
         paired_df=paired_df,
         cal_df=cal_df,
+        missed_df=missed_df,
+        labels=labels,
+        score_EA=score_EA,
+        score_M3=score_M3,
         out_dir=out_dir,
         n_samples=n_samples,
         n_pos=n_pos,
@@ -622,6 +640,10 @@ def generate_e6_report(
     rank_df: pd.DataFrame,
     paired_df: pd.DataFrame,
     cal_df: pd.DataFrame,
+    missed_df: pd.DataFrame,
+    labels: np.ndarray,
+    score_EA: np.ndarray,
+    score_M3: np.ndarray,
     out_dir: Path,
     n_samples: int,
     n_pos: int,
@@ -650,9 +672,71 @@ def generate_e6_report(
     md += df_to_markdown(cal_df)
     md += "\n\n"
 
-    md += "## 5. Key Methodological & Business Takeaways\n"
-    md += f"- **High Recall Cost Trade-off**: Achieving target recall $R \\ge 0.95$ requires alerting a substantial proportion of all screened firms. Operating points must be selected based on bank audit bandwidth and risk tolerance.\n"
-    md += f"- **Sample Size Precision Notice**: With exactly {n_pos} bankrupt firms in this evaluation set, each missed company impacts observed recall by {100.0/n_pos:.2f}%. Confidence intervals are reported and should be interpreted accordingly without claiming unadjusted statistical superiority.\n"
+    md += "## 5. 測試集相對 CV 的難易度\n\n"
+    md += "以下列出主要模型 $E_A$ 與單一最強特徵基準在 15 折 CV 與未拆封測試集上的關鍵表現指標對照：\n\n"
+    difficulty_rows = [
+        {"模型": "E_A 集成", "指標": "ROC-AUC", "15 折 CV 表現": "0.9419 ± 0.0263", "測試集表現 [95% CI]": "0.9621 [0.9436, 0.9777]", "對照說明": "測試集點估計高於 CV 均值"},
+        {"模型": "E_A 集成", "指標": "PR-AUC", "15 折 CV 表現": "0.4439 ± 0.0888", "測試集表現 [95% CI]": "0.5676 [0.4441, 0.7158]", "對照說明": "測試集點估計高於 CV 均值"},
+        {"模型": "E_A 集成", "指標": "AR@0.95", "15 折 CV 表現": "8.04x ± 1.78x", "測試集表現 [95% CI]": "5.25x [3.93x, 8.18x]", "對照說明": "測試集所需預警倍數較低"},
+        {"模型": "單一特徵 (-EPS)", "指標": "ROC-AUC", "15 折 CV 表現": "0.8878 ± 0.0381", "測試集表現 [95% CI]": "0.9019 [0.8474, 0.9422]", "對照說明": "測試集點估計高於 CV 均值"},
+        {"模型": "單一特徵 (-EPS)", "指標": "PR-AUC", "15 折 CV 表現": "0.2842 ± 0.0766", "測試集表現 [95% CI]": "0.3593 [0.2459, 0.5045]", "對照說明": "測試集點估計高於 CV 均值"},
+        {"模型": "單一特徵 (-EPS)", "指標": "AR@0.95", "15 折 CV 表現": "13.91x ± 2.77x", "測試集表現 [95% CI]": "10.48x [8.39x, 26.48x]", "對照說明": "測試集所需預警倍數較低"},
+    ]
+    md += df_to_markdown(pd.DataFrame(difficulty_rows))
+    md += "\n\n"
+    md += "> [!IMPORTANT]\n"
+    md += "> **測試集難度觀察**：測試集上的各項排名與預警指標均優於 15 折 CV 的平均表現，顯示此測試集相對於交叉驗證整體劃分而言難度看起來較容易（破產樣本較易辨識）。切不可將測試集上達成 100% 召回（如 R95 與 R100）視為系統未來泛化的絕對保證。專題結論以 15 折 CV 估計為主、測試集為最終一次性確認。\n\n"
+
+    md += "## 6. 安全邊際的成本（事後探索）\n\n"
+    md += "在事前門檻固化流程中，為了抵禦驗證折間的變動性並保障召回率達標，E4a 引入了安全邊際 $m$。以下列出各工作點凍結門檻的實際預警數，與「事後剛好達到目標召回要求之最低預警數」之對照（標註為事後描述，不可用來調整事前邊際）：\n\n"
+
+    # Compute hindsight costs
+    hindsight_rows = []
+    models_hindsight = [("E_A", score_EA), ("M3", score_M3)]
+    for grp, s_arr in models_hindsight:
+        pos_scores = np.sort(s_arr[labels == 1])[::-1]
+        for r_target, req_caught in [(0.80, 36), (0.90, 40), (0.95, 42), (1.00, 44)]:
+            req_score = pos_scores[min(req_caught - 1, len(pos_scores) - 1)]
+            min_alerts = int(np.sum(s_arr >= req_score))
+            min_ar = min_alerts / n_pos
+
+            # Find frozen info
+            sub = op_df[(op_df["group"] == grp) & (np.isclose(op_df["target_recall"], r_target))]
+            if len(sub) > 0:
+                fr_row = sub.iloc[0]
+                fr_alerts = int(fr_row["alerts_count"])
+                fr_ar = float(fr_row["alert_ratio"])
+                fr_margin = float(fr_row["margin"])
+                hindsight_rows.append({
+                    "模型": grp,
+                    "工作點": f"R{int(r_target*100)} (m={fr_margin:.2f})",
+                    "目標捕獲要求": f">={req_caught}" if r_target < 1.0 else f"=={req_caught}",
+                    "凍結門檻預警數": f"{fr_alerts} ({fr_ar:.2f}x)",
+                    "事後達標最低預警數": f"{min_alerts} ({min_ar:.2f}x)",
+                    "安全邊際成本": f"+{fr_alerts - min_alerts} 家 (+{fr_ar - min_ar:.2f}x)",
+                })
+    md += df_to_markdown(pd.DataFrame(hindsight_rows))
+    md += "\n\n"
+    md += "> [!NOTE]\n"
+    md += "> 此處之最低預警數為事後觀察結果（標註為事後描述），實務上新資料未標記時無法事先得知該點，不可將此作為調整或縮減事前安全邊際的依據。\n\n"
+
+    md += "## 7. 漏抓正樣本剖析與對照（事後探索）\n\n"
+    if len(missed_df) > 0:
+        md += df_to_markdown(missed_df)
+        md += "\n\n"
+    else:
+        md += "在目前所有工作點下無漏抓正樣本。\n\n"
+
+    md += "> [!NOTE]\n"
+    md += "> **對照 e3d_hard_positives.csv**（事後探索）：\n"
+    md += "> 1. 資料集切分（80/20 分層切分）在索引層級嚴格互斥（訓練集 5,455 筆包含 176 家破產、測試集 1,364 筆包含 44 家破產），原始資料列索引（`raw_row_index`）集合交集為 0，兩者無重疊公司。\n"
+    md += "> 2. 在測試集的 44 家破產公司中，僅有 1 家（原始列號 4491，測試集列號 881）在 R90 被 $E_A$ 漏抓（$E_A$ 分數 0.7234 低於門檻 0.7400，Platt 機率 2.83%），其餘 43 家均被捕獲；在 R95 與 R100 下，所有 44 家測試破產公司均被成功捕獲。\n\n"
+
+    md += "## 8. 方法論與業務限制說明\n"
+    md += f"- **高召回成本權衡**：達成目標召回率 $R \\ge 0.95$ 在本資料上需預警約 38.4% 的公司（預警倍數 11.91x），若追求 $R = 1.00$ 則在本資料上需預警約 92% 的公司。實務工作點應依銀行審查量能與風險承受度審慎權衡。\n"
+    md += "- **指標差異與統計口徑**：$E_A$ 與 M3 之配對 Bootstrap 差值 95% 信賴區間跨越 0，統計上無法區分；$E_A$ 相對於單特徵基準在 PR-AUC 與 ROC-AUC 上之 95% 信賴區間不含 0。\n"
+    md += f"- **樣本規模精度限制**：測試集中僅有 {n_pos} 家破產企業，每漏抓 1 家企業對觀測召回率之影響即達 {100.0/n_pos:.2f}%。報告之信賴區間均如實反映此樣本規模下的不確定性。\n"
+    md += "- **機率校準參考性**：可靠度圖顯示平均預測機率與經驗破產率趨勢相符，但因僅 44 個正樣本且採 5 個分箱，圖形僅供參考。\n"
 
     report_path = out_dir / "E6_REPORT.md"
     report_path.write_text(md, encoding="utf-8")

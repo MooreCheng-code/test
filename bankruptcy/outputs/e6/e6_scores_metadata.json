@@ -1,0 +1,7 @@
+{
+  "scores_file": "e6_test_scores.npz",
+  "sha256": "ca3b5205ac69d005c39ef6af0bca0521990a1a309932e04a6a401c7e2390f6f1",
+  "n_samples": 1364,
+  "n_positives": 44,
+  "is_dry_run": false
+}

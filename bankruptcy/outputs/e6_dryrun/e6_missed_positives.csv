@@ -1,2 +1,2 @@
-group,operating_point,row_index,score_E_A,score_M3,prob_platt,threshold
-E_A,R80,1830,0.878337916284754,0.992025664527956,0.10500541799383337,0.8845401772074549
+group,operating_point,row_index,raw_row_index,score_E_A,score_M3,prob_platt,threshold
+E_A,R80,1830,1830,0.878337916284754,0.992025664527956,0.10500541799383337,0.8845401772074549

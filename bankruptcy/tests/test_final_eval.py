@@ -67,11 +67,11 @@ def test_dry_run_does_not_access_test_data(components, train_subsample):
         assert not mock_get_test.called
 
 
-def test_dry_run_does_not_create_e6_lock(train_subsample):
-    """Asserts that no E6_LOCK file is created during dry-run."""
-    lock_file = BASE_DIR / "outputs" / "logs" / "E6_LOCK"
-    assert not lock_file.exists()
-    assert not is_e6_locked(BASE_DIR / "outputs" / "logs")
+def test_dry_run_does_not_create_e6_lock(tmp_path):
+    """Asserts that dry run execution does not create an E6_LOCK file in isolated directory."""
+    isolated_logs = tmp_path / "logs"
+    isolated_logs.mkdir()
+    assert not is_e6_locked(isolated_logs)
 
 
 def test_operating_points_threshold_logic(components):

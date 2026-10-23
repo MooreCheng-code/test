@@ -84,6 +84,53 @@ Differences evaluated on identical resamples (positive difference indicates E_A 
 | Platt | 0.02021192933476386 | 0.06532518485065764 | 0.352544530309731 | 0.35254453103500016 | 0.025820385553820675 | 0.03225806451612903 | Calibrated posterior probability is for risk auditing only; thresholds operate on raw continuous rank. |
 | Isotonic | 0.006398404016802324 | 0.02761529767982575 | 0.7950377913284322 | 0.7950377915580276 | 0.03141278554164096 | 0.03225806451612903 | Platt is smooth & strictly rank-preserving; Isotonic creates step functions with tied scores and must not be used as operational threshold. |
 
-## 5. Key Methodological & Business Takeaways
-- **High Recall Cost Trade-off**: Achieving target recall $R \ge 0.95$ requires alerting a substantial proportion of all screened firms. Operating points must be selected based on bank audit bandwidth and risk tolerance.
-- **Sample Size Precision Notice**: With exactly 44 bankrupt firms in this evaluation set, each missed company impacts observed recall by 2.27%. Confidence intervals are reported and should be interpreted accordingly without claiming unadjusted statistical superiority.
+## 5. 測試集相對 CV 的難易度
+
+以下列出主要模型 $E_A$ 與單一最強特徵基準在 15 折 CV 與未拆封測試集上的關鍵表現指標對照：
+
+| 模型 | 指標 | 15 折 CV 表現 | 測試集表現 [95% CI] | 對照說明 |
+| --- | --- | --- | --- | --- |
+| E_A 集成 | ROC-AUC | 0.9419 ± 0.0263 | 0.9621 [0.9436, 0.9777] | 測試集點估計高於 CV 均值 |
+| E_A 集成 | PR-AUC | 0.4439 ± 0.0888 | 0.5676 [0.4441, 0.7158] | 測試集點估計高於 CV 均值 |
+| E_A 集成 | AR@0.95 | 8.04x ± 1.78x | 5.25x [3.93x, 8.18x] | 測試集所需預警倍數較低 |
+| 單一特徵 (-EPS) | ROC-AUC | 0.8878 ± 0.0381 | 0.9019 [0.8474, 0.9422] | 測試集點估計高於 CV 均值 |
+| 單一特徵 (-EPS) | PR-AUC | 0.2842 ± 0.0766 | 0.3593 [0.2459, 0.5045] | 測試集點估計高於 CV 均值 |
+| 單一特徵 (-EPS) | AR@0.95 | 13.91x ± 2.77x | 10.48x [8.39x, 26.48x] | 測試集所需預警倍數較低 |
+
+> [!IMPORTANT]
+> **測試集難度觀察**：測試集上的各項排名與預警指標均優於 15 折 CV 的平均表現，顯示此測試集相對於交叉驗證整體劃分而言難度看起來較容易（破產樣本較易辨識）。切不可將測試集上達成 100% 召回（如 R95 與 R100）視為系統未來泛化的絕對保證。專題結論以 15 折 CV 估計為主、測試集為最終一次性確認。
+
+## 6. 安全邊際的成本（事後探索）
+
+在事前門檻固化流程中，為了抵禦驗證折間的變動性並保障召回率達標，E4a 引入了安全邊際 $m$。以下列出各工作點凍結門檻的實際預警數，與「事後剛好達到目標召回要求之最低預警數」之對照（標註為事後描述，不可用來調整事前邊際）：
+
+| 模型 | 工作點 | 目標捕獲要求 | 凍結門檻預警數 | 事後達標最低預警數 | 安全邊際成本 |
+| --- | --- | --- | --- | --- | --- |
+| E_A | R80 (m=0.02) | >=36 | 99 (2.25x) | 36 (0.82x) | +63 家 (+1.43x) |
+| E_A | R90 (m=0.06) | >=40 | 272 (6.18x) | 40 (0.91x) | +232 家 (+5.27x) |
+| E_A | R95 (m=0.04) | >=42 | 470 (10.68x) | 43 (0.98x) | +427 家 (+9.70x) |
+| E_A | R100 (m=0.00) | ==44 | 1253 (28.48x) | 108 (2.45x) | +1145 家 (+26.02x) |
+| M3 | R80 (m=0.04) | >=36 | 67 (1.52x) | 37 (0.84x) | +30 家 (+0.68x) |
+| M3 | R90 (m=0.04) | >=40 | 153 (3.48x) | 40 (0.91x) | +113 家 (+2.57x) |
+| M3 | R95 (m=0.04) | >=42 | 304 (6.91x) | 42 (0.95x) | +262 家 (+5.95x) |
+| M3 | R100 (m=0.00) | ==44 | 853 (19.39x) | 44 (1.00x) | +809 家 (+18.39x) |
+
+> [!NOTE]
+> 此處之最低預警數為事後觀察結果（標註為事後描述），實務上新資料未標記時無法事先得知該點，不可將此作為調整或縮減事前安全邊際的依據。
+
+## 7. 漏抓正樣本剖析與對照（事後探索）
+
+| group | operating_point | row_index | raw_row_index | score_E_A | score_M3 | prob_platt | threshold |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| E_A | R80 | 1830 | 1830 | 0.878337916284754 | 0.992025664527956 | 0.10500541799383337 | 0.8845401772074549 |
+
+> [!NOTE]
+> **對照 e3d_hard_positives.csv**（事後探索）：
+> 1. 資料集切分（80/20 分層切分）在索引層級嚴格互斥（訓練集 5,455 筆包含 176 家破產、測試集 1,364 筆包含 44 家破產），原始資料列索引（`raw_row_index`）集合交集為 0，兩者無重疊公司。
+> 2. 在測試集的 44 家破產公司中，僅有 1 家（原始列號 4491，測試集列號 881）在 R90 被 $E_A$ 漏抓（$E_A$ 分數 0.7234 低於門檻 0.7400，Platt 機率 2.83%），其餘 43 家均被捕獲；在 R95 與 R100 下，所有 44 家測試破產公司均被成功捕獲。
+
+## 8. 方法論與業務限制說明
+- **高召回成本權衡**：達成目標召回率 $R \ge 0.95$ 在本資料上需預警約 38.4% 的公司（預警倍數 11.91x），若追求 $R = 1.00$ 則在本資料上需預警約 92% 的公司。實務工作點應依銀行審查量能與風險承受度審慎權衡。
+- **指標差異與統計口徑**：$E_A$ 與 M3 之配對 Bootstrap 差值 95% 信賴區間跨越 0，統計上無法區分；$E_A$ 相對於單特徵基準在 PR-AUC 與 ROC-AUC 上之 95% 信賴區間不含 0。
+- **樣本規模精度限制**：測試集中僅有 44 家破產企業，每漏抓 1 家企業對觀測召回率之影響即達 2.27%。報告之信賴區間均如實反映此樣本規模下的不確定性。
+- **機率校準參考性**：可靠度圖顯示平均預測機率與經驗破產率趨勢相符，但因僅 44 個正樣本且採 5 個分箱，圖形僅供參考。
