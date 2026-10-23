@@ -108,32 +108,37 @@ class AdaptiveScaleWeightClassifier(BaseEstimator, ClassifierMixin):
         )
 
 
-def _get_resampler(imbalance: str):
+def _get_resampler(imbalance: str, seed: int = SEED):
     """Return appropriate resampler based on strategy code S0 - S6."""
     if imbalance == "S0" or imbalance == "S1":
         return None
     elif imbalance == "S2":
-        return SMOTE(sampling_strategy=0.1, k_neighbors=5, random_state=SEED)
+        return SMOTE(sampling_strategy=0.1, k_neighbors=5, random_state=seed)
     elif imbalance == "S3":
-        return SMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=SEED)
+        return SMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=seed)
     elif imbalance == "S4":
-        return SMOTE(sampling_strategy=0.5, k_neighbors=5, random_state=SEED)
+        return SMOTE(sampling_strategy=0.5, k_neighbors=5, random_state=seed)
     elif imbalance == "S5":
-        return BorderlineSMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=SEED)
+        return BorderlineSMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=seed)
     elif imbalance == "S6":
-        smote_inner = SMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=SEED)
-        return SMOTETomek(smote=smote_inner, random_state=SEED)
+        smote_inner = SMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=seed)
+        return SMOTETomek(smote=smote_inner, random_state=seed)
     else:
         raise ValueError(f"Unknown imbalance strategy: '{imbalance}'. Expected S0 to S6.")
 
 
-def _get_classifier(model_name: str, imbalance: str, model_params: Union[dict[str, Any], None] = None):
+def _get_classifier(
+    model_name: str,
+    imbalance: str,
+    model_params: Union[dict[str, Any], None] = None,
+    seed: int = SEED,
+):
     """Instantiate classifier with base parameters and class balancing if S1."""
     params = model_params.copy() if model_params is not None else {}
 
     if model_name == "M0":
         # Dummy baseline
-        clf_params = {"strategy": "prior"}
+        clf_params = {"strategy": "prior", "random_state": seed}
         clf_params.update(params)
         return DummyClassifier(**clf_params)
 
@@ -141,7 +146,7 @@ def _get_classifier(model_name: str, imbalance: str, model_params: Union[dict[st
         # Logistic Regression
         clf_params = {
             "max_iter": 5000,
-            "random_state": SEED,
+            "random_state": seed,
             "class_weight": "balanced" if imbalance == "S1" else None,
         }
         clf_params.update(params)
@@ -151,7 +156,7 @@ def _get_classifier(model_name: str, imbalance: str, model_params: Union[dict[st
         # Random Forest
         clf_params = {
             "n_estimators": 300,
-            "random_state": SEED,
+            "random_state": seed,
             "n_jobs": -1,
             "class_weight": "balanced" if imbalance == "S1" else None,
         }
@@ -162,7 +167,7 @@ def _get_classifier(model_name: str, imbalance: str, model_params: Union[dict[st
         # Extra Trees
         clf_params = {
             "n_estimators": 300,
-            "random_state": SEED,
+            "random_state": seed,
             "n_jobs": -1,
             "class_weight": "balanced" if imbalance == "S1" else None,
         }
@@ -173,7 +178,7 @@ def _get_classifier(model_name: str, imbalance: str, model_params: Union[dict[st
         # XGBoost
         clf_params = {
             "n_estimators": 300,
-            "random_state": SEED,
+            "random_state": seed,
             "n_jobs": -1,
             "eval_metric": "logloss",
         }
@@ -187,7 +192,7 @@ def _get_classifier(model_name: str, imbalance: str, model_params: Union[dict[st
         # LightGBM
         clf_params = {
             "n_estimators": 300,
-            "random_state": SEED,
+            "random_state": seed,
             "n_jobs": -1,
             "verbose": -1,
         }
@@ -212,6 +217,7 @@ def build_pipeline(
     use_large_indicator: bool = False,
     features: Union[Sequence[str], None] = None,
     model_params: Union[dict[str, Any], None] = None,
+    seed: int = SEED,
 ) -> Pipeline:
     """
     Assemble the complete imblearn Pipeline.
@@ -236,12 +242,12 @@ def build_pipeline(
     ]
 
     # Resampling step (only for S2 - S6)
-    resampler = _get_resampler(imbalance)
+    resampler = _get_resampler(imbalance, seed=seed)
     if resampler is not None:
         steps.append(("resampler", resampler))
 
     # Classifier
-    clf = _get_classifier(model_name, imbalance, model_params=model_params)
+    clf = _get_classifier(model_name, imbalance, model_params=model_params, seed=seed)
     steps.append(("classifier", clf))
 
     return Pipeline(steps)
