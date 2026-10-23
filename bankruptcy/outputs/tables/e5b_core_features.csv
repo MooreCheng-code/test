@@ -1,0 +1,13 @@
+feature,frequency_in_top20,total_folds,frequency_ratio,financial_dimension,directly_computable,selection_rule
+Interest-bearing debt interest rate,15,15,1.0,槓桿與償債能力 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Continuous interest rate (after tax),15,15,1.0,其他財務指標 (待確認),否/需多期或特殊定義 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Non-industry income and expenditure/revenue,15,15,1.0,其他財務指標 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Persistent EPS in the Last Four Seasons,15,15,1.0,獲利能力 (待確認),否/需多期或特殊定義 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Net Value Per Share (B),15,15,1.0,其他財務指標 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Borrowing dependency,15,15,1.0,槓桿與償債能力 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Quick Ratio,15,15,1.0,流動性 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Retained Earnings to Total Assets,15,15,1.0,獲利能力 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Net Income to Total Assets,15,15,1.0,獲利能力 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Net Value Growth Rate,14,15,0.9333333333333333,成長能力 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+Total debt/Total net worth,12,15,0.8,槓桿與償債能力 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)
+ROA(B) before interest and depreciation after tax,12,15,0.8,獲利能力 (待確認),是 (待確認),Threshold >= 80% (appearance in >= 12 of 15 outer folds)

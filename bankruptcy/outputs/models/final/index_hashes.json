@@ -1,0 +1,7 @@
+{
+  "train_indices_sha256": "726dc14dcbcd3b80f0e9a1310cdb9de24d7f3c0ff4bf2b1a204a65bd83433a62",
+  "test_indices_sha256": "541ea7969f9f407afa9e9ca6fde8f2be3abf0e4c6749fcabf7379654f59a97a5",
+  "n_train": 5455,
+  "n_test": 1364,
+  "train_y_positive_count": 176
+}

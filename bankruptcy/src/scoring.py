@@ -85,7 +85,12 @@ def load_final_components(final_dir: Path | str) -> dict[str, Any]:
     for m in ["M3", "M4", "M5"]:
         model_path = f_dir / f"model_{m}.joblib"
         if model_path.exists():
-            components["models"][m] = joblib.load(model_path)
+            pipe = joblib.load(model_path)
+            # Enforce single-threaded deterministic inference
+            clf = pipe.named_steps.get("classifier")
+            if clf is not None and hasattr(clf, "n_jobs"):
+                clf.set_params(n_jobs=1)
+            components["models"][m] = pipe
         ref_path = f_dir / f"reference_{m}.npy"
         if ref_path.exists():
             components["references"][m] = np.load(ref_path)
@@ -120,41 +125,49 @@ def score_dataset(
 ) -> pd.DataFrame:
     """
     End-to-end inference pipeline:
-    1. Obtains raw predicted probabilities from frozen pipelines.
+    1. Obtains raw predicted probabilities from frozen pipelines (enforcing deterministic n_jobs=1).
     2. Maps to ECDF percentiles and averages to produce E_A ensemble score.
-    3. Produces calibrated posterior probabilities (Platt).
+    3. Produces calibrated posterior probabilities (Platt and Isotonic).
     4. Evaluates risk flags at each operating recall threshold.
     """
     if not isinstance(X, pd.DataFrame):
         raise TypeError("Input X must be a pandas DataFrame.")
 
     raw_scores = {}
+    pct_scores = {}
     for m in model_names:
         pipe = components["models"][m]
-        # Validate feature columns match pipeline expectation
-        raw_scores[m] = pipe.predict_proba(X)[:, 1]
+        clf = pipe.named_steps.get("classifier")
+        if clf is not None and hasattr(clf, "n_jobs"):
+            clf.set_params(n_jobs=1)
+        raw = pipe.predict_proba(X)[:, 1]
+        raw_scores[m] = raw
+        pct_scores[m] = to_percentile(raw, components["references"][m])
 
     # Calculate uncalibrated ensemble score
-    ea_scores = ensemble_score(
-        model_scores_dict=raw_scores,
-        reference_dict=components["references"],
-        model_names=model_names,
-    )
+    ea_scores = np.mean([pct_scores[m] for m in model_names], axis=0)
 
     # Calibrate probability
-    cal_platt = components["calibrators"]["platt"]
-    calibrated_prob = cal_platt.predict_proba(ea_scores.reshape(-1, 1))[:, 1]
+    cal_platt = components.get("calibrators", {}).get("platt")
+    calibrated_platt = cal_platt.predict_proba(ea_scores.reshape(-1, 1))[:, 1] if cal_platt is not None else None
 
-    results_df = pd.DataFrame(
-        {
-            "score_E_A": ea_scores,
-            "calibrated_prob_platt": calibrated_prob,
-        },
-        index=X.index,
-    )
+    cal_iso = components.get("calibrators", {}).get("isotonic")
+    calibrated_iso = cal_iso.predict(ea_scores) if cal_iso is not None else None
+
+    data_dict = {
+        "score_E_A": ea_scores,
+        "score_M3": pct_scores["M3"],
+    }
+    if calibrated_platt is not None:
+        data_dict["calibrated_prob_platt"] = calibrated_platt
+    if calibrated_iso is not None:
+        data_dict["calibrated_prob_isotonic"] = calibrated_iso
 
     for m in model_names:
-        results_df[f"raw_score_{m}"] = raw_scores[m]
+        data_dict[f"raw_score_{m}"] = raw_scores[m]
+        data_dict[f"pct_score_{m}"] = pct_scores[m]
+
+    results_df = pd.DataFrame(data_dict, index=X.index)
 
     # Apply thresholds
     thresholds = components.get("thresholds", {})

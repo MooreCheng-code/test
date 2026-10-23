@@ -1,0 +1,52 @@
+================================================================================
+=== E6 PREFLIGHT VERIFICATION: COMMENCING INTEGRITY AUDIT ===
+================================================================================
+
+[Check 1/8] Verifying that E6_LOCK file does not exist...
+   -> PASS: Lockfile does not exist. Environment is ready for clean unseal.
+
+[Check 2/8] C1: Verifying score_dataset vs manual pipeline on 200 random training samples...
+   Max absolute difference E_A: 0.00e+00
+   Max absolute difference M3: 0.00e+00
+   -> PASS: C1 inference consistency verified (max diff < 1e-12).
+
+[Check 3/8] C2: Verifying behavior when input features are missing...
+   -> PASS: Correctly raised ValueError: "Missing required features during transform: ['Operating Gross Margin']"
+
+[Check 4/8] Reinforcement 1: Verifying preprocessing bitwise identity & reference_y...
+   M3: Quantiles bitwise match: True | Selected features (72) match: True | Dropped (20) match: True
+   M4: Quantiles bitwise match: True | Selected features (72) match: True | Dropped (20) match: True
+   M5: Quantiles bitwise match: True | Selected features (72) match: True | Dropped (20) match: True
+   reference_y equals [y_train, y_train] (len=10910): True
+   -> PASS: Preprocessing and reference_y verified as 100% training-only derived.
+
+[Check 5/8] Verifying training/test index disjointness and hashes...
+   Train count: 5455, Test count: 1364, Overlap: 0
+   train_idx SHA256: 726dc14dcbcd3b80f0e9a1310cdb9de24d7f3c0ff4bf2b1a204a65bd83433a62
+   test_idx SHA256:  541ea7969f9f407afa9e9ca6fde8f2be3abf0e4c6749fcabf7379654f59a97a5
+   -> PASS: Train/test index integrity and disjointness strictly verified.
+
+[Check 6/8] Verifying thresholds.json integer reproduction on training OOF...
+   -> PASS: All operating thresholds reproduced bitwise (caught & alert counts identical).
+
+[Check 7/8] Recording frozen component SHA-256 hashes...
+   model_M3.joblib: 80c6ceaf80db8aa45cbacbc596155466754adafbe79a46c484893a5d5e5a7f22
+   model_M4.joblib: 7cdc932e41d9fabf06823bd0f44a56007d55fbe6716410bb1ea74a7609f07779
+   model_M5.joblib: c87054c8fde0ece87e7f2cd748d611f2e85538aa7f06fa605252faf3909b66ae
+   reference_M3.npy: 60f3efdc81530ecdf132e0f0f11e61c118ba91d8d6af5a558a6fc22c265e7247
+   reference_M4.npy: e44ed3c20b724b853eabfce1e0c3f8ee629b5506092c4bd05874399d3bb3a8c7
+   reference_M5.npy: 80f69ed550f3bc5b7bd2bf7421be331ed5d6e6b5818c70481f190aa1a42fee19
+   reference_y.npy: 60709f10b4b4e9059bb9ba5c16e1897787614c1bb92cf4b5fa46299bd382dd3d
+   thresholds.json: a2feeff8095ae3d68284f5440e0f5caf6af5deb0ca8f0d195a0dad8caaf6c495
+   thresholds.csv: ce8ec28caecfa0d37edf9c703e036c02945b07da7ca7a229da0d9f5100d2a637
+   calibrator_platt.joblib: ad936dfc0941f07377ce9c0ddabd80266c67c6ceeff819165dbd34072d767033
+   calibrator_isotonic.joblib: a04ea51285c9ef9a11c127aec56d5f11cc7972f63cc802b97b3d4eed63521cd4
+   -> PASS: Frozen components directory verified intact.
+
+[Check 8/8] Executing complete project test suite (pytest -q)...
+   Test suite output: 61 passed in 19.41s
+   -> PASS: All unit & regression tests passed.
+
+================================================================================
+=== PREFLIGHT AUDIT PASSED: ALL 8 VERIFICATION CHECKS SUCCEEDED ===
+================================================================================

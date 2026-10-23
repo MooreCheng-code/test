@@ -456,49 +456,62 @@ def run_e4b_calibration(
     cal_fold_df = pd.DataFrame(calibration_fold_rows)
 
     # Compile Summary
+    p_mean = float(cal_fold_df["actual_base_rate"].mean())
+    brier_bench = p_mean * (1.0 - p_mean)
+    brier_platt_mean = float(cal_fold_df["brier_platt"].mean())
+    brier_iso_mean = float(cal_fold_df["brier_iso"].mean())
+    bss_platt = 1.0 - (brier_platt_mean / brier_bench)
+    bss_iso = 1.0 - (brier_iso_mean / brier_bench)
+
     cal_summary = pd.DataFrame(
         [
             {
                 "method": "Uncalibrated (ECDF Percentile)",
-                "brier_score_mean": float(cal_fold_df["brier_uncal"].mean()),
-                "brier_score_std": float(cal_fold_df["brier_uncal"].std()),
-                "log_loss_mean": float(cal_fold_df["logloss_uncal"].mean()),
-                "log_loss_std": float(cal_fold_df["logloss_uncal"].std()),
-                "mean_pred_prob": float(cal_fold_df["mean_p_uncal"].mean()),
-                "actual_base_rate": float(cal_fold_df["actual_base_rate"].mean()),
+                "brier_score_mean": "N/A",
+                "brier_score_std": "N/A",
+                "brier_benchmark": "N/A",
+                "brier_skill_score": "N/A",
+                "log_loss_mean": "N/A",
+                "log_loss_std": "N/A",
+                "mean_pred_prob": "N/A",
+                "actual_base_rate": p_mean,
                 "ar95_mean": float(cal_fold_df["ar95_uncal"].mean()),
                 "ar95_std": float(cal_fold_df["ar95_uncal"].std()),
                 "ranking_preserved": True,
                 "unique_values_mean": len(X_train) / 5,
-                "note": "Raw rank percentiles (mean ~ 0.50); not a posterior probability.",
+                "note": "Raw rank percentiles (mean ~ 0.50); not a posterior probability. Brier / log loss marked N/A.",
             },
             {
                 "method": "Platt Scaling (Sigmoid)",
-                "brier_score_mean": float(cal_fold_df["brier_platt"].mean()),
+                "brier_score_mean": brier_platt_mean,
                 "brier_score_std": float(cal_fold_df["brier_platt"].std()),
+                "brier_benchmark": brier_bench,
+                "brier_skill_score": bss_platt,
                 "log_loss_mean": float(cal_fold_df["logloss_platt"].mean()),
                 "log_loss_std": float(cal_fold_df["logloss_platt"].std()),
                 "mean_pred_prob": float(cal_fold_df["mean_p_platt"].mean()),
-                "actual_base_rate": float(cal_fold_df["actual_base_rate"].mean()),
+                "actual_base_rate": p_mean,
                 "ar95_mean": float(cal_fold_df["ar95_platt"].mean()),
                 "ar95_std": float(cal_fold_df["ar95_platt"].std()),
                 "ranking_preserved": True,
                 "unique_values_mean": len(X_train) / 5,
-                "note": "Monotonic transformation; ranking 100% preserved; matches base rate (~3.2%).",
+                "note": "Monotonic transformation; ranking 100% preserved. 補充說明：訓練分布上平均預測機率對齊真實盛行率是擬合的必然結果，不能當作校準良好的證據，請以可靠度圖為準。",
             },
             {
                 "method": "Isotonic Regression",
-                "brier_score_mean": float(cal_fold_df["brier_iso"].mean()),
+                "brier_score_mean": brier_iso_mean,
                 "brier_score_std": float(cal_fold_df["brier_iso"].std()),
+                "brier_benchmark": brier_bench,
+                "brier_skill_score": bss_iso,
                 "log_loss_mean": float(cal_fold_df["logloss_iso"].mean()),
                 "log_loss_std": float(cal_fold_df["logloss_iso"].std()),
                 "mean_pred_prob": float(cal_fold_df["mean_p_iso"].mean()),
-                "actual_base_rate": float(cal_fold_df["actual_base_rate"].mean()),
+                "actual_base_rate": p_mean,
                 "ar95_mean": float(cal_fold_df["ar95_iso"].mean()),
                 "ar95_std": float(cal_fold_df["ar95_iso"].std()),
                 "ranking_preserved": False,
                 "unique_values_mean": float(cal_fold_df["unique_iso_values"].mean()),
-                "note": f"Stepwise constant; generates ties (~{cal_fold_df['unique_iso_values'].mean():.1f} unique values); distorts tail threshold.",
+                "note": f"Stepwise constant; generates ties (~{cal_fold_df['unique_iso_values'].mean():.1f} unique values); distorts tail threshold. 補充說明：訓練分布上平均預測機率對齊真實盛行率是擬合的必然結果，不能當作校準良好的證據，請以可靠度圖為準。",
             },
         ]
     )

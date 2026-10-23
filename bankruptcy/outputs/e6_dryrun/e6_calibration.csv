@@ -1,0 +1,3 @@
+calibrator,brier_score,log_loss,brier_skill_score_test_baseline,brier_skill_score_train_baseline,mean_predicted_prob,actual_test_prevalence,note
+Platt,0.02021192933476386,0.06532518485065764,0.352544530309731,0.35254453103500016,0.025820385553820675,0.03225806451612903,Calibrated posterior probability is for risk auditing only; thresholds operate on raw continuous rank.
+Isotonic,0.006398404016802324,0.02761529767982575,0.7950377913284322,0.7950377915580276,0.03141278554164096,0.03225806451612903,Platt is smooth & strictly rank-preserving; Isotonic creates step functions with tied scores and must not be used as operational threshold.

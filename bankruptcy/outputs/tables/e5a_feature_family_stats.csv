@@ -1,0 +1,71 @@
+family_id,representative_feature,family_size,family_members,M3_perm_folds,M4_perm_folds,M5_perm_folds,perm_mean_folds,perm_in_top20_ratio,intrinsic_top20_folds,intrinsic_in_top20_ratio
+58,Interest-bearing debt interest rate,1,Interest-bearing debt interest rate,15,14,15,14.666666666666666,0.9777777777777777,15,1.0
+40,Borrowing dependency,1,Borrowing dependency,12,12,13,12.333333333333334,0.8222222222222223,15,1.0
+38,Total debt/Total net worth,5,Total debt/Total net worth; Debt ratio %; Net worth/Assets; Liability to Equity; Equity to Liability,10,12,14,12.0,0.8,15,1.0
+23,Net Income to Total Assets,4,ROA(C) before interest and depreciation before interest; ROA(A) before interest and % after tax; ROA(B) before interest and depreciation after tax; Net Income to Total Assets,9,12,13,11.333333333333334,0.7555555555555556,15,1.0
+44,Quick Ratio,1,Quick Ratio,10,11,12,11.0,0.7333333333333333,15,1.0
+22,Persistent EPS in the Last Four Seasons,3,Persistent EPS in the Last Four Seasons; Per Share Net profit before tax (Yuan ¥); Net profit before tax/Paid-in capital,8,12,12,10.666666666666666,0.711111111111111,15,1.0
+32,Non-industry income and expenditure/revenue,1,Non-industry income and expenditure/revenue,6,12,9,9.0,0.6,15,1.0
+56,Revenue per person,1,Revenue per person,5,9,12,8.666666666666666,0.5777777777777777,1,0.06666666666666667
+30,Net Value Growth Rate,1,Net Value Growth Rate,6,8,7,7.0,0.4666666666666667,14,0.9333333333333333
+27,Retained Earnings to Total Assets,1,Retained Earnings to Total Assets,5,8,8,7.0,0.4666666666666667,15,1.0
+42,Cash/Total Assets,1,Cash/Total Assets,7,7,6,6.666666666666667,0.4444444444444445,6,0.4
+25,Continuous interest rate (after tax),3,Pre-tax net Interest Rate; After-tax net Interest Rate; Continuous interest rate (after tax),5,7,8,6.666666666666667,0.4444444444444445,15,1.0
+1,Accounts Receivable Turnover,1,Accounts Receivable Turnover,2,10,6,6.0,0.4,9,0.6
+62,Research and development expense rate,1,Research and development expense rate,6,6,5,5.666666666666667,0.3777777777777778,0,0.0
+35,Revenue Per Share (Yuan ¥),1,Revenue Per Share (Yuan ¥),3,7,7,5.666666666666667,0.3777777777777778,2,0.13333333333333333
+8,Total expense/Assets,1,Total expense/Assets,7,4,5,5.333333333333333,0.3555555555555555,1,0.06666666666666667
+20,Net Value Per Share (B),3,Net Value Per Share (B); Net Value Per Share (A); Net Value Per Share (C),2,8,6,5.333333333333333,0.3555555555555555,15,1.0
+37,Equity to Long-term Liability,1,Equity to Long-term Liability,5,5,6,5.333333333333333,0.3555555555555555,7,0.4666666666666667
+9,Total assets to GNP price,1,Total assets to GNP price,4,8,2,4.666666666666667,0.3111111111111111,0,0.0
+66,Total Asset Growth Rate,1,Total Asset Growth Rate,2,6,5,4.333333333333333,0.28888888888888886,0,0.0
+4,Interest Coverage Ratio (Interest expense to EBIT),1,Interest Coverage Ratio (Interest expense to EBIT),6,3,4,4.333333333333333,0.28888888888888886,8,0.5333333333333333
+54,Allocation rate per person,1,Allocation rate per person,1,4,8,4.333333333333333,0.28888888888888886,3,0.2
+15,Continuous Net Profit Growth Rate,1,Continuous Net Profit Growth Rate,4,4,5,4.333333333333333,0.28888888888888886,1,0.06666666666666667
+59,Inventory/Working Capital,1,Inventory/Working Capital,2,5,5,4.0,0.26666666666666666,4,0.26666666666666666
+6,Cash Flow to Equity,3,Cash Flow to Total Assets; Cash Flow to Liability; Cash Flow to Equity,4,5,3,4.0,0.26666666666666666,4,0.26666666666666666
+3,Interest Expense Ratio,1,Interest Expense Ratio,8,2,2,4.0,0.26666666666666666,11,0.7333333333333333
+5,Degree of Financial Leverage (DFL),1,Degree of Financial Leverage (DFL),7,2,2,3.6666666666666665,0.24444444444444444,11,0.7333333333333333
+12,CFO to Assets,1,CFO to Assets,5,3,3,3.6666666666666665,0.24444444444444444,0,0.0
+61,Contingent liabilities/Net worth,1,Contingent liabilities/Net worth,6,1,4,3.6666666666666665,0.24444444444444444,2,0.13333333333333333
+29,Operating profit per person,1,Operating profit per person,4,4,3,3.6666666666666665,0.24444444444444444,5,0.3333333333333333
+55,Current Liabilities/Liability,1,Current Liabilities/Liability,5,3,3,3.6666666666666665,0.24444444444444444,0,0.0
+24,Net Income to Stockholder's Equity,1,Net Income to Stockholder's Equity,3,5,2,3.3333333333333335,0.22222222222222224,11,0.7333333333333333
+36,Long-term Liability to Current Assets,1,Long-term Liability to Current Assets,6,3,1,3.3333333333333335,0.22222222222222224,0,0.0
+51,Quick Assets/Total Assets,1,Quick Assets/Total Assets,4,3,3,3.3333333333333335,0.22222222222222224,0,0.0
+11,Cash Flow Per Share,1,Cash Flow Per Share,2,5,3,3.3333333333333335,0.22222222222222224,0,0.0
+16,Total Asset Return Growth Rate Ratio,1,Total Asset Return Growth Rate Ratio,4,1,5,3.3333333333333335,0.22222222222222224,0,0.0
+64,Current Asset Turnover Rate,1,Current Asset Turnover Rate,2,5,3,3.3333333333333335,0.22222222222222224,0,0.0
+31,Tax rate (A),1,Tax rate (A),7,1,2,3.3333333333333335,0.22222222222222224,4,0.26666666666666666
+46,Current Ratio,2,Current Ratio; Current Liability to Current Assets,5,2,2,3.0,0.2,0,0.0
+10,Operating Funds to Liability,2,Cash flow rate; Operating Funds to Liability,5,3,1,3.0,0.2,1,0.06666666666666667
+19,Operating Gross Margin,3,Operating Gross Margin; Realized Sales Gross Margin; Gross Profit to Sales,2,3,4,3.0,0.2,0,0.0
+57,No-credit Interval,1,No-credit Interval,5,2,2,3.0,0.2,2,0.13333333333333333
+43,Cash/Current Liability,1,Cash/Current Liability,2,4,3,3.0,0.2,3,0.2
+68,Operating Expense Rate,1,Operating Expense Rate,1,5,2,2.6666666666666665,0.17777777777777776,0,0.0
+45,Quick Assets/Current Liability,1,Quick Assets/Current Liability,4,2,2,2.6666666666666665,0.17777777777777776,0,0.0
+49,Working capitcal Turnover Rate,1,Working capitcal Turnover Rate,3,4,1,2.6666666666666665,0.17777777777777776,0,0.0
+60,Inventory/Current Liability,1,Inventory/Current Liability,1,3,4,2.6666666666666665,0.17777777777777776,0,0.0
+21,Operating Profit Per Share (Yuan ¥),2,Operating Profit Per Share (Yuan ¥); Operating profit/Paid-in capital,3,1,4,2.6666666666666665,0.17777777777777776,0,0.0
+18,Operating Profit Growth Rate,1,Operating Profit Growth Rate,4,1,3,2.6666666666666665,0.17777777777777776,0,0.0
+70,Fixed Assets Turnover Frequency,1,Fixed Assets Turnover Frequency,3,3,2,2.6666666666666665,0.17777777777777776,1,0.06666666666666667
+50,Current Assets/Total Assets,1,Current Assets/Total Assets,3,2,3,2.6666666666666665,0.17777777777777776,0,0.0
+63,Cash Turnover Rate,1,Cash Turnover Rate,2,1,4,2.3333333333333335,0.15555555555555556,0,0.0
+13,Cash Reinvestment %,1,Cash Reinvestment %,3,1,3,2.3333333333333335,0.15555555555555556,0,0.0
+33,Total Asset Turnover,1,Total Asset Turnover,4,1,2,2.3333333333333335,0.15555555555555556,0,0.0
+7,Cash Flow to Sales,1,Cash Flow to Sales,3,3,1,2.3333333333333335,0.15555555555555556,1,0.06666666666666667
+26,Total income/Total expense,1,Total income/Total expense,4,2,1,2.3333333333333335,0.15555555555555556,10,0.6666666666666666
+39,Current Liabilities/Equity,2,Current Liability to Assets; Current Liabilities/Equity,5,1,1,2.3333333333333335,0.15555555555555556,10,0.6666666666666666
+65,Quick Asset Turnover Rate,1,Quick Asset Turnover Rate,3,2,2,2.3333333333333335,0.15555555555555556,0,0.0
+48,Working Capital/Equity,1,Working Capital/Equity,3,3,1,2.3333333333333335,0.15555555555555556,1,0.06666666666666667
+52,Long-term fund suitability ratio (A),1,Long-term fund suitability ratio (A),3,2,1,2.0,0.13333333333333333,0,0.0
+41,Inventory and accounts receivable/Net value,1,Inventory and accounts receivable/Net value,2,4,0,2.0,0.13333333333333333,0,0.0
+67,Inventory Turnover Rate (times),1,Inventory Turnover Rate (times),2,2,2,2.0,0.13333333333333333,0,0.0
+14,After-tax Net Profit Growth Rate,2,After-tax Net Profit Growth Rate; Regular Net Profit Growth Rate,1,1,3,1.6666666666666667,0.11111111111111112,0,0.0
+28,Operating Profit Rate,1,Operating Profit Rate,1,0,3,1.3333333333333333,0.08888888888888888,0,0.0
+17,Realized Sales Gross Profit Growth Rate,1,Realized Sales Gross Profit Growth Rate,1,0,2,1.0,0.06666666666666667,0,0.0
+34,Net Worth Turnover Rate (times),1,Net Worth Turnover Rate (times),3,0,0,1.0,0.06666666666666667,0,0.0
+69,Liability-Assets Flag,1,Liability-Assets Flag,2,1,0,1.0,0.06666666666666667,0,0.0
+47,Working Capital to Total Assets,1,Working Capital to Total Assets,2,0,1,1.0,0.06666666666666667,0,0.0
+2,Average Collection Days,1,Average Collection Days,0,0,1,0.3333333333333333,0.02222222222222222,1,0.06666666666666667
+53,Fixed Assets to Assets,1,Fixed Assets to Assets,1,0,0,0.3333333333333333,0.02222222222222222,0,0.0
