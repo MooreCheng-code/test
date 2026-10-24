@@ -19,17 +19,18 @@
 
 ---
 
-## 1. 前置檢查（先做，只回報，不改檔）
+## 1. 前置檢查（第 1 節檢查結果與更正紀錄）
 
-請逐項檢查並貼出實際輸出，若與下列假設不同請明確列出：
+依步驟 A 前置檢查實際執行結果，更正與確認如下：
 
-1. 環境：目前 Python 版本；`pip install streamlit` 是否成功；`python -c "import streamlit; print(streamlit.__version__)"`。若無法安裝（例如 Python 3.14 不支援），先回報，不要自行降版本，因為凍結模型檔與套件版本綁定。
-2. `src/scoring.py` 中 `load_final_components`、`score_dataset` 的簽名與回傳欄位（預期含：風險百分位、各工作點的 flag、Platt 機率）。
-3. `outputs/models/final/thresholds.json` 的結構（預期每個模型組別 E_A、M3 與工作點 R80/R90/R95/R100 各有 target_recall、recommended_margin、final_threshold）。
-4. `outputs/models/final/core_features_extended.txt` 的 18 個特徵，以及它們是否**都**在凍結 pipeline 實際送入分類器的 72 個特徵之中。若有特徵被相關性過濾剔除（例如負債比的同一家族，只有一個成員會被保留），那個特徵輸入了也不影響結果，必須從輸入表單移除或改成該家族的保留成員，並說明。
-5. 凍結 pipeline 需要的原始欄位數（預期 95）與順序；缺欄位時的行為（預期 `ValueError`）。
-6. `outputs/tables/operating_points_for_report.csv` 的欄位（預期含各工作點的預警比例、CV 召回、預警倍數）。
-7. 專案是否已有可用的訓練資料取得函式（預期 `cv.get_train_data()`），確認它**不會**回傳測試資料。
+1. 環境：Python 版本為 3.14.4；`pip install streamlit` 安裝成功；`streamlit.__version__` 為 1.66.1。
+2. `src/scoring.py` 中 `load_final_components` 簽名為 `(final_dir: Path | str) -> dict[str, Any]`；`score_dataset` 簽名為 `(X: pd.DataFrame, components: dict[str, Any], model_names: list[str] = ['M3', 'M4', 'M5'], include_threshold_flags: bool = True) -> pd.DataFrame`。回傳欄位包含：`score_E_A`, `score_M3`, `calibrated_prob_platt`, `calibrated_prob_isotonic`, 各模型 raw/pct scores，以及各工作點 flag（`flag_R80`, `flag_R90`, `flag_R95`, `flag_R100`，依據原始碼第 188-191 行確認對應 E_A 門檻）。
+3. `outputs/models/final/thresholds.json` 的門檻鍵名為 **`threshold`**（而非 `final_threshold`）；`outputs/tables/operating_points_for_report.csv` 的欄位包含 `fixed_threshold`、`actual_recall_mean`、`alert_ratio_mean`、`alert_proportion_mean`、`precision_mean`、`attainment_rate`。
+4. `outputs/models/final/core_features_extended.txt` 的 18 個核心特徵**全數**在凍結 pipeline 實際送入分類器的 72 個特徵之中，沒有任何一個被相關性過濾剔除，全部可作為使用者輸入。模型實際使用 72 個特徵：18 個由使用者輸入、其餘 54 個用訓練中位數補（`fill_columns`）；另外 23 個原始欄位模型不使用（`unused_columns`），但因 FeatureSelector 仍要求 95 個欄位齊全，所以也要補值。「補值說明」只列影響模型的 54 個。
+5. 凍結 pipeline 需要的原始欄位數為 95 欄，順序在三模型與訓練集中完全一致；缺欄位時由 `feature_selector` 拋出 `ValueError`。
+6. `outputs/tables/operating_points_for_report.csv` 包含各工作點的固定門檻、預警比例、CV 召回、預警倍數、精準率與達標率。
+7. 訓練資料取得函式為 `cv.get_train_data()`，回傳 5455 筆訓練資料，與 1364 筆測試資料完全隔離（交集為空集合）；`cv.get_test_data()` 預設拋出 `PermissionError` 防護。
+8. 專案根目錄為 `bankruptcy/`，所有程式碼路徑相對於它。`app/` 與 `scripts/` 內需把專案根目錄加入 `sys.path` 後使用 `from src import ...`。
 
 ---
 
@@ -47,20 +48,25 @@
 
 ### 3.1 `scripts/make_app_defaults.py` → `app/assets/defaults.json`
 
-只用訓練資料（`get_train_data()`），輸出：
+只用訓練資料（`cv.get_train_data()`），輸出：
 
-- `raw_columns`：模型需要的 95 個原始欄位名稱與順序。
+- `raw_columns`：模型需要的 95 個原始欄位名稱與順序（取自凍結 pipeline 的 `feature_selector.selected_features_`，並與訓練資料欄位比對一致）。
+- `model_columns`：72 個送入分類器的特徵（`corr_filter.selected_features_`）。
+- `fill_columns`：`model_columns` 中不屬於 18 個輸入的 54 個欄位。
+- `unused_columns`：95 個中模型不使用的 23 個欄位。
 - `medians`：95 個欄位各自的訓練中位數（用來補沒有輸入的欄位）。
-- `inputs`：每個輸入特徵的 `p01、p05、p25、p50、p75、p95、p99、min、max`。
+- `inputs`：18 個輸入特徵各自的 `min`、`p01`、`p05`、`p25`、`p50`、`p75`、`p95`、`p99`、`max`，以及 `tier`（`main` 或 `advanced`）與其依據（排名與平均重要性）。
 - `presets`：
-  - `normal_profile`：各輸入特徵取「訓練資料中非破產公司的中位數」。
-  - `bankrupt_profile`：各輸入特徵取「訓練資料中破產公司的中位數」。
-  - 兩者都是**彙總出來的虛擬範例，不是任何一家真實公司**，頁面上要標示。
-- `meta`：資料列數、產生時間、訓練索引雜湊（與 `splits.joblib` 一致）。
+  - `normal_profile`：18 個輸入特徵取「訓練資料中非破產公司」的中位數。
+  - `bankrupt_profile`：18 個輸入特徵取「訓練資料中破產公司」的中位數。
+  - 兩者都標註為「訓練資料彙總出來的虛擬輪廓，不是任何一家真實公司」，頁面上要標示。
+- `meta`：訓練資料列數與破產比例（由訓練標籤計算，不寫死）、產生時間、訓練索引雜湊（需與 `outputs/models/final/index_hashes.json` 或 `splits.joblib` 的訓練索引雜湊一致，並在腳本中 assert）。
 
-### 3.2 輸入特徵選擇
+### 3.2 輸入特徵選擇與分級（Tier）
 
-預設使用 `core_features_extended.txt`，經第 1 節第 4 點檢查後保留「確實影響模型」的特徵。若超過約 15 個，分成「主要輸入」（約 8 個，預設展開）與「進階輸入」（收合）。依資料中的欄位名稱分組（槓桿與償債、獲利、流動性、其他），分組標籤標註「AI 推測，待確認」。
+使用 `core_features_extended.txt` 的 18 個特徵，全數在 72 個模型特徵內。主要輸入與進階輸入的分法由腳本計算決定，不寫死：
+- 讀取 `outputs/tables/e5a_permutation_importance.csv`，計算這 18 個特徵在 M3、M4、M5 的平均重要性（`pr_auc_drop_mean`）。
+- 排名前 8 為「主要輸入」（`main`，預設展開），其餘 10 個為「進階輸入」（`advanced`，收合）。依資料中的欄位名稱分組（槓桿與償債、獲利、流動性、其他），分組標籤標註「AI 推測，待確認」。
 
 ### 3.3 `app/assets/feature_notes.json`
 
@@ -74,11 +80,11 @@
 
 - 輸入區：`st.number_input`，範圍與預設用 `defaults.json`（範圍取 p01～p99 並略放寬；預設用中位數）。按鈕：套用「典型正常公司」「訓練中破產公司的典型輪廓」「重設」。
 - 輸入超出 [p01, p99]：黃色警告「超出訓練資料的常見範圍」；超出 [min, max]：紅色警告「超出訓練資料範圍，結果不可靠」。
-- 「補值說明」：expander，列出未輸入而用訓練中位數補上的欄位（只需列影響模型的那些），並說明「結果代表其他指標都是訓練資料典型值時的情況」。
+- 「補值說明」：expander，列出未輸入而用訓練中位數補上的欄位（只需列影響模型的 54 個 `fill_columns`），並加註說明：「用中位數補其他特徵可能與使用者調整的輸入在財務上不完全一致（例如相關的獲利指標），頁面需明確揭露；『相似公司（k 近鄰）補值』列為第二階段選項，第一版不做」。
 - 結果區（按下「計算」後）：
-  1. 風險百分位，用白話表達：「高於訓練資料中 X% 的公司」。
-  2. 表格：R80／R90／R95／R100 四個工作點，每列顯示：是否預警、門檻、該工作點在交叉驗證中的預警比例與預期召回（取自 `operating_points_for_report.csv`）。
-  3. Platt 校準機率，旁邊註明「反映訓練資料約 3.2% 的破產率，不代表真實世界機率」。盛行率數字由資料計算，不寫死。
+  1. 風險百分位，用白話表達：「高於訓練資料中 X% 的公司」（`score_E_A`）。
+  2. 表格：R80／R90／R95／R100 四個工作點，每列顯示：是否預警（對應 E_A 門檻的 `flag_R80`～`flag_R100`）、門檻（`fixed_threshold`）、該工作點在交叉驗證中的預警比例（`alert_proportion_mean`）、預期召回（`actual_recall_mean`）、預警倍數（`alert_ratio_mean`）、精準率（`precision_mean`）與達標率（`attainment_rate`）（取自 `operating_points_for_report.csv`）。
+  3. Platt 校準機率（`calibrated_prob_platt`），旁邊註明「反映訓練資料約 3.2% 的破產率，不代表真實世界機率」。盛行率數字由資料計算，不寫死。
 
 ### 分頁 2「為什麼」
 
@@ -99,6 +105,8 @@
 
 ## 5. 檔案結構
 
+專案根目錄為 `bankruptcy/`，所有路徑相對於此目錄：
+
 ```
 app/
   app.py            # 只做介面，不放計算邏輯
@@ -108,11 +116,12 @@ app/
     defaults.json
     feature_notes.json
 scripts/make_app_defaults.py
+tests/test_app_defaults.py
 tests/test_app_logic.py
 tests/test_app_smoke.py
 requirements-app.txt
 README_APP.md
-docs/streamlit_plan.md
+../docs/streamlit_plan.md
 ```
 
 `logic.py` 預計函式（名稱可調整）：`build_full_row(user_inputs, defaults)`、`score_rows(df)`（呼叫 `scoring.score_dataset`）、`single_feature_effects(user_inputs, defaults)`、`what_if_curve(feature, user_inputs, defaults, n=40)`、`position_table(user_inputs, defaults)`。
