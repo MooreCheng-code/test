@@ -177,3 +177,54 @@ def test_defaults_t6_test_data_isolation_scan():
                 violations.append(f"{fpath.relative_to(PROJECT_ROOT)} contains '{bad_str}'")
 
     assert not violations, f"T6 isolation violations detected:\n" + "\n".join(violations)
+
+
+def test_defaults_reproduced_exactly_from_train_data(defaults_data, train_data):
+    """Verify all medians, input quantiles, grids, and presets match recalculation from train data."""
+    X_train, y_train = train_data
+
+    # 1. Medians of all 95 columns
+    for col in defaults_data["raw_columns"]:
+        calc_med = float(X_train[col].median())
+        json_med = float(defaults_data["medians"][col])
+        assert np.isclose(calc_med, json_med, rtol=1e-7, atol=1e-9), f"Median mismatch on {col}"
+
+    # 2. Input statistics & quantile grid for 18 features
+    q_keys = ["min", "p01", "p05", "p25", "p50", "p75", "p95", "p99", "max"]
+    q_levels = [0, 1, 5, 25, 50, 75, 95, 99, 100]
+
+    for feat, info in defaults_data["inputs"].items():
+        s = X_train[feat]
+        for k, q in zip(q_keys, q_levels):
+            calc_val = float(np.percentile(s, q))
+            json_val = float(info[k])
+            assert np.isclose(calc_val, json_val, rtol=1e-7, atol=1e-9), f"Stat {k} mismatch on {feat}"
+
+        grid_calc = [float(np.percentile(s, q)) for q in range(101)]
+        grid_json = [float(v) for v in info["quantile_grid"]]
+        assert len(grid_calc) == len(grid_json) == 101
+        for idx in range(101):
+            assert np.isclose(grid_calc[idx], grid_json[idx], rtol=1e-7, atol=1e-9), (
+                f"Grid point {idx} mismatch on {feat}"
+            )
+
+    # 3. Presets
+    norm_mask = (y_train == 0)
+    bank_mask = (y_train == 1)
+    norm_vals = defaults_data["presets"]["normal_profile"]["values"]
+    bank_vals = defaults_data["presets"]["bankrupt_profile"]["values"]
+
+    for feat in defaults_data["inputs"].keys():
+        norm_calc = float(X_train.loc[norm_mask, feat].median())
+        norm_json = float(norm_vals[feat])
+        assert np.isclose(norm_calc, norm_json, rtol=1e-7, atol=1e-9), f"Normal preset mismatch on {feat}"
+
+        bank_calc = float(X_train.loc[bank_mask, feat].median())
+        bank_json = float(bank_vals[feat])
+        assert np.isclose(bank_calc, bank_json, rtol=1e-7, atol=1e-9), f"Bankrupt preset mismatch on {feat}"
+
+    # 4. Meta statistics
+    meta = defaults_data["meta"]
+    assert meta["n_train"] == len(X_train)
+    assert meta["train_bankruptcy_count"] == int((y_train == 1).sum())
+    assert np.isclose(meta["train_bankruptcy_rate"], float((y_train == 1).mean()), rtol=1e-7, atol=1e-9)

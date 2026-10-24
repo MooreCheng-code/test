@@ -24,6 +24,8 @@ SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 # ==============================================================================
 def test_t5_static_check_no_hardcoded_numbers():
     """Verify no hardcoded thresholds or prevalence numbers exist in app/ python files."""
+    import ast
+
     prohibited_patterns = [
         r"0\.8845",
         r"0\.7400",
@@ -33,6 +35,8 @@ def test_t5_static_check_no_hardcoded_numbers():
         r"3\.2%",
         r"3\.226%",
         r"3\.23%",
+        r"百分之三點二",
+        r"百分之三",
     ]
 
     py_files = list(APP_DIR.glob("*.py"))
@@ -45,6 +49,36 @@ def test_t5_static_check_no_hardcoded_numbers():
             assert not matches, (
                 f"File {py_file.name} contains hardcoded pattern '{pat}': {matches}"
             )
+
+    # Strict AST scan on ui_text.py for any numeric percent or decimal literals
+    ui_path = APP_DIR / "ui_text.py"
+    tree = ast.parse(ui_path.read_text(encoding="utf-8"))
+    docstring = ast.get_docstring(tree)
+
+    strings = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if node.value == docstring:
+                continue
+            strings.append((node.value, getattr(node, "lineno", 0)))
+
+    pat_pct = re.compile(r"\b\d+(?:\.\d+)?%")
+    pat_decimal = re.compile(r"\b\d+\.\d+\b")
+    pat_chinese_pct = re.compile(r"百分之[一二三四五六七八九十百千點\d]+")
+
+    violations = []
+    for s, line in strings:
+        clean_s = re.sub(r"\{[^}]*:[^}]*\}%?", "", s)
+        clean_s = re.sub(r"%\.?\d*[a-zA-Z]", "", clean_s)
+
+        m_pct = pat_pct.findall(clean_s)
+        m_dec = pat_decimal.findall(clean_s)
+        m_cpct = pat_chinese_pct.findall(clean_s)
+
+        if m_pct or m_dec or m_cpct:
+            violations.append((line, s[:60], m_pct, m_dec, m_cpct))
+
+    assert not violations, f"Strict AST scan found violations in ui_text.py:\n{violations}"
 
 
 def test_t5_page_display_matches_json_and_csv():
@@ -96,9 +130,15 @@ def test_t5_page_display_matches_json_and_csv():
         expected_prec = f"{expected_csv_row['precision_mean']*100:.2f}%"
         assert row_ui["CV 精準率"] == expected_prec
 
-    # Tab 3 cost table dataframe is DF 2
-    df_tab3 = at.dataframe[2].value
-    assert isinstance(df_tab3, pd.DataFrame)
+    # Tab 3 cost table dataframe (contains '目標召回 (Target Recall)' column)
+    cost_dfs = [
+        d.value
+        for d in at.dataframe
+        if isinstance(d.value, pd.DataFrame)
+        and "目標召回 (Target Recall)" in d.value.columns
+    ]
+    assert len(cost_dfs) >= 1, "Cost table dataframe not found in at.dataframe"
+    df_tab3 = cost_dfs[0]
     assert len(df_tab3) == 4
     for op in ["R80", "R90", "R95", "R100"]:
         rec_val = {"R80": 0.80, "R90": 0.90, "R95": 0.95, "R100": 1.00}[op]
@@ -199,3 +239,47 @@ def test_t8_apptest_smoke():
     assert bankrupt_prob > normal_prob
     assert bankrupt_prob > 10.0  # ~20.59%
     assert normal_prob < 1.0     # ~0.06%
+
+
+def test_t8_tab2_renders_with_bankrupt_profile_and_matches_logic():
+    """Verify Tab 2 (effects, position table, what-if) renders without exception and matches logic."""
+    from app import logic
+
+    at = AppTest.from_file(str(APP_DIR / "app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception
+
+    # Apply bankrupt preset
+    btn_bank = [b for b in at.button if "破產" in b.label][0]
+    btn_bank.click().run()
+    assert not at.exception
+
+    calc_btn = [b for b in at.button if "計算" in b.label][0]
+    calc_btn.click().run()
+    assert not at.exception
+
+    defaults = logic.load_defaults()
+    components = logic.load_components()
+    user_inputs = defaults["presets"]["bankrupt_profile"]["values"]
+
+    # Verify single feature effects logic matches
+    eff_df = logic.single_feature_effects(user_inputs, defaults, components)
+    assert len(eff_df) == 18
+    assert "delta_drop" in eff_df.columns
+    assert "delta_add" in eff_df.columns
+
+    # Verify position table in Tab 2 exists
+    pos_dfs = [
+        d.value
+        for d in at.dataframe
+        if isinstance(d.value, pd.DataFrame) and "落點百分位 (0~100)" in d.value.columns
+    ]
+    assert len(pos_dfs) == 1
+    ui_pos_df = pos_dfs[0]
+    assert len(ui_pos_df) == 18
+
+    # Verify what-if curve logic matches
+    feat = list(defaults["inputs"].keys())[0]
+    curve_res = logic.what_if_curve(feat, user_inputs, defaults, components, n=40, grid="percentile")
+    assert 1 <= len(curve_res["curve_df"]) <= 40
+    assert "score_E_A" in curve_res["curve_df"].columns

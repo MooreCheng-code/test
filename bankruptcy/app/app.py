@@ -290,18 +290,213 @@ def main():
                 st.caption(ui_text.format_platt_note(prob_platt, base_rate))
 
     # ==========================================================================
-    # Tab 2: 為什麼（下一版加入）
+    # Tab 2: 為什麼（特徵影響與假設分析）
     # ==========================================================================
     with tab2:
+        import altair as alt
+
         st.subheader(ui_text.TAB2_TITLE)
-        st.markdown(ui_text.TAB2_NEXT_PHASE_NOTICE)
+
+        # 1. Single Feature Replacement Effects
+        st.markdown(f"### {ui_text.TAB2_EFFECTS_TITLE}")
+        st.markdown(ui_text.TAB2_EFFECTS_EXPLANATION)
+
+        eff_view = st.radio(
+            ui_text.TAB2_EFFECTS_RADIO_LABEL,
+            [ui_text.TAB2_EFFECTS_RADIO_DROP, ui_text.TAB2_EFFECTS_RADIO_ADD],
+            horizontal=True,
+        )
+        target_col = "delta_drop" if eff_view == ui_text.TAB2_EFFECTS_RADIO_DROP else "delta_add"
+        target_title = (
+            "Delta Drop（替換為訓練中位數後分數下降量）"
+            if eff_view == ui_text.TAB2_EFFECTS_RADIO_DROP
+            else "Delta Add（僅加入該特徵後分數上升量）"
+        )
+
+        eff_df = logic.single_feature_effects(user_current_inputs, defaults, components)
+
+        bar_chart = (
+            alt.Chart(eff_df)
+            .mark_bar()
+            .encode(
+                x=alt.X(f"{target_col}:Q", title=target_title),
+                y=alt.Y(
+                    "feature:N",
+                    sort=alt.EncodingSortField(field=target_col, op="sum", order="descending"),
+                    title="財務特徵",
+                ),
+                color=alt.condition(
+                    alt.datum[target_col] > 0,
+                    alt.value("#d9534f"),
+                    alt.value("#5cb85c"),
+                ),
+                tooltip=[
+                    alt.Tooltip("feature:N", title="特徵名稱"),
+                    alt.Tooltip(f"{target_col}:Q", title="影響量 (Delta)", format=".4f"),
+                    alt.Tooltip("current_value:Q", title="目前數值", format=".4g"),
+                    alt.Tooltip("median_value:Q", title="訓練中位數", format=".4g"),
+                ],
+            )
+            .properties(height=480)
+        )
+        st.altair_chart(bar_chart, width="stretch")
+
+        st.write("---")
+
+        # 2. Position Table
+        st.markdown(f"### {ui_text.TAB2_POSITION_TITLE}")
+        st.markdown(ui_text.TAB2_POSITION_EXPLANATION)
+
+        pos_df = logic.position_table(user_current_inputs, defaults)
+        pos_df["scale_flag"] = pos_df["feature"].apply(
+            lambda f: bool(defaults["inputs"][f].get("scale_flag", False))
+        )
+        pos_display = pd.DataFrame(
+            {
+                "財務特徵": pos_df["feature"],
+                "目前輸入值": pos_df["value"].apply(format_value_smart),
+                "落點百分位 (0~100)": pos_df["percentile"],
+                "訓練中位數 (p50)": pos_df["p50"].apply(format_value_smart),
+                "常見下界 (p01)": pos_df["p01"].apply(format_value_smart),
+                "常見上界 (p99)": pos_df["p99"].apply(format_value_smart),
+                "尺度特性": pos_df["scale_flag"].apply(
+                    lambda x: "⚠️ 跨數量級特徵" if x else "常規尺度"
+                ),
+            }
+        )
+        st.dataframe(
+            pos_display,
+            width="stretch",
+            hide_index=True,
+            column_config={
+                "落點百分位 (0~100)": st.column_config.ProgressColumn(
+                    "落點百分位 (0~100)",
+                    format="%.1f",
+                    min_value=0.0,
+                    max_value=100.0,
+                ),
+            },
+        )
+
+        st.write("---")
+
+        # 3. What-If Curve
+        st.markdown(f"### {ui_text.TAB2_WHATIF_TITLE}")
+        st.markdown(ui_text.TAB2_WHATIF_EXPLANATION)
+
+        col_w1, col_w2 = st.columns([2, 2])
+        with col_w1:
+            selected_feat = st.selectbox(
+                ui_text.TAB2_WHATIF_SELECT_FEATURE,
+                list(defaults["inputs"].keys()),
+                index=0,
+            )
+        with col_w2:
+            grid_choice = st.radio(
+                ui_text.TAB2_WHATIF_GRID_LABEL,
+                [ui_text.TAB2_WHATIF_GRID_PCT, ui_text.TAB2_WHATIF_GRID_VAL],
+                horizontal=True,
+            )
+
+        grid_mode = "percentile" if grid_choice == ui_text.TAB2_WHATIF_GRID_PCT else "value"
+        res_curve = logic.what_if_curve(
+            selected_feat, user_current_inputs, defaults, components, n=40, grid=grid_mode
+        )
+
+        curve_data = res_curve["curve_df"].copy()
+        x_field = "percentile" if grid_mode == "percentile" else "feature_value"
+        x_title = (
+            f"{selected_feat} 訓練百分位 (1~99)"
+            if grid_mode == "percentile"
+            else f"{selected_feat} 數值 (p01~p99)"
+        )
+
+        line_chart = (
+            alt.Chart(curve_data)
+            .mark_line(point=True, color="#1f77b4")
+            .encode(
+                x=alt.X(f"{x_field}:Q", title=x_title),
+                y=alt.Y(
+                    "score_E_A:Q",
+                    title="集成風險百分位分數 (Score E_A)",
+                    scale=alt.Scale(domain=[0.0, 1.0]),
+                ),
+                tooltip=[
+                    alt.Tooltip(f"{x_field}:Q", title="X 軸位置", format=".4g"),
+                    alt.Tooltip("score_E_A:Q", title="評估分數", format=".4f"),
+                ],
+            )
+        )
+
+        # Threshold horizontal rules
+        thresh_items = [
+            {"工作點": op_k, "門檻值": float(op_v)}
+            for op_k, op_v in res_curve["thresholds"].items()
+        ]
+        thresh_df_chart = pd.DataFrame(thresh_items)
+        rule_chart = (
+            alt.Chart(thresh_df_chart)
+            .mark_rule(strokeDash=[4, 4])
+            .encode(
+                y="門檻值:Q",
+                color=alt.Color("工作點:N", title="固化預警門檻"),
+                tooltip=["工作點:N", alt.Tooltip("門檻值:Q", format=".4f")],
+            )
+        )
+
+        # Mark current user input location
+        curr_x_val = (
+            float(
+                logic.position_table({selected_feat: user_current_inputs[selected_feat]}, defaults)[
+                    "percentile"
+                ].iloc[0]
+            )
+            if grid_mode == "percentile"
+            else float(user_current_inputs[selected_feat])
+        )
+        # Current score
+        curr_score = float(res_norm["score_E_A"].iloc[0] if "res_norm" in locals() else 0.5)
+        # Calculate current row score directly
+        curr_scored_row = logic.score_rows(
+            logic.build_full_row(user_current_inputs, defaults), components
+        )
+        curr_score = float(curr_scored_row["score_E_A"].iloc[0])
+
+        current_pt = pd.DataFrame(
+            [
+                {
+                    "curr_x": curr_x_val,
+                    "curr_y": curr_score,
+                    "標記": "目前輸入位置",
+                }
+            ]
+        )
+        curr_point_chart = (
+            alt.Chart(current_pt)
+            .mark_point(size=140, color="#d9534f", filled=True)
+            .encode(
+                x="curr_x:Q",
+                y="curr_y:Q",
+                tooltip=[
+                    alt.Tooltip("curr_x:Q", title="目前 X 座標", format=".4g"),
+                    alt.Tooltip("curr_y:Q", title="目前評估分數", format=".4f"),
+                ],
+            )
+        )
+
+        combined_whatif = (line_chart + rule_chart + curr_point_chart).properties(
+            height=400
+        )
+        st.altair_chart(combined_whatif, width="stretch")
 
     # ==========================================================================
     # Tab 3: 模型如何運作
     # ==========================================================================
     with tab3:
         st.subheader(ui_text.TAB3_TITLE)
-        st.markdown(ui_text.TAB3_ARCHITECTURE_TEXT)
+        n_raw = int(defaults["meta"]["n_raw_columns"])
+        n_model = int(defaults["meta"]["n_model_columns"])
+        st.markdown(ui_text.format_tab3_architecture(n_raw, n_model))
 
         # Display Operating Points Cost Table
         st.markdown("#### 工作點固化基準表（取自 operating_points_for_report.csv）")
@@ -324,7 +519,7 @@ def main():
             st.dataframe(cost_table, width="stretch", hide_index=True)
 
         st.markdown(f"### {ui_text.TAB3_PREVALENCE_SECTION_TITLE}")
-        st.markdown(ui_text.TAB3_PREVALENCE_EXPLANATION)
+        st.markdown(ui_text.format_tab3_prevalence_explanation())
 
         e7a_path = PROJECT_ROOT / "outputs" / "tables" / "e7a_prevalence_sensitivity.csv"
         if e7a_path.exists():
@@ -348,7 +543,8 @@ def main():
     # ==========================================================================
     with tab4:
         st.subheader(ui_text.TAB4_TITLE)
-        st.markdown(ui_text.TAB4_DISCLAIMER_TEXT)
+        train_rate = float(defaults["meta"]["train_bankruptcy_rate"])
+        st.markdown(ui_text.format_tab4_disclaimer(train_rate))
 
 
 if __name__ == "__main__":
