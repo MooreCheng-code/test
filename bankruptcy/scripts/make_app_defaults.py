@@ -99,21 +99,36 @@ def generate_app_defaults() -> Path:
 
     quantile_points = np.linspace(0.0, 1.0, 101)
     inputs = {}
+    marked_scale_features = []
     for rank, (feat, imp) in enumerate(importance_mean.items(), start=1):
         tier = "main" if rank <= 8 else "advanced"
         s = X_train[feat]
         q_grid = [float(s.quantile(q)) for q in quantile_points]
+        p50_val = float(s.quantile(0.50))
+        p99_val = float(s.quantile(0.99))
+        max_val = float(s.max())
+
+        # Scale flag rule:
+        # p99 > 100 * max(|p50|, 1e-12) or max > 100 * max(|p99|, 1e-12)
+        scale_flag = bool(
+            (p99_val > 100.0 * max(abs(p50_val), 1e-12))
+            or (max_val > 100.0 * max(abs(p99_val), 1e-12))
+        )
+        if scale_flag:
+            marked_scale_features.append(feat)
+
         inputs[feat] = {
             "min": float(s.min()),
             "p01": float(s.quantile(0.01)),
             "p05": float(s.quantile(0.05)),
             "p25": float(s.quantile(0.25)),
-            "p50": float(s.quantile(0.50)),
+            "p50": p50_val,
             "p75": float(s.quantile(0.75)),
             "p95": float(s.quantile(0.95)),
-            "p99": float(s.quantile(0.99)),
-            "max": float(s.max()),
+            "p99": p99_val,
+            "max": max_val,
             "quantile_grid": q_grid,
+            "scale_flag": scale_flag,
             "tier": tier,
             "importance_rank": int(rank),
             "importance_mean": float(imp),
@@ -186,6 +201,9 @@ def generate_app_defaults() -> Path:
     print(f"raw_columns: {len(raw_columns)}, model_columns: {len(model_columns)}")
     print(f"fill_columns: {len(fill_columns)}, unused_columns: {len(unused_columns)}")
     print(f"inputs: {len(inputs)}")
+    print(f"\nFeatures flagged with scale_flag ({len(marked_scale_features)}):")
+    for feat in marked_scale_features:
+        print(f"  * {feat}")
     print("\nMain inputs (top 8 by PR-AUC drop):")
     for feat, info in inputs.items():
         if info["tier"] == "main":

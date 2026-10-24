@@ -122,16 +122,70 @@ def score_rows(df: pd.DataFrame, components: dict[str, Any]) -> pd.DataFrame:
     return scoring.score_dataset(df, components)
 
 
+def scale_warning(feature: str, defaults: dict[str, Any]) -> str | None:
+    """Return warning message if feature has wide-scale encoding flag, else None."""
+    inputs_meta = defaults.get("inputs", {})
+    if feature in inputs_meta and inputs_meta[feature].get("scale_flag", False):
+        return "此特徵在資料中有跨越多個數量級的編碼值，建議使用分位數滑桿，輸入前請確認尺度。"
+    return None
+
+
+def _interpolate_percentile_to_value(p: float, quantile_grid: list[float] | np.ndarray) -> float:
+    """Linearly interpolate a percentile in [0, 100] to a feature value using quantile_grid."""
+    q = np.clip(float(p), 0.0, 100.0)
+    g = np.asarray(quantile_grid, dtype=float)
+    if len(g) != 101:
+        raise ValueError(f"quantile_grid must have length 101, got {len(g)}")
+    k = int(np.floor(q))
+    if k >= 100:
+        return float(g[100])
+    alpha = q - k
+    g_k = g[k]
+    g_k1 = g[k + 1]
+    if g_k == g_k1:
+        return float(g_k)
+    return float(g_k + alpha * (g_k1 - g_k))
+
+
+def values_from_percentiles(
+    percentiles: dict[str, float] | float,
+    defaults: dict[str, Any],
+    feature: str | None = None,
+) -> dict[str, float] | float:
+    """
+    Convert percentiles (0 to 100) to feature values using quantile_grid.
+    Supports dictionary of {feature: percentile} or single float with feature name.
+    Values outside [0, 100] are clamped.
+    """
+    inputs_meta = defaults["inputs"]
+    if isinstance(percentiles, (int, float, np.number)):
+        if feature is None:
+            raise ValueError("feature name must be specified when percentiles is a single number.")
+        if feature not in inputs_meta:
+            raise ValueError(f"Unknown feature {feature!r}")
+        return _interpolate_percentile_to_value(float(percentiles), inputs_meta[feature]["quantile_grid"])
+
+    if not isinstance(percentiles, dict):
+        raise TypeError("percentiles must be a dictionary or a number.")
+
+    res: dict[str, float] = {}
+    for feat, p in percentiles.items():
+        if feat not in inputs_meta:
+            raise ValueError(f"Unknown feature {feat!r}")
+        res[feat] = _interpolate_percentile_to_value(float(p), inputs_meta[feat]["quantile_grid"])
+    return res
+
+
 def single_feature_effects(
     user_inputs: dict[str, Any],
     defaults: dict[str, Any],
     components: dict[str, Any],
 ) -> pd.DataFrame:
     """
-    Evaluate single-feature replacement effects across all 18 input features in one batch (1 + 18 rows).
-    For each input feature i, replaces only feature i with its training median while keeping others fixed.
-    delta = base_score - replaced_score (positive means current value increases risk score relative to median).
-    Returns a DataFrame sorted by |delta| descending.
+    Evaluate single-feature replacement effects across all 18 input features in one batch (1 + 18 + 1 + 18 = 38 rows).
+    - delta_drop: starting from user's full row, replace feature i with median (base_score - replaced_score).
+    - delta_add: starting from all-median row, replace feature i with user's value (score_add - median_base_score).
+    Returns a DataFrame sorted by |delta_drop| descending.
     """
     base_df = build_full_row(user_inputs, defaults)
     base_row = base_df.iloc[0].to_dict()
@@ -139,32 +193,53 @@ def single_feature_effects(
     medians: dict[str, float] = defaults["medians"]
     input_features: list[str] = list(defaults["inputs"].keys())
 
+    # Row 0: user's base row
     batch_rows: list[dict[str, float]] = [base_row]
+    # Rows 1..18: drop feature i to median
     for feat in input_features:
         mod_row = dict(base_row)
         mod_row[feat] = float(medians[feat])
         batch_rows.append(mod_row)
 
+    # Row 19: all medians baseline row
+    all_medians_row = {col: float(medians[col]) for col in raw_columns}
+    batch_rows.append(all_medians_row)
+
+    # Rows 20..37: add feature i from user's row into all medians row
+    for feat in input_features:
+        mod_row = dict(all_medians_row)
+        mod_row[feat] = float(base_row[feat])
+        batch_rows.append(mod_row)
+
     batch_df = pd.DataFrame(batch_rows, columns=raw_columns)
     scored_df = score_rows(batch_df, components)
+    scores = scored_df["score_E_A"].to_numpy(dtype=float)
 
-    base_score = float(scored_df["score_E_A"].iloc[0])
+    base_score = float(scores[0])
+    all_medians_score = float(scores[19])
 
     records: list[dict[str, Any]] = []
-    for idx, feat in enumerate(input_features, start=1):
+    for idx, feat in enumerate(input_features):
         curr_val = float(base_row[feat])
         med_val = float(medians[feat])
-        rep_score = float(scored_df["score_E_A"].iloc[idx])
-        delta = 0.0 if curr_val == med_val else float(base_score - rep_score)
+
+        score_drop = float(scores[1 + idx])
+        delta_drop = 0.0 if curr_val == med_val else float(base_score - score_drop)
+
+        score_add = float(scores[20 + idx])
+        delta_add = 0.0 if curr_val == med_val else float(score_add - all_medians_score)
+
         records.append(
             {
                 "feature": feat,
                 "current_value": curr_val,
                 "median_value": med_val,
                 "base_score": base_score,
-                "replaced_score": rep_score,
-                "delta": delta,
-                "abs_delta": abs(delta),
+                "replaced_score": score_drop,
+                "delta_drop": delta_drop,
+                "delta_add": delta_add,
+                "delta": delta_drop,
+                "abs_delta": abs(delta_drop),
             }
         )
 
@@ -181,11 +256,13 @@ def what_if_curve(
     defaults: dict[str, Any],
     components: dict[str, Any],
     n: int = 40,
+    grid: str = "percentile",
 ) -> dict[str, Any]:
     """
-    Sweep `feature` across n evenly spaced points in [p01, p99] while holding other inputs fixed.
-    Evaluates all n points in a single batch inference call.
-    Returns a dictionary containing the grid values, E_A scores, curve DataFrame, and E_A thresholds.
+    Sweep `feature` across n points while holding other inputs fixed.
+    - grid="percentile": n evenly spaced percentiles in [1, 99], converted via quantile_grid (deduplicated).
+    - grid="value": n evenly spaced feature values in [p01, p99].
+    Evaluates all points in a single batch inference call.
     """
     inputs_meta = defaults["inputs"]
     if feature not in inputs_meta:
@@ -196,9 +273,26 @@ def what_if_curve(
     base_df = build_full_row(user_inputs, defaults)
     base_row = base_df.iloc[0].to_dict()
     raw_columns: list[str] = list(defaults["raw_columns"])
-
     f_info = inputs_meta[feature]
-    grid_values = np.linspace(float(f_info["p01"]), float(f_info["p99"]), int(n))
+
+    if grid == "percentile":
+        pct_points = np.linspace(1.0, 99.0, int(n))
+        pts_list: list[tuple[float, float]] = []
+        seen_vals = set()
+        for p in pct_points:
+            v = _interpolate_percentile_to_value(float(p), f_info["quantile_grid"])
+            if v not in seen_vals:
+                seen_vals.add(v)
+                pts_list.append((float(p), float(v)))
+        if not pts_list:
+            pts_list = [(50.0, float(f_info["p50"]))]
+        percentiles = [p for p, _ in pts_list]
+        grid_values = [v for _, v in pts_list]
+    elif grid == "value":
+        grid_values = np.linspace(float(f_info["p01"]), float(f_info["p99"]), int(n)).tolist()
+        percentiles = [_interpolate_quantile(v, f_info["quantile_grid"]) for v in grid_values]
+    else:
+        raise ValueError(f"Unknown grid mode {grid!r}, must be 'percentile' or 'value'.")
 
     batch_rows: list[dict[str, float]] = []
     for val in grid_values:
@@ -212,6 +306,7 @@ def what_if_curve(
 
     curve_df = pd.DataFrame(
         {
+            "percentile": percentiles,
             "feature_value": grid_values,
             "score_E_A": scores,
         }
@@ -224,7 +319,9 @@ def what_if_curve(
 
     return {
         "feature": feature,
-        "values": grid_values.tolist(),
+        "grid": grid,
+        "percentiles": percentiles,
+        "values": grid_values,
         "scores": scores.tolist(),
         "curve_df": curve_df,
         "thresholds": ea_thresholds,
@@ -434,17 +531,54 @@ def operating_point_table(
     return pd.DataFrame(rows)
 
 
-def describe_percentile(p: float) -> str:
+def describe_score(score: float) -> str:
     """
-    Return a plain-language description of risk percentile `p` (in [0, 1]) relative to
-    the training reference distribution, explicitly avoiding probability phrasing.
+    Return a plain-language description of risk percentile score `score` (in [0, 1]).
+    Explains that it is the average of percentiles from the three models.
     """
-    val = _validate_numeric_value("p", p)
-    if val < 0.0 or val > 1.0:
-        raise ValueError(f"Percentile p must be in [0, 1], got {val}")
-
-    pct_val = val * 100.0
+    val = _validate_numeric_value("score", score)
     return (
-        f"此風險百分位（{pct_val:.1f}%）代表該樣本的集成風險分數高於訓練資料參考分布中約 "
-        f"{pct_val:.1f}% 的公司（此數值僅反映相對於訓練資料的排序位置，不代表破產發生機率）。"
+        f"平均百分位分數 {val:.2f}"
+        "（三個模型各自把這筆輸入排在訓練資料參考分布的百分位，再取平均）"
     )
+
+
+def describe_percentile(p: float) -> str:
+    """Backward compatibility alias for describe_score."""
+    return describe_score(p)
+
+
+def _get_ensemble_reference_scores(components: dict[str, Any]) -> np.ndarray:
+    """Compute and cache reference ensemble score distribution across training samples."""
+    if "_ensemble_reference_scores" in components:
+        return components["_ensemble_reference_scores"]
+
+    ref_m3 = components["references"]["M3"]
+    ref_m4 = components["references"]["M4"]
+    ref_m5 = components["references"]["M5"]
+
+    n_total = len(ref_m3)
+    if n_total % 2 == 0 and n_total > 5455:
+        n = n_total // 2
+        m3_score = (ref_m3[:n] + ref_m3[n:]) / 2.0
+        m4_score = (ref_m4[:n] + ref_m4[n:]) / 2.0
+        m5_score = (ref_m5[:n] + ref_m5[n:]) / 2.0
+    else:
+        m3_score = ref_m3
+        m4_score = ref_m4
+        m5_score = ref_m5
+
+    pct_3 = scoring.to_percentile(m3_score, ref_m3)
+    pct_4 = scoring.to_percentile(m4_score, ref_m4)
+    pct_5 = scoring.to_percentile(m5_score, ref_m5)
+    ea_scores = (pct_3 + pct_4 + pct_5) / 3.0
+    components["_ensemble_reference_scores"] = ea_scores
+    return ea_scores
+
+
+def training_share_at_or_above(score: float, components: dict[str, Any]) -> float:
+    """Return proportion of training reference samples with ensemble score >= score."""
+    val = _validate_numeric_value("score", score)
+    ref_scores = _get_ensemble_reference_scores(components)
+    return float(np.mean(ref_scores >= val))
+

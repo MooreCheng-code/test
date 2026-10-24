@@ -6,7 +6,7 @@
     "n_input_features": 18,
     "train_bankruptcy_count": 176,
     "train_bankruptcy_rate": 0.03226397800183318,
-    "created_at": "2026-10-24T04:02:14.884655+00:00",
+    "created_at": "2026-10-24T07:56:50.310999+00:00",
     "train_indices_sha256": "726dc14dcbcd3b80f0e9a1310cdb9de24d7f3c0ff4bf2b1a204a65bd83433a62"
   },
   "raw_columns": [
@@ -472,6 +472,7 @@
         760000000.0,
         990000000.0
       ],
+      "scale_flag": true,
       "tier": "main",
       "importance_rank": 1,
       "importance_mean": 0.04032064178305503,
@@ -590,6 +591,7 @@
         0.4008746250696176,
         0.954819351216665
       ],
+      "scale_flag": false,
       "tier": "main",
       "importance_rank": 2,
       "importance_mean": 0.0265410561863435,
@@ -708,6 +710,7 @@
         0.06453902558619165,
         9230000000.0
       ],
+      "scale_flag": true,
       "tier": "main",
       "importance_rank": 3,
       "importance_mean": 0.02532172707616843,
@@ -826,6 +829,7 @@
         0.33171220572941296,
         1.0
       ],
+      "scale_flag": false,
       "tier": "main",
       "importance_rank": 4,
       "importance_mean": 0.02082948317077433,
@@ -944,6 +948,7 @@
         0.04001621389945194,
         5930000000.0
       ],
+      "scale_flag": true,
       "tier": "main",
       "importance_rank": 5,
       "importance_mean": 0.020028783433768235,
@@ -1062,6 +1067,7 @@
         0.3048130761044617,
         1.0
       ],
+      "scale_flag": false,
       "tier": "main",
       "importance_rank": 6,
       "importance_mean": 0.009824553787655501,
@@ -1180,6 +1186,7 @@
         0.7822554920138746,
         1.0
       ],
+      "scale_flag": false,
       "tier": "main",
       "importance_rank": 7,
       "importance_mean": 0.0064239213027921,
@@ -1298,6 +1305,7 @@
         0.9705815288913933,
         0.998858027137315
       ],
+      "scale_flag": false,
       "tier": "main",
       "importance_rank": 8,
       "importance_mean": 0.006064959324652233,
@@ -1416,6 +1424,7 @@
         0.0011302054279673202,
         1350000000.0
       ],
+      "scale_flag": true,
       "tier": "advanced",
       "importance_rank": 9,
       "importance_mean": 0.005690741733786833,
@@ -1534,6 +1543,7 @@
         0.8882024716478932,
         1.0
       ],
+      "scale_flag": false,
       "tier": "advanced",
       "importance_rank": 10,
       "importance_mean": 0.0055927828796593,
@@ -1652,6 +1662,7 @@
         0.024886855426942505,
         9740000000.0
       ],
+      "scale_flag": true,
       "tier": "advanced",
       "importance_rank": 11,
       "importance_mean": 0.0037019632868274667,
@@ -1770,6 +1781,7 @@
         0.7054606777664757,
         1.0
       ],
+      "scale_flag": false,
       "tier": "advanced",
       "importance_rank": 12,
       "importance_mean": 0.0034758610301338666,
@@ -1888,6 +1900,7 @@
         0.6386001561622442,
         0.897787359077273
       ],
+      "scale_flag": false,
       "tier": "advanced",
       "importance_rank": 13,
       "importance_mean": 0.0016218957950098,
@@ -2006,6 +2019,7 @@
         0.03786112476166895,
         1.0
       ],
+      "scale_flag": false,
       "tier": "advanced",
       "importance_rank": 14,
       "importance_mean": 0.0013918390266051,
@@ -2124,6 +2138,7 @@
         0.3543174347284539,
         1.0
       ],
+      "scale_flag": false,
       "tier": "advanced",
       "importance_rank": 15,
       "importance_mean": 0.0008775930127545,
@@ -2242,6 +2257,7 @@
         0.8463173527997577,
         1.0
       ],
+      "scale_flag": false,
       "tier": "advanced",
       "importance_rank": 16,
       "importance_mean": 0.00069893908370596,
@@ -2360,6 +2376,7 @@
         0.0036714368756781608,
         1.0
       ],
+      "scale_flag": true,
       "tier": "advanced",
       "importance_rank": 17,
       "importance_mean": -0.00038054188726620005,
@@ -2478,6 +2495,7 @@
         0.305458682735662,
         0.549197252538873
       ],
+      "scale_flag": false,
       "tier": "advanced",
       "importance_rank": 18,
       "importance_mean": -0.0026896964734796393,

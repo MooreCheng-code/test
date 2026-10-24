@@ -1,2 +1,5 @@
 # Temporary verification backups created during the v4 refactor
 bankruptcy/outputs_backup_v4/
+__pycache__/
+*.pyc
+.pytest_cache/

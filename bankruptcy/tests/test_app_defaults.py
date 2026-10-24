@@ -105,6 +105,9 @@ def test_defaults_quantile_grid_properties(defaults_data):
     assert len(inputs) == 18
     for feat, info in inputs.items():
         assert "quantile_grid" in info, f"Missing quantile_grid for {feat}"
+        assert "scale_flag" in info, f"Missing scale_flag for {feat}"
+        assert isinstance(info["scale_flag"], bool), f"scale_flag must be bool for {feat}"
+
         grid = info["quantile_grid"]
         assert len(grid) == 101, f"Expected 101 points in quantile_grid for {feat}, got {len(grid)}"
         # Monotonic non-decreasing
