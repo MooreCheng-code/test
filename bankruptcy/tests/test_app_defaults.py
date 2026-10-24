@@ -97,6 +97,27 @@ def test_defaults_medians_consistent_with_training_data(defaults_data, train_dat
         assert np.isclose(actual, expected, rtol=1e-7, atol=1e-7), f"Median mismatch on {col}"
 
 
+def test_defaults_quantile_grid_properties(defaults_data):
+    """(c2) quantile_grid has 101 points, is monotonic non-decreasing, endpoints match min/max, index 50 matches median."""
+    inputs = defaults_data["inputs"]
+    medians = defaults_data["medians"]
+
+    assert len(inputs) == 18
+    for feat, info in inputs.items():
+        assert "quantile_grid" in info, f"Missing quantile_grid for {feat}"
+        grid = info["quantile_grid"]
+        assert len(grid) == 101, f"Expected 101 points in quantile_grid for {feat}, got {len(grid)}"
+        # Monotonic non-decreasing
+        for i in range(100):
+            assert grid[i] <= grid[i + 1], f"quantile_grid not monotonic at index {i} for {feat}"
+        # Endpoints equal min and max
+        assert np.isclose(grid[0], info["min"], rtol=0.0, atol=1e-12), f"grid[0] != min for {feat}"
+        assert np.isclose(grid[100], info["max"], rtol=0.0, atol=1e-12), f"grid[100] != max for {feat}"
+        # Index 50 equals p50 and medians[feat]
+        assert np.isclose(grid[50], info["p50"], rtol=0.0, atol=1e-12), f"grid[50] != p50 for {feat}"
+        assert np.isclose(grid[50], medians[feat], rtol=0.0, atol=1e-12), f"grid[50] != median for {feat}"
+
+
 def test_defaults_preset_profiles_are_virtual_and_unmatched(defaults_data, train_data):
     """(d) Preset profiles are virtual summaries and do not match any single training row."""
     X_train, y_train = train_data

@@ -97,10 +97,12 @@ def generate_app_defaults() -> Path:
         .sort_values(ascending=False)
     )
 
+    quantile_points = np.linspace(0.0, 1.0, 101)
     inputs = {}
     for rank, (feat, imp) in enumerate(importance_mean.items(), start=1):
         tier = "main" if rank <= 8 else "advanced"
         s = X_train[feat]
+        q_grid = [float(s.quantile(q)) for q in quantile_points]
         inputs[feat] = {
             "min": float(s.min()),
             "p01": float(s.quantile(0.01)),
@@ -111,6 +113,7 @@ def generate_app_defaults() -> Path:
             "p95": float(s.quantile(0.95)),
             "p99": float(s.quantile(0.99)),
             "max": float(s.max()),
+            "quantile_grid": q_grid,
             "tier": tier,
             "importance_rank": int(rank),
             "importance_mean": float(imp),
