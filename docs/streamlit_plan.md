@@ -5,6 +5,28 @@
 
 ---
 
+## 與實作差異紀錄
+
+本節記錄實際實作（步驟 A 至 H）與本規劃初始假設及細部設定之差異，原有規劃內容保留不變以供歷史比對：
+
+1. **門檻設定檔與工作點欄位名稱**：
+   - `outputs/models/final/thresholds.json` 的門檻鍵名為 `threshold`（而非規劃假設之 `final_threshold`）。
+   - `outputs/tables/operating_points_for_report.csv` 實際欄位為 `fixed_threshold`、`actual_recall_mean`、`alert_ratio_mean`、`alert_proportion_mean`、`precision_mean`、`attainment_rate`。
+2. **核心特徵與欄位補值結構**：
+   - 18 個核心輸入特徵全數在凍結 pipeline 實際使用的 72 個特徵中，無被相關性剔除者。
+   - 補值分為「影響模型的 54 個特徵」（`fill_columns`）與「不影響模型的 23 個特徵」（`unused_columns`），均以訓練中位數補齊以滿足 `FeatureSelector` 對 95 欄位的完整性要求。
+3. **特徵分層依據（主要／進階）**：
+   - 依 `outputs/tables/e5a_permutation_importance.csv` 計算 M3、M4、M5 三模型平均 PR-AUC 下降量，取排名前 8 為「主要輸入」，其餘 10 個為「進階輸入」，由 `scripts/make_app_defaults.py` 動態產生於 `defaults.json` 而非寫死。
+4. **預設輪廓分數與分位數網格**：
+   - `defaults.json` 補充了 18 個特徵的 `quantile_grid`（0 到 100 百分位，101 點），用於 `logic.values_from_percentiles` 內插與 `what_if_curve(..., grid="percentile")`。
+   - 新增 `scale_flag`（極端偏態標記），針對 `Total debt/Total net worth`、`Total income/Total expense`、`Quick Ratio` 等 6 個特徵在 UI 提供尺度警告與常用區間縮放建議。
+5. **程式架構與文字修訂**：
+   - `app/logic.py` 完全不相依 `streamlit`，所有資料處理、預測、歸因與文字產生均為純函式，可獨立單元測試。
+   - 免責與說明文字（`app/ui_text.py`）配合一般使用者淺白化，移除內部規範用語，標註「資料來源與授權待確認」，並強化機率適用情境與外推限制說明。
+   - 建立 `.streamlit/config.toml`（鎖定 `localhost`，關閉遙測）與 `tests/test_frozen_hashes.py`（依據 preflight Check 7/8 記錄之 SHA256 驗證凍結檔案）。
+
+---
+
 ## 0. 目標與範圍
 
 做一個 Streamlit 頁面，讓使用者輸入主要財務比率，看到：

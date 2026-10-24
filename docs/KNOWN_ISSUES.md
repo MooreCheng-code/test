@@ -26,6 +26,7 @@
 | `src/tune.py` | 547 | `single_feat_auc = r.get("single_feat_auc", np.nan)` | 報表欄位防護填補 | 低 | 低優先，未處理 | 同上。 |
 | `src/tune.py` | 610 | `except Exception:` | Optuna study 物件清理 | 低 | 低優先，未處理 | 清理先前 study 物件的保護區塊，失敗不影響實驗進行。 |
 | `src/tune.py` | 1081 | `color = colors.get(m, "black")` | 圖表繪圖顏色映射 | 極低 | 低優先，未處理 | 視覺化調色防護，若模型未定義顏色則預設黑色。 |
+| `outputs/models/final/` | N/A | `_tmp_oof_*.npy` | 凍結模型外層折 OOF 預測暫存 | 低 | 已知命名遺留，維持現狀 | 檔名含有 `_tmp_` 但被回歸測試依賴，屬於歷史遺留命名；暫不更名以保持模型目錄檔案雜湊與 preflight 檢查穩定。未來重訓時應更名為標準命名。 |
 
 ---
 
@@ -33,3 +34,4 @@
 
 1. **推論路徑零靜默原則**：所有進入生產或推論之路徑（`src/scoring.py`、`score_new_data.py`）嚴格禁止靜默填補，必須拋出明確例外（如 `KeyError`、`FileNotFoundError`、`ValueError`）。
 2. **研究調優路徑容錯原則**：離線調優與視覺化工具（`tune.py`、`explain.py`、`run_baselines.py`）允許保留無害的防禦性預設值，若未來重構為正式模組時再行收緊。
+3. **凍結目錄檔案命名遺留**：`outputs/models/final/_tmp_oof_*.npy` 檔名含有 `_tmp_`，係初期實驗輸出命名遺留。由於既有回歸測試直接引用該檔名，且模型目錄已於 preflight 凍結 SHA256 雜湊，為確保環境可重現性與雜湊一致性，目前不變更檔名。未來重訓或模型版號升級時應統一重構為正式命名（如 `oof_preds_*.npy`）。

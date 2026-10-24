@@ -1,0 +1,16 @@
+# requirements-app.txt
+# Pinned dependencies for running the Streamlit Bankruptcy Early Warning Demonstration
+# Environment: Python 3.14 compatible
+
+streamlit==1.66.1
+scikit-learn==1.9.1
+imbalanced-learn==0.14.2
+xgboost==3.4.1
+lightgbm==4.7.0
+numpy==2.4.6
+pandas==3.0.6
+scipy==1.18.1
+joblib==1.6.0
+altair==6.3.0
+pyarrow==26.0.0
+pytest==9.1.1
