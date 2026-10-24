@@ -199,11 +199,27 @@ def run_e6_analysis(
     n_samples = len(labels)
     n_pos = int(labels.sum())
     thresholds_cfg = components["thresholds"]
-    train_meta = components.get("metadata", {})
-    p_train = float(train_meta.get("n_bankrupt_positives", 176)) / float(train_meta.get("n_training_samples", 5455))
+    train_meta = components.get("metadata")
+    if not train_meta:
+        raise KeyError("Components missing 'metadata' dictionary.")
+    if "n_bankrupt_positives" not in train_meta or "n_training_samples" not in train_meta:
+        raise KeyError("Metadata missing required keys: 'n_bankrupt_positives' or 'n_training_samples'.")
+    p_train = float(train_meta["n_bankrupt_positives"]) / float(train_meta["n_training_samples"])
     p_test = float(n_pos / n_samples)
 
     logger.info(f"Loaded {n_samples} evaluation records ({n_pos} bankrupt positives, base rate: {p_test:.4f})")
+
+    # Load splits file to map test set internal row index to raw data.csv index
+    splits_file = project_root / "outputs" / "models" / "splits.joblib"
+    if not dry_run:
+        if not splits_file.exists():
+            raise FileNotFoundError(f"Splits file not found at {splits_file}")
+        splits_payload = joblib.load(splits_file)
+        if "test_idx" not in splits_payload:
+            raise KeyError(f"'test_idx' missing from {splits_file}")
+        test_orig_idx = splits_payload["test_idx"]
+    else:
+        test_orig_idx = None
 
     # 1. Operating Points Evaluation
     logger.info("Evaluating frozen operating points...")
@@ -260,19 +276,17 @@ def run_e6_analysis(
             )
 
             # Track missed bankrupt companies
-            splits_file = project_root / "outputs" / "models" / "splits.joblib"
-            test_orig_idx = None
-            if splits_file.exists() and not dry_run:
-                try:
-                    splits_payload = joblib.load(splits_file)
-                    test_orig_idx = splits_payload.get("test_idx")
-                except Exception:
-                    test_orig_idx = None
-
             missed_mask = (labels == 1) & (~flags)
             for m_idx in np.where(missed_mask)[0]:
                 t_row_idx = int(indices[m_idx])
-                raw_row_idx = int(test_orig_idx[t_row_idx]) if test_orig_idx is not None and t_row_idx < len(test_orig_idx) else t_row_idx
+                if not dry_run:
+                    if test_orig_idx is None or t_row_idx >= len(test_orig_idx):
+                        raise IndexError(
+                            f"Test row index {t_row_idx} is out of bounds for test_orig_idx (length {len(test_orig_idx) if test_orig_idx is not None else 0})"
+                        )
+                    raw_row_idx = int(test_orig_idx[t_row_idx])
+                else:
+                    raw_row_idx = t_row_idx
                 missed_records.append(
                     {
                         "group": grp,

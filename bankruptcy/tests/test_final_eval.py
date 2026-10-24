@@ -172,3 +172,30 @@ def test_e6_report_cv_baselines_match_source_csvs():
         assert np.isclose(r["cv_recall_mean"], match["actual_recall_mean"], atol=1e-6)
         assert np.isclose(r["cv_alert_ratio_mean"], match["alert_ratio_mean"], atol=1e-6)
 
+
+def test_run_e6_analysis_missing_metadata_raises(components, tmp_path):
+    """Verifies that run_e6_analysis raises KeyError when metadata is missing (no hardcoded defaults)."""
+    dryrun_scores = DRYRUN_DIR / "e6_test_scores.npz"
+    bad_comps = dict(components)
+    bad_comps.pop("metadata", None)
+
+    with pytest.raises(KeyError, match="metadata"):
+        run_e6_analysis(dryrun_scores, bad_comps, tmp_path, dry_run=True, n_bootstraps=5)
+
+    bad_comps_empty = dict(components)
+    bad_comps_empty["metadata"] = {}
+    with pytest.raises(KeyError, match="metadata"):
+        run_e6_analysis(dryrun_scores, bad_comps_empty, tmp_path, dry_run=True, n_bootstraps=5)
+
+
+def test_run_e6_analysis_splits_failure_raises(components, tmp_path):
+    """Verifies that run_e6_analysis raises explicit error when splits.joblib cannot be loaded."""
+    test_scores = BASE_DIR / "outputs" / "e6" / "e6_test_scores.npz"
+    assert test_scores.exists(), "e6_test_scores.npz must exist for analyze test"
+
+    with patch("joblib.load") as mock_load:
+        mock_load.side_effect = RuntimeError("Failed to load splits.joblib")
+        with pytest.raises(RuntimeError, match="Failed to load splits.joblib"):
+            run_e6_analysis(test_scores, components, tmp_path, dry_run=False, n_bootstraps=5)
+
+

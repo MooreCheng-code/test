@@ -523,6 +523,8 @@ def generate_summary() -> tuple[str, pd.DataFrame]:
 *數據來源：`outputs/tables/e7a_prevalence_sensitivity.csv` (假設條件特徵分布不變，測試集註記僅 {pos_test} 個正樣本)*
 
 {table_32}
+> **方法學註記**：平均＝以各工作點的平均 TPR 與平均 FPR 代入公式；± 為 15 折各自精確率的標準差（ddof=0）。
+
 ---
 
 ### 3.3 隨機種子穩定性對照表

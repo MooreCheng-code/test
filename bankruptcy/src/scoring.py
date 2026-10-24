@@ -103,12 +103,14 @@ def load_final_components(final_dir: Path | str) -> dict[str, Any]:
 
     # Load calibrators
     cal_platt = f_dir / "calibrator_platt.joblib"
-    if cal_platt.exists():
-        components["calibrators"]["platt"] = joblib.load(cal_platt)
+    if not cal_platt.exists():
+        raise FileNotFoundError(f"Calibrator file '{cal_platt}' does not exist.")
+    components["calibrators"]["platt"] = joblib.load(cal_platt)
 
     cal_iso = f_dir / "calibrator_isotonic.joblib"
-    if cal_iso.exists():
-        components["calibrators"]["isotonic"] = joblib.load(cal_iso)
+    if not cal_iso.exists():
+        raise FileNotFoundError(f"Calibrator file '{cal_iso}' does not exist.")
+    components["calibrators"]["isotonic"] = joblib.load(cal_iso)
 
     metadata_path = f_dir / "version_metadata.json"
     if metadata_path.exists():
@@ -122,6 +124,7 @@ def score_dataset(
     X: pd.DataFrame,
     components: dict[str, Any],
     model_names: list[str] = ["M3", "M4", "M5"],
+    include_threshold_flags: bool = True,
 ) -> pd.DataFrame:
     """
     End-to-end inference pipeline:
@@ -147,21 +150,27 @@ def score_dataset(
     # Calculate uncalibrated ensemble score
     ea_scores = np.mean([pct_scores[m] for m in model_names], axis=0)
 
-    # Calibrate probability
-    cal_platt = components.get("calibrators", {}).get("platt")
-    calibrated_platt = cal_platt.predict_proba(ea_scores.reshape(-1, 1))[:, 1] if cal_platt is not None else None
+    # Calibrate probability: calibrators must not be missing or None
+    calibrators = components.get("calibrators")
+    if not calibrators:
+        raise KeyError("Calibrators dictionary missing from components['calibrators'].")
+    if "platt" not in calibrators or calibrators["platt"] is None:
+        raise KeyError("Calibrator 'platt' missing from components['calibrators'].")
+    if "isotonic" not in calibrators or calibrators["isotonic"] is None:
+        raise KeyError("Calibrator 'isotonic' missing from components['calibrators'].")
 
-    cal_iso = components.get("calibrators", {}).get("isotonic")
-    calibrated_iso = cal_iso.predict(ea_scores) if cal_iso is not None else None
+    cal_platt = calibrators["platt"]
+    calibrated_platt = cal_platt.predict_proba(ea_scores.reshape(-1, 1))[:, 1]
+
+    cal_iso = calibrators["isotonic"]
+    calibrated_iso = cal_iso.predict(ea_scores)
 
     data_dict = {
         "score_E_A": ea_scores,
         "score_M3": pct_scores["M3"],
+        "calibrated_prob_platt": calibrated_platt,
+        "calibrated_prob_isotonic": calibrated_iso,
     }
-    if calibrated_platt is not None:
-        data_dict["calibrated_prob_platt"] = calibrated_platt
-    if calibrated_iso is not None:
-        data_dict["calibrated_prob_isotonic"] = calibrated_iso
 
     for m in model_names:
         data_dict[f"raw_score_{m}"] = raw_scores[m]
@@ -169,11 +178,16 @@ def score_dataset(
 
     results_df = pd.DataFrame(data_dict, index=X.index)
 
-    # Apply thresholds
-    thresholds = components.get("thresholds", {})
-    ea_thresh = thresholds.get("E_A", {})
-    for key, info in ea_thresh.items():
-        t = info["threshold"]
-        results_df[f"flag_{key}"] = flag(ea_scores, t)
+    # Apply thresholds: raise explicit exception if requested but thresholds missing
+    if include_threshold_flags:
+        thresholds = components.get("thresholds")
+        if not thresholds:
+            raise KeyError("Thresholds configuration missing from components['thresholds'].")
+        if "E_A" not in thresholds or not thresholds["E_A"]:
+            raise KeyError("Thresholds configuration for 'E_A' missing from components['thresholds'].")
+        ea_thresh = thresholds["E_A"]
+        for key, info in ea_thresh.items():
+            t = info["threshold"]
+            results_df[f"flag_{key}"] = flag(ea_scores, t)
 
     return results_df
