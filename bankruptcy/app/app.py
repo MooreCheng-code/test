@@ -454,8 +454,6 @@ def main():
             if grid_mode == "percentile"
             else float(user_current_inputs[selected_feat])
         )
-        # Current score
-        curr_score = float(res_norm["score_E_A"].iloc[0] if "res_norm" in locals() else 0.5)
         # Calculate current row score directly
         curr_scored_row = logic.score_rows(
             logic.build_full_row(user_current_inputs, defaults), components

@@ -50,35 +50,39 @@ def test_t5_static_check_no_hardcoded_numbers():
                 f"File {py_file.name} contains hardcoded pattern '{pat}': {matches}"
             )
 
-    # Strict AST scan on ui_text.py for any numeric percent or decimal literals
-    ui_path = APP_DIR / "ui_text.py"
-    tree = ast.parse(ui_path.read_text(encoding="utf-8"))
-    docstring = ast.get_docstring(tree)
-
-    strings = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Constant) and isinstance(node.value, str):
-            if node.value == docstring:
-                continue
-            strings.append((node.value, getattr(node, "lineno", 0)))
-
+    # Strict AST scan on app.py, logic.py, ui_text.py for any numeric percent or decimal literals
     pat_pct = re.compile(r"\b\d+(?:\.\d+)?%")
     pat_decimal = re.compile(r"\b\d+\.\d+\b")
     pat_chinese_pct = re.compile(r"百分之[一二三四五六七八九十百千點\d]+")
 
-    violations = []
-    for s, line in strings:
-        clean_s = re.sub(r"\{[^}]*:[^}]*\}%?", "", s)
-        clean_s = re.sub(r"%\.?\d*[a-zA-Z]", "", clean_s)
+    for target_name in ["app.py", "logic.py", "ui_text.py"]:
+        target_path = APP_DIR / target_name
+        tree = ast.parse(target_path.read_text(encoding="utf-8"))
+        docstrings = set()
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                ds = ast.get_docstring(node, clean=False)
+                if ds:
+                    docstrings.add(ds)
 
-        m_pct = pat_pct.findall(clean_s)
-        m_dec = pat_decimal.findall(clean_s)
-        m_cpct = pat_chinese_pct.findall(clean_s)
+        violations = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                if node.value in docstrings:
+                    continue
+                s = node.value
+                clean_s = re.sub(r"\{[^}]*:[^}]*\}%?", "", s)
+                clean_s = re.sub(r"%\.?\d*[a-zA-Z]", "", clean_s)
+                clean_s = re.sub(r"\.\d+[fgGeE]", "", clean_s)
 
-        if m_pct or m_dec or m_cpct:
-            violations.append((line, s[:60], m_pct, m_dec, m_cpct))
+                m_pct = pat_pct.findall(clean_s)
+                m_dec = pat_decimal.findall(clean_s)
+                m_cpct = pat_chinese_pct.findall(clean_s)
 
-    assert not violations, f"Strict AST scan found violations in ui_text.py:\n{violations}"
+                if m_pct or m_dec or m_cpct:
+                    violations.append((getattr(node, "lineno", 0), s[:60], m_pct, m_dec, m_cpct))
+
+        assert not violations, f"Strict AST scan found violations in {target_name}:\n{violations}"
 
 
 def test_t5_page_display_matches_json_and_csv():
@@ -243,6 +247,8 @@ def test_t8_apptest_smoke():
 
 def test_t8_tab2_renders_with_bankrupt_profile_and_matches_logic():
     """Verify Tab 2 (effects, position table, what-if) renders without exception and matches logic."""
+    import numpy as np
+    import pyarrow as pa
     from app import logic
 
     at = AppTest.from_file(str(APP_DIR / "app.py"), default_timeout=30)
@@ -258,15 +264,27 @@ def test_t8_tab2_renders_with_bankrupt_profile_and_matches_logic():
     calc_btn.click().run()
     assert not at.exception
 
+    # Select Borrowing dependency in Tab 2 what-if selectbox
+    at.selectbox[0].set_value("Borrowing dependency").run()
+    assert not at.exception
+
     defaults = logic.load_defaults()
     components = logic.load_components()
     user_inputs = defaults["presets"]["bankrupt_profile"]["values"]
 
-    # Verify single feature effects logic matches
+    # Extract Altair chart datasets from AppTest proto
+    charts = at.get("vega_lite_chart")
+    assert len(charts) == 2
+
+    df_eff_ui = pa.ipc.open_stream(charts[0].proto.datasets[0].data.data).read_all().to_pandas()
+    df_curve_ui = pa.ipc.open_stream(charts[1].proto.datasets[0].data.data).read_all().to_pandas()
+
+    # Verify single feature effects logic matches UI chart dataset
     eff_df = logic.single_feature_effects(user_inputs, defaults, components)
     assert len(eff_df) == 18
-    assert "delta_drop" in eff_df.columns
-    assert "delta_add" in eff_df.columns
+    assert list(df_eff_ui["feature"]) == list(eff_df["feature"])
+    num_cols = ["current_value", "median_value", "delta_drop", "delta_add"]
+    assert np.allclose(df_eff_ui[num_cols].values, eff_df[num_cols].values, rtol=1e-12, atol=1e-12)
 
     # Verify position table in Tab 2 exists
     pos_dfs = [
@@ -278,8 +296,9 @@ def test_t8_tab2_renders_with_bankrupt_profile_and_matches_logic():
     ui_pos_df = pos_dfs[0]
     assert len(ui_pos_df) == 18
 
-    # Verify what-if curve logic matches
-    feat = list(defaults["inputs"].keys())[0]
-    curve_res = logic.what_if_curve(feat, user_inputs, defaults, components, n=40, grid="percentile")
+    # Verify what-if curve logic matches UI chart dataset
+    curve_res = logic.what_if_curve(
+        "Borrowing dependency", user_inputs, defaults, components, n=40, grid="percentile"
+    )
     assert 1 <= len(curve_res["curve_df"]) <= 40
-    assert "score_E_A" in curve_res["curve_df"].columns
+    assert np.allclose(df_curve_ui.values, curve_res["curve_df"].values, rtol=1e-12, atol=1e-12)
