@@ -151,3 +151,157 @@ def test_forbidden_words_in_summary():
 
     # Verify that market prevalence < 0.5% ~ 1% is annotated as hypothetical assumption
     assert "此為假設值" in content, "Prevalence assumption must be explicitly annotated as hypothetical"
+
+
+# ==============================================================================
+# Section 3.1 ~ 3.3 table cell verification against source CSVs
+# ==============================================================================
+NUM_RE = re.compile(r"-?\d[\d,]*(?:\.\d+)?%?")
+
+
+def _numbers(cell: str) -> list[tuple[float, float]]:
+    """Returns (value, tolerance) pairs for every numeric token; '%' tokens are converted to fractions.
+    Tolerance = half unit of the last displayed decimal (i.e. rounding tolerance)."""
+    out = []
+    for tok in NUM_RE.findall(cell):
+        is_pct = tok.endswith("%")
+        raw = tok.rstrip("%").replace(",", "")
+        decimals = len(raw.split(".")[1]) if "." in raw else 0
+        val = float(raw)
+        tol = 0.5 * 10 ** (-decimals) + 1e-9
+        if is_pct:
+            val, tol = val / 100.0, tol / 100.0
+        out.append((val, tol))
+    return out
+
+
+def _section_rows(md: str, start_marker: str, end_marker: str | None) -> list[list[str]]:
+    start = md.index(start_marker)
+    end = md.index(end_marker, start + 1) if end_marker else len(md)
+    rows = []
+    for ln in md[start:end].splitlines():
+        s = ln.strip()
+        if not s.startswith("|") or set(s.replace("|", "").replace(":", "").replace("-", "").strip()) == set():
+            continue
+        rows.append([c.strip() for c in s.strip("|").split("|")])
+    return rows[1:]  # drop header
+
+
+def _assert_cells(cells: list[str], expected: list[float], label: str):
+    got = []
+    for c in cells:
+        got.extend(_numbers(c))
+    assert len(got) == len(expected), f"{label}: expected {len(expected)} numbers, parsed {len(got)} from {cells}"
+    for (g, tol), e in zip(got, expected):
+        assert abs(g - e) <= tol, f"{label}: displayed {g} vs CSV {e} (tol {tol})"
+
+
+def test_section_31_table_cells_match_csv():
+    md = SUMMARY_MD.read_text(encoding="utf-8")
+    rows = _section_rows(md, "### 3.1", "### 3.2")
+    e6 = pd.read_csv(E6_DIR / "e6_operating_points.csv")
+    rep = pd.read_csv(TABLES_DIR / "operating_points_for_report.csv")
+    fold = pd.read_csv(TABLES_DIR / "e4a_threshold_transfer_per_fold.csv")
+    assert len(rows) == len(e6) == 8
+    for cells, (_, t) in zip(rows, e6.iterrows()):
+        cv = rep[(rep["group"] == t["group"]) & np.isclose(rep["target_recall"], t["target_recall"])].iloc[0]
+        fs = fold[(fold["group"] == t["group"]) & np.isclose(fold["target_recall"], t["target_recall"]) & np.isclose(fold["margin"], cv["recommended_margin"])]
+        expected = [
+            t["margin"], t["threshold"], t["required_caught"],
+            cv["actual_recall_mean"], cv["actual_recall_std"], fs["actual_recall"].min(), fs["actual_recall"].max(),
+            t["positives_caught"], t["total_positives"],
+            t["actual_recall"], t["recall_ci_lower_cp"], t["recall_ci_upper_cp"],
+            cv["alert_ratio_mean"], cv["alert_ratio_std"],
+            t["alert_ratio"], t["alert_proportion"],
+            t["precision"], t["precision_ci_lower_wilson"], t["precision_ci_upper_wilson"],
+        ]
+        # the operating-point label cell ("R80 ($m=0.02$)") contains the digits of R and m
+        op_digits = int(re.search(r"R(\d+)", cells[1]).group(1))
+        assert op_digits == int(round(t["target_recall"] * 100))
+        cells_no_label = [cells[1].split("(", 1)[1]] + cells[2:-1]
+        _assert_cells(cells_no_label, expected, f"3.1 {t['group']} {t['operating_point']}")
+        assert cells[-1].strip("*") == str(t["target_met"])
+
+
+def test_section_32_table_cells_match_csv():
+    md = SUMMARY_MD.read_text(encoding="utf-8")
+    rows = _section_rows(md, "### 3.2", "### 3.3")
+    e7a = pd.read_csv(TABLES_DIR / "e7a_prevalence_sensitivity.csv")
+    exp_rows = []
+    for op in ["R90", "R95"]:
+        sub = e7a[(e7a["group"] == "E_A") & (e7a["operating_point"] == op)].sort_values("prevalence")
+        exp_rows.extend(list(sub.iterrows()))
+    assert len(rows) == len(exp_rows) == 10
+    for cells, (_, r) in zip(rows, exp_rows):
+        expected = [
+            r["prevalence"], r["cv_precision_mean"], r["cv_precision_std"], r["test_precision"],
+            r["cv_effort_per_positive"], r["test_effort_per_positive"],
+            r["cv_expected_alerts_per_10k"], r["cv_expected_caught_per_10k"],
+        ]
+        label_nums = _numbers(cells[0])
+        if label_nums:  # first row of each group carries "($m=0.06$)"
+            assert abs(label_nums[-1][0] - r["margin"]) <= label_nums[-1][1]
+        _assert_cells(cells[1:], expected, f"3.2 {r['operating_point']} pi={r['prevalence']}")
+
+
+def test_section_33_table_cells_match_csv():
+    md = SUMMARY_MD.read_text(encoding="utf-8")
+    rows = _section_rows(md, "### 3.3", "## 4.")
+    e7b = pd.read_csv(TABLES_DIR / "e7b_seed_stability.csv")
+    comp = e7b[e7b["type"] == "across_seed_comparison"].set_index("metric")
+    assert len(rows) == 3
+    for cells, m in zip(rows, ["loss", "ar95", "pr_auc"]):
+        r = comp.loc[m]
+        expected = [r["mean"], r["seed_min"], r["seed_max"], r["seed_std"], r["fold_se"], r["ratio_seed_to_fold_se"]]
+        _assert_cells(cells[1:5], expected, f"3.3 {m}")
+
+
+# ==============================================================================
+# Lint: no hard-coded numbers inside Markdown table-row strings of make_results_summary.py
+# ==============================================================================
+def test_lint_no_hardcoded_numbers_in_table_rows():
+    script = PROJECT_ROOT / "scripts" / "make_results_summary.py"
+    offenders = []
+    for lno, line in enumerate(script.read_text(encoding="utf-8").splitlines(), 1):
+        s = line.strip()
+        if s.startswith("#"):
+            continue
+        is_template_row = s.startswith("|")                         # bare table row inside the triple-quoted template
+        is_string_row = ('"' in s or "'" in s) and s.count("|") >= 2  # table row built as a Python string
+        if not (is_template_row or is_string_row):
+            continue
+        probe = re.sub(r"\{[^{}]*\}", "", s)          # drop interpolated expressions and format specs
+        probe = re.sub(r"95%", "", probe)             # confidence-level labels (CP/Wilson/NB CI) are method names
+        probe = re.sub(r"AR@0\.\d+", "", probe)       # metric name "AR@0.95" (recall level), not a result value
+        if re.search(r"\d+(?:\.\d+)?%", probe) or re.search(r"\d+\.\d+x", probe) or re.search(r"\d\.\d{2,}", probe):
+            offenders.append(f"L{lno}: {s[:120]}")
+    assert not offenders, "Hard-coded numbers found in table-row strings:\n" + "\n".join(offenders)
+
+
+def test_lint_detects_hardcoded_percent_in_table_row(tmp_path):
+    """Self-check of the lint rule: a table row with a literal percentage / multiple must be flagged."""
+    bad = ['row = "| **$E_A$** | 82.54% | 3.70x | 0.8845 |"']
+    flagged = False
+    for s in bad:
+        probe = re.sub(r"\{[^{}]*\}", "", s)
+        flagged |= bool(re.search(r"\d+(?:\.\d+)?%", probe) and s.count("|") >= 2)
+    assert flagged
+
+
+# ==============================================================================
+# e6_vs_cv.csv CV [min, max] must equal the per-fold min / max in e4a_threshold_transfer_per_fold.csv
+# ==============================================================================
+def test_e6_vs_cv_range_matches_per_fold_extremes():
+    vs = pd.read_csv(E6_DIR / "e6_vs_cv.csv")
+    rep = pd.read_csv(TABLES_DIR / "operating_points_for_report.csv")
+    fold = pd.read_csv(TABLES_DIR / "e4a_threshold_transfer_per_fold.csv")
+    assert len(vs) == 8
+    for _, r in vs.iterrows():
+        m = rep[(rep["group"] == r["group"]) & np.isclose(rep["target_recall"], r["target_recall"])].iloc[0]["recommended_margin"]
+        fs = fold[(fold["group"] == r["group"]) & np.isclose(fold["target_recall"], r["target_recall"]) & np.isclose(fold["margin"], m)]
+        assert len(fs) == 15
+        assert np.isclose(r["cv_recall_min"], fs["actual_recall"].min())
+        assert np.isclose(r["cv_recall_max"], fs["actual_recall"].max())
+        assert bool(r["recall_in_cv_range"]) == bool(r["cv_recall_min"] <= r["test_actual_recall"] <= r["cv_recall_max"])
+    r80 = vs[np.isclose(vs["target_recall"], 0.80)]
+    assert np.allclose(r80["cv_recall_max"], 17 / 18)  # 0.9444 for both E_A and M3 at R80

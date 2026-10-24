@@ -121,7 +121,8 @@
   - 測試分數固化檔案：`outputs/e6/e6_test_scores.npz`（SHA256: `ca3b5205ac69d005c39ef6af0bca0521990a1a309932e04a6a401c7e2390f6f1`）
   - Git Tags：`pre-e6-unseal`、`post-e6`、`final-experiments`
 - **成果彙整入口**：`RESULTS_SUMMARY.md`（統整 E0～E7 所有數據、圖表路徑與限制；由 `scripts/make_results_summary.py` 全自動自 `outputs/` 讀取產生，完整溯源記錄於 `outputs/tables/results_summary_sources.csv`，並由 `tests/test_results_summary.py` 完成自動化驗證）
-  - Git Tags：`pre-e6-unseal`、`post-e6`、`final-experiments`、`final-experiments-v2`、`final-experiments-v3`
+  - Git Tags：`pre-e6-unseal`、`post-e6`、`final-experiments`、`final-experiments-v2`、`final-experiments-v3`、`final-experiments-v4`
+  - v4 重構：報告與摘要中的數字全由 outputs/ 檔案產生（`e6_hindsight_costs.csv` 為新增來源表）；`e6_vs_cv.csv` 的 CV 召回最大值改為嚴格讀取 `e4a_threshold_transfer_per_fold.csv`（R80 兩組為 0.9444，原為預設值 1.0）。
 
 ## 9. 真實資料重做時的注意事項（備忘，不於現有資料動手）
 1. **資料欄位要求**：真實資料必須具備公司識別碼、財報年度、產業代碼（若有）與破產標籤，才能執行時間序列切分（Out-of-Time）與同公司分組，避免同一家公司跨折洩漏。

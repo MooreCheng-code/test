@@ -1,13 +1,14 @@
 section,description,value,source_file,column,row_identifier
-1. 資料與設定,全體樣本數,6819,data/data.csv,row_count,all
-1. 資料與設定,全體財務特徵數,95,data/data.csv,col_count_minus_target,features
-1. 資料與設定,全體破產公司數,220,data/data.csv,Bankrupt?.sum(),target==1
-1. 資料與設定,全體破產盛行率,3.2263%,data/data.csv,220/6819,percentage
+1. 資料與設定,全體樣本數,6819,outputs/models/splits.joblib,len(train_idx)+len(test_idx),all
+1. 資料與設定,全體財務特徵數,95,outputs/models/splits.joblib,train feature columns,features
+1. 資料與設定,全體破產公司數,220,train labels + e6_test_scores.npz,labels.sum(),target==1
+1. 資料與設定,全體破產盛行率,3.2263%,train labels + e6_test_scores.npz,bankrupt/total,percentage
 1. 資料與設定,訓練集樣本數,5455,outputs/models/splits.joblib,len(train_idx),train
 1. 資料與設定,測試集樣本數,1364,outputs/models/splits.joblib,len(test_idx),test
-1. 資料與設定,訓練集盛行率,3.2264%,outputs/models/splits.joblib,176/5455,train
-1. 資料與設定,測試集盛行率,3.2258%,outputs/models/splits.joblib,44/1364,test
+1. 資料與設定,訓練集盛行率,3.2264%,outputs/models/splits.joblib,train labels,train
+1. 資料與設定,測試集盛行率,3.2258%,outputs/e6/e6_test_scores.npz,labels,test
 1. 資料與設定,QuantileScaler輸出分布,normal,outputs/models/final/model_M3.joblib,scaler.scaler_.output_distribution,M3
+1. 資料與設定,M4 learning_rate,0.0468,outputs/models/best_params/M4.json,best_params.learning_rate,M4
 2. E0 基準,Dummy PR-AUC,0.0323,outputs/tables/e0_baselines_summary.csv,fold_pr_auc_mean,Dummy
 2. E0 基準,Dummy AR@0.95,31.0x,outputs/tables/e0_baselines_summary.csv,fold_alert_ratio@recall_0.95_mean,Dummy
 2. E0 基準,單特徵 15折PR-AUC均值,0.3012,outputs/tables/e0_baselines_summary.csv,fold_pr_auc_mean,Single Strongest Feature
@@ -34,6 +35,7 @@ section,description,value,source_file,column,row_identifier
 2. E4 門檻,E_A R80建議邊際,0.02,outputs/tables/operating_points_for_report.csv,recommended_margin,E_A R80
 2. E4 門檻,E_A R90建議邊際,0.06,outputs/tables/operating_points_for_report.csv,recommended_margin,E_A R90
 2. E4 門檻,E_A R95建議邊際,0.04,outputs/tables/operating_points_for_report.csv,recommended_margin,E_A R95
+2. E4 門檻,E_A R100建議邊際,0.0,outputs/tables/operating_points_for_report.csv,recommended_margin,E_A R100
 2. E4 校準,Platt Brier Skill Score,0.1839,outputs/tables/e4b_calibration_summary.csv,brier_skill_score,Platt Scaling (Sigmoid)
 2. E4 校準,Isotonic Brier Skill Score,0.2650,outputs/tables/e4b_calibration_summary.csv,brier_skill_score,Isotonic Regression
 2. E4 校準,Isotonic AR@0.95,10.02x,outputs/tables/e4b_calibration_summary.csv,ar95_mean,Isotonic Regression
@@ -55,6 +57,7 @@ section,description,value,source_file,column,row_identifier
 2. E6 測試集,E_A測試集ROC-AUC點估計,0.9621,outputs/e6/e6_ranking_metrics.csv,point_estimate,E_A roc_auc
 2. E6 測試集,E_A測試集AR@0.95點估計,5.25x,outputs/e6/e6_ranking_metrics.csv,point_estimate,E_A ar@r_95
 2. E6 測試集,E_A與M3 PR-AUC差值95%CI,"[-0.0226, +0.1044]",outputs/e6/e6_paired_bootstrap.csv,ci_lower..upper,E_A - M3 pr_auc
+2. E6 測試集,E_A R90安全邊際成本(家),132,outputs/e6/e6_hindsight_costs.csv,cost_alerts,E_A R90
 2. E7a 盛行率,R90在pi=1%之CV精確率,3.61%,outputs/tables/e7a_prevalence_sensitivity.csv,cv_precision_mean,E_A R90 pi=0.01
 2. E7a 盛行率,R90在pi=1%之測試集精確率,4.24%,outputs/tables/e7a_prevalence_sensitivity.csv,test_precision,E_A R90 pi=0.01
 2. E7a 盛行率,R90在pi=1%之CV審查成本,27.7,outputs/tables/e7a_prevalence_sensitivity.csv,cv_effort_per_positive,E_A R90 pi=0.01

@@ -35,16 +35,23 @@ FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
 PREVALENCES = [0.005, 0.010, 0.020, 0.032, 0.050]
 
-CONFIGS = [
-    ("E_A", 0.80, 0.02, "R80"),
-    ("E_A", 0.90, 0.06, "R90"),
-    ("E_A", 0.95, 0.04, "R95"),
-    ("E_A", 1.00, 0.00, "R100"),
-    ("M3", 0.80, 0.04, "R80"),
-    ("M3", 0.90, 0.04, "R90"),
-    ("M3", 0.95, 0.04, "R95"),
-    ("M3", 1.00, 0.00, "R100"),
-]
+
+def load_configs() -> list[tuple[str, float, float, str]]:
+    """Reads (group, target_recall, recommended_margin, key) from operating_points_for_report.csv."""
+    op_file = TABLES_DIR / "operating_points_for_report.csv"
+    if not op_file.exists():
+        raise FileNotFoundError(f"Missing {op_file}")
+    op_df = pd.read_csv(op_file)
+    configs = []
+    for grp in ["E_A", "M3"]:
+        sub = op_df[op_df["group"] == grp].sort_values("target_recall")
+        for _, row in sub.iterrows():
+            r_tgt = float(row["target_recall"])
+            configs.append((grp, r_tgt, float(row["recommended_margin"]), f"R{int(round(r_tgt * 100))}"))
+    return configs
+
+
+CONFIGS = load_configs()
 
 
 def run_prevalence_sensitivity() -> pd.DataFrame:

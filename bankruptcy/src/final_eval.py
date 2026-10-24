@@ -299,8 +299,11 @@ def run_e6_analysis(
     # 2. Compare against E4a 15-Fold CV Expectations
     logger.info("Comparing against E4a CV expectations...")
     e4a_file = project_root / "outputs" / "tables" / "operating_points_for_report.csv"
+    e4a_fold_file = project_root / "outputs" / "tables" / "e4a_threshold_transfer_per_fold.csv"
     if e4a_file.exists():
         cv_ref_df = pd.read_csv(e4a_file)
+        # Strict source for CV recall range: per-fold validation recall (no silent defaults)
+        e4a_fold_df = pd.read_csv(e4a_fold_file)
         vs_cv_rows = []
         for _, row in op_df.iterrows():
             grp = row["group"]
@@ -308,8 +311,17 @@ def run_e6_analysis(
             match = cv_ref_df[(cv_ref_df["group"] == grp) & (np.isclose(cv_ref_df["target_recall"], r_tgt))]
             if len(match) > 0:
                 cv_row = match.iloc[0]
+                fold_sub = e4a_fold_df[
+                    (e4a_fold_df["group"] == grp)
+                    & np.isclose(e4a_fold_df["target_recall"], r_tgt)
+                    & np.isclose(e4a_fold_df["margin"], float(cv_row["recommended_margin"]))
+                ]
+                if len(fold_sub) == 0:
+                    raise KeyError(f"No per-fold rows in {e4a_fold_file.name} for {grp} R={r_tgt}")
                 rec_min = float(cv_row["actual_recall_min"])
-                rec_max = float(cv_row.get("actual_recall_max", 1.0))
+                rec_max = float(fold_sub["actual_recall"].max())
+                if not np.isclose(rec_min, float(fold_sub["actual_recall"].min())):
+                    raise ValueError(f"actual_recall_min mismatch between report and per-fold file for {grp} R={r_tgt}")
                 rec_mean = float(cv_row["actual_recall_mean"])
                 rec_std = float(cv_row["actual_recall_std"])
                 ar_mean = float(cv_row["alert_ratio_mean"])
@@ -782,29 +794,43 @@ def generate_e6_report(
 
     # Compute hindsight costs
     hindsight_rows = []
+    hindsight_numeric = []
     models_hindsight = [("E_A", score_EA), ("M3", score_M3)]
     for grp, s_arr in models_hindsight:
         pos_scores = np.sort(s_arr[labels == 1])[::-1]
-        for r_target, req_caught in [(0.80, 36), (0.90, 40), (0.95, 42), (1.00, 44)]:
+        sub_grp = op_df[op_df["group"] == grp]
+        for _, fr_row in sub_grp.iterrows():
+            r_target = float(fr_row["target_recall"])
+            req_caught = int(fr_row["required_caught"])
             req_score = pos_scores[min(req_caught - 1, len(pos_scores) - 1)]
             min_alerts = int(np.sum(s_arr >= req_score))
             min_ar = min_alerts / n_pos
 
-            # Find frozen info
-            sub = op_df[(op_df["group"] == grp) & (np.isclose(op_df["target_recall"], r_target))]
-            if len(sub) > 0:
-                fr_row = sub.iloc[0]
-                fr_alerts = int(fr_row["alerts_count"])
-                fr_ar = float(fr_row["alert_ratio"])
-                fr_margin = float(fr_row["margin"])
-                hindsight_rows.append({
-                    "模型": grp,
-                    "工作點": f"R{int(r_target*100)} (m={fr_margin:.2f})",
-                    "目標捕獲要求": f">={req_caught}" if r_target < 1.0 else f"=={req_caught}",
-                    "凍結門檻預警數": f"{fr_alerts} ({fr_ar:.2f}x)",
-                    "事後達標最低預警數": f"{min_alerts} ({min_ar:.2f}x)",
-                    "安全邊際成本": f"+{fr_alerts - min_alerts} 家 (+{fr_ar - min_ar:.2f}x)",
-                })
+            fr_alerts = int(fr_row["alerts_count"])
+            fr_ar = float(fr_row["alert_ratio"])
+            fr_margin = float(fr_row["margin"])
+            hindsight_numeric.append({
+                "group": grp,
+                "operating_point": fr_row["operating_point"],
+                "target_recall": r_target,
+                "margin": fr_margin,
+                "required_caught": req_caught,
+                "frozen_alerts": fr_alerts,
+                "frozen_alert_ratio": fr_ar,
+                "hindsight_min_alerts": min_alerts,
+                "hindsight_alert_ratio": min_ar,
+                "cost_alerts": fr_alerts - min_alerts,
+                "cost_alert_ratio": fr_ar - min_ar,
+            })
+            hindsight_rows.append({
+                "模型": grp,
+                "工作點": f"R{int(round(r_target*100))} (m={fr_margin:.2f})",
+                "目標捕獲要求": f">={req_caught}" if r_target < 1.0 else f"=={req_caught}",
+                "凍結門檻預警數": f"{fr_alerts} ({fr_ar:.2f}x)",
+                "事後達標最低預警數": f"{min_alerts} ({min_ar:.2f}x)",
+                "安全邊際成本": f"+{fr_alerts - min_alerts} 家 (+{fr_ar - min_ar:.2f}x)",
+            })
+    pd.DataFrame(hindsight_numeric).to_csv(out_dir / "e6_hindsight_costs.csv", index=False)
     md += df_to_markdown(pd.DataFrame(hindsight_rows))
     md += "\n\n"
     md += "> [!NOTE]\n"
@@ -819,14 +845,55 @@ def generate_e6_report(
 
     md += "> [!NOTE]\n"
     md += "> **對照 e3d_hard_positives.csv**（事後探索）：\n"
-    md += "> 1. 資料集切分（80/20 分層切分）在索引層級嚴格互斥（訓練集 5,455 筆包含 176 家破產、測試集 1,364 筆包含 44 家破產），原始資料列索引（`raw_row_index`）集合交集為 0，兩者無重疊公司。\n"
-    md += "> 2. 在測試集的 44 家破產公司中，僅有 1 家（原始列號 4491，測試集列號 881）在 R90 被 $E_A$ 漏抓（$E_A$ 分數 0.7234 低於門檻 0.7400，Platt 機率 2.83%），其餘 43 家均被捕獲；在 R95 與 R100 下，所有 44 家測試破產公司均被成功捕獲。\n\n"
+
+    # Dynamic split-size / overlap statement (training labels only; test labels come from n_samples/n_pos)
+    split_sentence = ""
+    try:
+        _, y_tr_rep = get_train_data()
+        splits_rep = joblib.load(project_root / "outputs" / "models" / "splits.joblib")
+        overlap_n = len(set(int(i) for i in splits_rep["train_idx"]) & set(int(i) for i in splits_rep["test_idx"]))
+        split_sentence = (
+            f"> 1. 資料集切分（80/20 分層切分）在索引層級嚴格互斥（訓練集 {len(y_tr_rep):,} 筆包含 {int(y_tr_rep.sum())} 家破產、"
+            f"測試集 {n_samples:,} 筆包含 {n_pos} 家破產），原始資料列索引（`raw_row_index`）集合交集為 {overlap_n}，"
+            f"{'兩者無重疊公司' if overlap_n == 0 else '兩者有重疊列，需檢視'}。\n"
+        )
+    except Exception as exc:  # pragma: no cover - report must still render
+        logger.warning(f"Could not compute split summary for report: {exc}")
+    md += split_sentence
+
+    # Dynamic missed-company paragraph from missed_df (E_A operating points with target_recall >= 0.90)
+    ea_ops = op_df[(op_df["group"] == "E_A") & (op_df["target_recall"] >= 0.90)].sort_values("target_recall")
+    missed_parts: list[str] = []
+    fully_caught: list[str] = []
+    for _, op_r in ea_ops.iterrows():
+        n_missed = int(op_r["total_positives"]) - int(op_r["positives_caught"])
+        if n_missed == 0:
+            fully_caught.append(str(op_r["operating_point"]))
+            continue
+        rows_m = missed_df[(missed_df["group"] == "E_A") & (missed_df["operating_point"] == op_r["operating_point"])]
+        ids = "；".join(f"原始列號 {int(r['raw_row_index'])}，測試集列號 {int(r['row_index'])}" for _, r in rows_m.iterrows())
+        details = "；".join(
+            f"$E_A$ 分數 {float(r['score_E_A']):.4f} 低於門檻 {float(r['threshold']):.4f}，Platt 機率 {float(r['prob_platt']):.2%}"
+            for _, r in rows_m.iterrows()
+        )
+        missed_parts.append(
+            f"僅有 {n_missed} 家（{ids}）在 {op_r['operating_point']} 被 $E_A$ 漏抓（{details}），其餘 {int(op_r['positives_caught'])} 家均被捕獲"
+        )
+    if missed_parts:
+        sentence2 = f"在測試集的 {n_pos} 家破產公司中，" + "；".join(missed_parts)
+        if fully_caught:
+            sentence2 += f"；在 {' 與 '.join(fully_caught)} 下，所有 {n_pos} 家測試破產公司均被成功捕獲"
+        md += f"> 2. {sentence2}。\n\n"
+    else:
+        md += "\n"
 
     md += "## 8. 方法論與業務限制說明\n"
-    md += f"- **高召回成本權衡**：達成目標召回率 $R \\ge 0.95$ 在本資料上需預警約 38.4% 的公司（預警倍數 11.91x），若追求 $R = 1.00$ 則在本資料上需預警約 92% 的公司。實務工作點應依銀行審查量能與風險承受度審慎權衡。\n"
+    ea95 = op_df[(op_df["group"] == "E_A") & (np.isclose(op_df["target_recall"], 0.95))].iloc[0]
+    ea100 = op_df[(op_df["group"] == "E_A") & (np.isclose(op_df["target_recall"], 1.00))].iloc[0]
+    md += f"- **高召回成本權衡**：達成目標召回率 $R \\ge 0.95$ 在本資料上需預警約 {float(ea95['alert_proportion']):.1%} 的公司（預警倍數 {float(ea95['alert_ratio']):.2f}x），若追求 $R = 1.00$ 則在本資料上需預警約 {float(ea100['alert_proportion']):.0%} 的公司。實務工作點應依銀行審查量能與風險承受度審慎權衡。\n"
     md += "- **指標差異與統計口徑**：$E_A$ 與 M3 之配對 Bootstrap 差值 95% 信賴區間跨越 0，統計上無法區分；$E_A$ 相對於單特徵基準在 PR-AUC 與 ROC-AUC 上之 95% 信賴區間不含 0。\n"
     md += f"- **樣本規模精度限制**：測試集中僅有 {n_pos} 家破產企業，每漏抓 1 家企業對觀測召回率之影響即達 {100.0/n_pos:.2f}%。報告之信賴區間均如實反映此樣本規模下的不確定性。\n"
-    md += "- **機率校準參考性**：可靠度圖顯示平均預測機率與經驗破產率趨勢相符，但因僅 44 個正樣本且採 5 個分箱，圖形僅供參考。\n"
+    md += f"- **機率校準參考性**：可靠度圖顯示平均預測機率與經驗破產率趨勢相符，但因僅 {n_pos} 個正樣本且採 5 個分箱，圖形僅供參考。\n"
 
     report_path = out_dir / "E6_REPORT.md"
     report_path.write_text(md, encoding="utf-8")
