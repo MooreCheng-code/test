@@ -35,6 +35,7 @@ from sklearn.model_selection import StratifiedKFold
 
 from src.cv import get_train_data, load_splits
 from src.pipelines import build_pipeline
+from src.scoring import to_percentile
 from src.thresholding import derive_operating_threshold, fit_single_model_platt
 import config
 
@@ -217,8 +218,8 @@ def main() -> None:
         final_thresholds = json.load(f)
 
     thresholds_extras = {
-        "E_A": final_thresholds["E_A"],
-        "M3": final_thresholds["M3"],
+        "E_A": dict(final_thresholds["E_A"]),
+        "M3": dict(final_thresholds["M3"]),
         "M4": {},
         "M1": {},
         "demo_r0_f0_E_A": {},
@@ -230,9 +231,41 @@ def main() -> None:
         thresholds_extras["M4"][key_name] = derive_operating_threshold(
             mean_oof_m4, y_arr, target_recall=R, margin=0.0
         )
+        thresholds_extras["M4"][key_name]["note"] = "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）"
+
         thresholds_extras["M1"][key_name] = derive_operating_threshold(
             mean_oof_m1, y_arr, target_recall=R, margin=0.0
         )
+        thresholds_extras["M1"][key_name]["note"] = "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）"
+
+    # Compute reference alert_ratio on 10,910 reference distributions
+    ref_y_10910 = np.load(FINAL_DIR / "reference_y.npy")
+    n_pos_10910 = int(np.sum(ref_y_10910 == 1))  # 352
+    ref_m3 = np.load(FINAL_DIR / "reference_M3.npy")
+    ref_m4 = np.load(FINAL_DIR / "reference_M4.npy")
+    ref_m5 = np.load(FINAL_DIR / "reference_M5.npy")
+    pct_m3_10910 = to_percentile(ref_m3, ref_m3)
+    pct_m4_10910 = to_percentile(ref_m4, ref_m4)
+    pct_m5_10910 = to_percentile(ref_m5, ref_m5)
+    ref_ea_10910 = (pct_m3_10910 + pct_m4_10910 + pct_m5_10910) / 3.0
+
+    ref_scores_map = {
+        "E_A": ref_ea_10910,
+        "M3": pct_m3_10910,
+        "M4": ref_m4,
+        "M1": ref_m1,
+    }
+
+    for m_name in ["E_A", "M3", "M4", "M1"]:
+        for pt in ["R80", "R90", "R95", "R100"]:
+            t_val = thresholds_extras[m_name][pt]["threshold"]
+            flags_ref = ref_scores_map[m_name] >= t_val
+            cnt_ref = int(np.sum(flags_ref))
+            ar_ref = float(cnt_ref / n_pos_10910)
+            prop_ref = float(cnt_ref / 10910.0)
+            thresholds_extras[m_name][pt]["reference_alert_count_10910"] = cnt_ref
+            thresholds_extras[m_name][pt]["reference_alert_ratio"] = ar_ref
+            thresholds_extras[m_name][pt]["reference_alert_proportion"] = prop_ref
 
     # Load r0_f0 inner thresholds for E_A from e4a_threshold_transfer_per_fold.csv matching recommended margins
     MARGIN_REC_PATH = PROJECT_ROOT / "outputs" / "tables" / "e4a_margin_recommendation.csv"
@@ -257,6 +290,7 @@ def main() -> None:
             "training_oof_actual_recall": float(row["actual_recall"]),
             "training_oof_precision": float(row["precision"]),
             "alert_count": int(row["alert_count"]),
+            "alert_ratio": float(row["alert_count"] / 36.0),
             "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）",
         }
 
