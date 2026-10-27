@@ -21,6 +21,7 @@ EXPECTED_MVP_EXTRA_FILES = [
     "feature_manifest.json",
     "model_M1.joblib",
     "reference_M1.npy",
+    "reference_E_A.npy",
     "calibrator_M1_platt.joblib",
     "calibrator_M3_platt.joblib",
     "calibrator_M4_platt.joblib",

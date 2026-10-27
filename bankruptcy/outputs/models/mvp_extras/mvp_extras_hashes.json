@@ -1,9 +1,9 @@
 {
-  "created_at": "2026-10-27T13:25:25.188507",
-  "n_files": 10,
+  "created_at": "2026-10-27T13:38:57.510420",
+  "n_files": 11,
   "files": {
     "feature_manifest.json": {
-      "sha256": "844702df058e4dab7f6ee396efec3e8d8fc59122f0d69519cf8539e2c3f7d64c",
+      "sha256": "7282d06c9402d661c74da34155b572279b46db79558b67fcad266115af49f8a7",
       "size_bytes": 11411
     },
     "model_M1.joblib": {
@@ -12,6 +12,10 @@
     },
     "reference_M1.npy": {
       "sha256": "5b407fdd1f7a9d556cf3f734c0f863df2e7fabd645af0db64d856e9e672dc847",
+      "size_bytes": 87408
+    },
+    "reference_E_A.npy": {
+      "sha256": "bb674fb232f1b476f9e6cf58ae789dea9b917fcfb216cff1e9f93f3b245b7c18",
       "size_bytes": 87408
     },
     "calibrator_M1_platt.joblib": {
@@ -27,8 +31,8 @@
       "size_bytes": 879
     },
     "thresholds_extras.json": {
-      "sha256": "73d7533c3e8c4a48d2bd55812226648170a78d730a96aa6a966b029cacdd7874",
-      "size_bytes": 15202
+      "sha256": "71ece0659bee185046013993567b077901c5d57811f02e47c7206f5329c56971",
+      "size_bytes": 21832
     },
     "demo_r0_f0_M4.joblib": {
       "sha256": "0fc29f0eea38319e07d06e44bdc490370fdc4fe73153c12bc7f17bbf4295bf36",

@@ -26,13 +26,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.scoring import load_final_components, score_dataset
+from src.scoring import load_final_components, load_mvp_components, score_dataset, score_mvp_batch
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("score_new_data")
 
 OPERATING_POINTS = ["R80", "R90", "R95", "R100"]
-MODELS = ["E_A", "M3"]
+MODELS = ["E_A", "M3", "M4", "M1"]
 
 
 def get_required_feature_names(components: dict[str, Any]) -> list[str]:
@@ -104,20 +104,30 @@ def score_csv(
     # Score dataset using unified single-path inference
     X_features = df[expected_features].copy()
     logger.info(f"Scoring {len(X_features)} records using model '{model}' at operating point '{operating_point}' ...")
-    scored_df = score_dataset(X_features, components)
 
-    # Extract model-specific metrics
-    threshold_info = components["thresholds"][model][operating_point]
-    threshold_val = float(threshold_info["threshold"])
+    if model in ["M4", "M1"]:
+        mvp_comp = load_mvp_components()
+        scored_mvp = score_mvp_batch(X_features, model_name=model, operating_point=operating_point, components=mvp_comp)
+        risk_score = scored_mvp["risk_score"].values
+        threshold_info = mvp_comp["thresholds"][model][operating_point]
+        threshold_val = float(threshold_info["threshold"])
+        alert_flag = scored_mvp["alert"].values
+        platt_prob = scored_mvp["calibrated_score"].values
+    else:
+        scored_df = score_dataset(X_features, components)
 
-    if model == "E_A":
-        risk_score = scored_df["score_E_A"].values
-        alert_flag = scored_df[f"flag_{operating_point}"].values
-    else:  # M3
-        risk_score = scored_df["score_M3"].values
-        alert_flag = (risk_score >= threshold_val)
+        # Extract model-specific metrics
+        threshold_info = components["thresholds"][model][operating_point]
+        threshold_val = float(threshold_info["threshold"])
 
-    platt_prob = scored_df.get("calibrated_prob_platt", pd.Series(np.nan, index=df.index)).values
+        if model == "E_A":
+            risk_score = scored_df["score_E_A"].values
+            alert_flag = scored_df[f"flag_{operating_point}"].values
+        else:  # M3
+            risk_score = scored_df["score_M3"].values
+            alert_flag = (risk_score >= threshold_val)
+
+        platt_prob = scored_df.get("calibrated_prob_platt", pd.Series(np.nan, index=df.index)).values
 
     # Assemble output dataframe
     output_dict: dict[str, Any] = {}

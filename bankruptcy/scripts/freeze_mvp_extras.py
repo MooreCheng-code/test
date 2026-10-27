@@ -249,6 +249,10 @@ def main() -> None:
     pct_m5_10910 = to_percentile(ref_m5, ref_m5)
     ref_ea_10910 = (pct_m3_10910 + pct_m4_10910 + pct_m5_10910) / 3.0
 
+    ref_ea_path = MVP_EXTRAS_DIR / "reference_E_A.npy"
+    np.save(ref_ea_path, ref_ea_10910)
+    logger.info(f"  Saved {ref_ea_path} (N={len(ref_ea_10910)})")
+
     ref_scores_map = {
         "E_A": ref_ea_10910,
         "M3": pct_m3_10910,
@@ -256,32 +260,72 @@ def main() -> None:
         "M1": ref_m1,
     }
 
+    # Margins and validation status per model
+    model_margin_meta = {
+        "E_A": {"margin_validated": True, "note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)"},
+        "M3": {"margin_validated": True, "note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)"},
+        "M4": {"margin_validated": False, "note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)"},
+        "M1": {"margin_validated": False, "note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)"},
+    }
+
     for m_name in ["E_A", "M3", "M4", "M1"]:
+        is_val = model_margin_meta[m_name]["margin_validated"]
+        default_note = model_margin_meta[m_name]["note"]
+
         for pt in ["R80", "R90", "R95", "R100"]:
-            thresholds_extras[m_name][pt]["derivation_dataset"] = "5455_mean_oof"
-            t_val = thresholds_extras[m_name][pt]["threshold"]
+            entry = thresholds_extras[m_name][pt]
+            entry["derivation_dataset"] = "5455_mean_oof"
+            entry["margin_validated"] = is_val
+            t_rec = float(entry.get("target_recall", float(pt.replace("R", "")) / 100.0))
+            entry["target_recall"] = t_rec
+
+            # Safety margin and effective target recall
+            s_margin = float(entry.get("recommended_margin", 0.0))
+            entry["safety_margin"] = s_margin
+            eff_target = min(1.0, float(t_rec + s_margin))
+            entry["effective_target"] = eff_target
+
+            # 5,455 alerts per hit: Flagged / TP (1 / Precision)
+            rec_5455 = float(entry["training_oof_actual_recall"])
+            ar_5455 = float(entry["training_oof_alert_ratio"])
+            caught_5455 = max(1, int(round(rec_5455 * 176)))
+            cnt_5455 = int(round(ar_5455 * 176))
+            entry["training_oof_caught_positives"] = caught_5455
+            entry["training_oof_alerts_per_hit"] = float(cnt_5455 / caught_5455) if caught_5455 > 0 else 0.0
+
+            # 10,910 evaluation
+            t_val = entry["threshold"]
             flags_ref = ref_scores_map[m_name] >= t_val
             caught_ref = int(np.sum((ref_y_10910 == 1) & flags_ref))
             rec_ref = float(caught_ref / n_pos_10910)
             cnt_ref = int(np.sum(flags_ref))
             ar_ref = float(cnt_ref / n_pos_10910)
             prop_ref = float(cnt_ref / 10910.0)
-            thresholds_extras[m_name][pt]["reference_caught_positives_10910"] = caught_ref
-            thresholds_extras[m_name][pt]["reference_actual_recall_10910"] = rec_ref
-            thresholds_extras[m_name][pt]["reference_alert_count_10910"] = cnt_ref
-            thresholds_extras[m_name][pt]["reference_alert_ratio"] = ar_ref
-            thresholds_extras[m_name][pt]["reference_alert_proportion"] = prop_ref
+            aph_ref = float(cnt_ref / caught_ref) if caught_ref > 0 else 0.0
+
+            entry["reference_caught_positives_10910"] = caught_ref
+            entry["reference_actual_recall_10910"] = rec_ref
+            entry["reference_alert_count_10910"] = cnt_ref
+            entry["reference_alert_ratio"] = ar_ref
+            entry["reference_alert_proportion"] = prop_ref
+            entry["reference_alerts_per_hit_10910"] = aph_ref
+            entry["threshold_note"] = default_note
+
             if pt == "R100":
-                thresholds_extras[m_name][pt]["operating_label"] = "接近全抓"
-                thresholds_extras[m_name][pt]["operating_note"] = (
+                entry["operating_label"] = "接近全抓"
+                entry["operating_note"] = (
                     "R100 標示為接近全抓；在 10,910 參考分布上實際捕獲 351/352 家破產樣本（召回率 99.72%）"
                 )
 
     thresholds_extras["_field_definitions"] = {
-        "alert_ratio": "預警數 ÷ 總破產正樣本數（Alert Multiplier，代表抓出破產案件需調查之正樣本倍數）",
-        "alert_proportion": "預警數 ÷ 總樣本數（Alert Population Proportion，代表全體母體中被標記為高風險之比例）",
+        "alert_ratio": "預警數 ÷ 總破產數（Flagged / P，相對於總破產樣本之預警倍數）",
+        "alerts_per_hit": "預警數 ÷ 命中數（Flagged / TP = 1 / Precision，平均每抓出 1 家破產需審查之案件數）",
+        "alert_proportion": "預警數 ÷ 總樣本數（Flagged / N，全體母體中被標記為高風險之比例）",
+        "margin_validated": "是否經過 E4a 跨折轉移搜尋驗證推薦安全邊際（E_A/M3=true，M1/M4=false）",
+        "effective_target": "門檻推導時的實質召回目標（target_recall + safety_margin）",
         "derivation_dataset": "門檻推導資料集（E_A, M3, M4, M1 全數統一同源為 5,455 筆 2-Repeat 均值 OOF）",
         "R100_label": "R100 標示為「接近全抓」，在 10,910 堆疊分布中捕獲 351/352（99.72%）",
+        "model_comparison_warning": "「同源」僅指推導資料集皆為 5,455 均值 OOF；各模型同名工作點之 effective_target 不同（如 E_A R90 實質目標為 0.96，M1/M4 R90 實質目標為 0.90），不可直接跨模型比較其 alert_ratio 或 alerts_per_hit。",
     }
 
     # Load r0_f0 inner thresholds for E_A from e4a_threshold_transfer_per_fold.csv matching recommended margins
@@ -398,6 +442,7 @@ def main() -> None:
         "feature_manifest.json",
         "model_M1.joblib",
         "reference_M1.npy",
+        "reference_E_A.npy",
         "calibrator_M1_platt.joblib",
         "calibrator_M3_platt.joblib",
         "calibrator_M4_platt.joblib",
