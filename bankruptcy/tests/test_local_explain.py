@@ -25,7 +25,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from scipy.special import logit
 from src.cv import get_train_data
+from src.explain import get_underlying_classifier, transform_through_preprocessing
 from src.local_explain import LocalExplainer, explain_case, get_local_explainer
 
 
@@ -41,7 +43,7 @@ def sample_case():
 # 1. M4 TreeSHAP Tests (Final & Demo Modes)
 # ==============================================================================
 def test_explain_case_m4_final(sample_case):
-    """Verifies M4 TreeSHAP feature attribution in final mode."""
+    """Verifies M4 TreeSHAP feature attribution in final mode against independent pipeline logit."""
     res = explain_case(sample_case, model_name="M4", mode="final", top_k=5)
 
     assert res["model_name"] == "M4"
@@ -50,23 +52,31 @@ def test_explain_case_m4_final(sample_case):
     assert "prediction_margin" in res
     assert len(res["all_attributions"]) == 72
 
-    # Verify additivity: base_value + sum(shap) == prediction_margin
-    total_shap = sum(res["all_attributions"].values())
-    assert (res["base_value"] + total_shap) == pytest.approx(res["prediction_margin"], abs=1e-4)
+    # Independent margin calculation directly from pipeline predict_proba logit
+    explainer = get_local_explainer()
+    pipe_m4 = explainer.get_pipeline("M4", mode="final")
+    p_val = float(pipe_m4.predict_proba(sample_case)[:, 1][0])
+    independent_logit = float(logit(p_val))
 
-    # Top drivers
+    total_shap = res["base_value"] + sum(res["all_attributions"].values())
+    diff_shap_vs_logit = abs(total_shap - independent_logit)
+    diff_pred_vs_logit = abs(res["prediction_margin"] - independent_logit)
+    assert diff_shap_vs_logit == pytest.approx(0.0, abs=1e-5)
+    assert diff_pred_vs_logit == pytest.approx(0.0, abs=1e-5)
+
+    # Top drivers: no financial_dimension (unapproved taxonomy removed)
     assert len(res["top_positive_drivers"]) <= 5
     for d in res["top_positive_drivers"]:
         assert d["attribution"] > 0
         assert "feature" in d
-        assert "financial_dimension" in d
+        assert "financial_dimension" not in d
         assert d["transformed_value"] is not None
 
     assert len(res["top_negative_drivers"]) <= 5
     for d in res["top_negative_drivers"]:
         assert d["attribution"] < 0
         assert "feature" in d
-        assert "financial_dimension" in d
+        assert "financial_dimension" not in d
 
     # Disclaimer check
     assert "log-odds" in res["disclaimer"]
@@ -75,45 +85,68 @@ def test_explain_case_m4_final(sample_case):
 
 
 def test_explain_case_m4_demo_oof(sample_case):
-    """Verifies M4 TreeSHAP feature attribution in demo_oof mode."""
+    """Verifies M4 TreeSHAP feature attribution in demo_oof mode against independent pipeline logit."""
     res = explain_case(sample_case, model_name="M4", mode="demo_oof", top_k=5)
 
     assert res["model_name"] == "M4"
     assert res["mode"] == "demo_oof"
     assert len(res["all_attributions"]) == 72
-    total_shap = sum(res["all_attributions"].values())
-    assert (res["base_value"] + total_shap) == pytest.approx(res["prediction_margin"], abs=1e-4)
+
+    explainer = get_local_explainer()
+    pipe_demo = explainer.get_pipeline("M4", mode="demo_oof")
+    p_val = float(pipe_demo.predict_proba(sample_case)[:, 1][0])
+    independent_logit = float(logit(p_val))
+
+    total_shap = res["base_value"] + sum(res["all_attributions"].values())
+    assert abs(total_shap - independent_logit) == pytest.approx(0.0, abs=1e-5)
 
 
 # ==============================================================================
 # 2. M1 Linear Attribution Tests (Final & Demo Modes)
 # ==============================================================================
 def test_explain_case_m1_final(sample_case):
-    """Verifies M1 standardized coefficient attribution in final mode."""
+    """Verifies M1 standardized coefficient attribution in final mode against decision_function."""
     res = explain_case(sample_case, model_name="M1", mode="final", top_k=5)
 
     assert res["model_name"] == "M1"
     assert res["mode"] == "final"
     assert len(res["all_attributions"]) == 72
 
-    total_contrib = sum(res["all_attributions"].values())
-    assert (res["base_value"] + total_contrib) == pytest.approx(res["prediction_margin"], abs=1e-4)
+    # Independent decision_function calculation
+    explainer = get_local_explainer()
+    pipe_m1 = explainer.get_pipeline("M1", mode="final")
+    clf_m1 = get_underlying_classifier(pipe_m1)
+    X_prep, _ = transform_through_preprocessing(pipe_m1, sample_case)
+    independent_dec = float(clf_m1.decision_function(X_prep)[0])
+
+    total_contrib = res["base_value"] + sum(res["all_attributions"].values())
+    assert abs(total_contrib - independent_dec) == pytest.approx(0.0, abs=1e-5)
+    assert abs(res["prediction_margin"] - independent_dec) == pytest.approx(0.0, abs=1e-5)
 
     for d in res["top_positive_drivers"]:
         assert d["attribution"] > 0
+        assert "financial_dimension" not in d
     for d in res["top_negative_drivers"]:
         assert d["attribution"] < 0
+        assert "financial_dimension" not in d
 
 
 def test_explain_case_m1_demo_oof(sample_case):
-    """Verifies M1 standardized coefficient attribution in demo_oof mode."""
+    """Verifies M1 standardized coefficient attribution in demo_oof mode against decision_function."""
     res = explain_case(sample_case, model_name="M1", mode="demo_oof", top_k=5)
 
     assert res["model_name"] == "M1"
     assert res["mode"] == "demo_oof"
     assert len(res["all_attributions"]) == 72
-    total_contrib = sum(res["all_attributions"].values())
-    assert (res["base_value"] + total_contrib) == pytest.approx(res["prediction_margin"], abs=1e-4)
+
+    explainer = get_local_explainer()
+    pipe_demo = explainer.get_pipeline("M1", mode="demo_oof")
+    clf_demo = get_underlying_classifier(pipe_demo)
+    X_prep, _ = transform_through_preprocessing(pipe_demo, sample_case)
+    independent_dec = float(clf_demo.decision_function(X_prep)[0])
+
+    total_contrib = res["base_value"] + sum(res["all_attributions"].values())
+    assert abs(total_contrib - independent_dec) == pytest.approx(0.0, abs=1e-5)
 
 
 # ==============================================================================

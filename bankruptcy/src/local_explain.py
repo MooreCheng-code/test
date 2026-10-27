@@ -28,7 +28,6 @@ import shap
 
 from src.explain import (
     get_underlying_classifier,
-    map_financial_dimension,
     transform_through_preprocessing,
 )
 from src.scoring import load_mvp_components
@@ -195,7 +194,7 @@ class LocalExplainer:
 
             attributions = shap_arr[0]
             base_val = float(explainer.expected_value) if np.isscalar(explainer.expected_value) else float(explainer.expected_value[0])
-            pred_margin = float(base_val + np.sum(attributions))
+            pred_margin = float(clf.predict(X_prep, output_margin=True)[0])
             model_desc = f"M4 (XGBoost TreeSHAP, {mode})"
 
         elif model_name == "M1":
@@ -203,7 +202,7 @@ class LocalExplainer:
             intercept = float(clf.intercept_[0])
             attributions = coefs * X_prep[0]
             base_val = intercept
-            pred_margin = float(base_val + np.sum(attributions))
+            pred_margin = float(clf.decision_function(X_prep)[0])
             model_desc = f"M1 (正規化回歸係數, {mode})"
 
         else:
@@ -215,14 +214,12 @@ class LocalExplainer:
             raw_val = float(X_95[fname].iloc[0]) if fname in X_95.columns else None
             z_val = float(X_prep[0, i])
             attr_val = float(attributions[i])
-            dim = map_financial_dimension(fname)
 
             driver_items.append({
                 "feature": fname,
                 "raw_value": raw_val,
                 "transformed_value": z_val,
                 "attribution": attr_val,
-                "financial_dimension": dim,
             })
 
         # Sort drivers: positive attributions increase bankruptcy risk; negative attributions decrease it

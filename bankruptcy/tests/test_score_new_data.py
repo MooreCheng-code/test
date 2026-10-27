@@ -197,7 +197,7 @@ def test_score_new_data_cli_flags_sort_and_filter(tmp_path: Path):
 
 
 def test_score_new_data_cli_no_allow_missing_raises(tmp_path: Path):
-    """Verifies that allow_missing=False raises error when NaNs are present."""
+    """Verifies that allow_missing=False (default) raises exact b3ecc2c error format on NaNs."""
     fixture_dir = Path(__file__).resolve().parent / "fixtures"
     golden_in = fixture_dir / "golden_input_sample.csv"
     df = pd.read_csv(golden_in)
@@ -207,11 +207,90 @@ def test_score_new_data_cli_no_allow_missing_raises(tmp_path: Path):
     df.to_csv(in_nan, index=False)
 
     out_csv = tmp_path / "out_nan.csv"
-    with pytest.raises(ValueError, match="allow_missing=False was specified"):
+    # Default is allow_missing=False
+    with pytest.raises(ValueError, match=r"Input data is missing \d+ required feature\(s\) for scoring:.*Operating Gross Margin"):
         score_csv(
             input_path=in_nan,
             output_path=out_csv,
             operating_point="R90",
             model="E_A",
+        )
+
+    # When allow_missing=True, scoring succeeds cleanly
+    out_ok = tmp_path / "out_ok.csv"
+    res_ok = score_csv(
+        input_path=in_nan,
+        output_path=out_ok,
+        operating_point="R90",
+        model="E_A",
+        allow_missing=True,
+    )
+    assert len(res_ok) == 20
+    assert not np.isnan(res_ok.loc[0, "risk_percentile_score"])
+
+
+def test_score_new_data_column_normalization(tmp_path: Path):
+    """
+    Verifies robust column normalization:
+    1. Leading/trailing whitespace in column names.
+    2. Permuted column order.
+    3. Extra unknown columns preserved as identifiers.
+    4. Duplicate column names deduplicated safely.
+    5. Whole column missing behavior under allow_missing=False and True.
+    """
+    fixture_dir = Path(__file__).resolve().parent / "fixtures"
+    golden_in = fixture_dir / "golden_input_sample.csv"
+    df = pd.read_csv(golden_in)
+
+    # 1. Add whitespace to columns
+    df.columns = [f"  {c}  " for c in df.columns]
+
+    # 2. Permute column order (reverse)
+    cols = list(df.columns)
+    df = df[cols[::-1]]
+
+    # 3. Add extra unknown column
+    df["custom_meta_tag"] = "audit_2026"
+
+    # 4. Add duplicate column name
+    df.insert(0, "  ROA(C) before interest and depreciation before interest  ", df.iloc[:, 5].values, allow_duplicates=True)
+
+    in_mod = tmp_path / "in_mod.csv"
+    df.to_csv(in_mod, index=False)
+
+    out_mod = tmp_path / "out_mod.csv"
+    res_mod = score_csv(
+        input_path=in_mod,
+        output_path=out_mod,
+        operating_point="R90",
+        model="E_A",
+        allow_missing=False,
+    )
+    assert len(res_mod) == 20
+    assert "custom_meta_tag" in res_mod.columns
+    assert (res_mod["custom_meta_tag"] == "audit_2026").all()
+
+    # 5. Whole column missing
+    df_missing_col = pd.read_csv(golden_in).drop(columns=["Operating Gross Margin"])
+    in_missing_col = tmp_path / "in_missing_col.csv"
+    df_missing_col.to_csv(in_missing_col, index=False)
+
+    # Under allow_missing=False: raises exact b3ecc2c error format
+    with pytest.raises(ValueError, match=r"Input data is missing \d+ required feature\(s\) for scoring:.*Operating Gross Margin"):
+        score_csv(
+            input_path=in_missing_col,
+            output_path=tmp_path / "err.csv",
+            operating_point="R90",
+            model="E_A",
             allow_missing=False,
         )
+
+    # Under allow_missing=True: succeeds with automatic median imputation
+    res_imputed = score_csv(
+        input_path=in_missing_col,
+        output_path=tmp_path / "imputed.csv",
+        operating_point="R90",
+        model="E_A",
+        allow_missing=True,
+    )
+    assert len(res_imputed) == 20

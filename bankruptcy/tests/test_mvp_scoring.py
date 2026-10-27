@@ -112,7 +112,12 @@ def test_score_mvp_batch_with_missing_under_limit(train_sample_50):
     cols_to_nan = list(mvp_comp["raw_features_95"][:5])
     df_missing.loc[0, cols_to_nan] = np.nan
 
-    res = score_mvp_batch(df_missing, model_name="E_A", components=mvp_comp)
+    # When allow_missing=False (default), raises ValueError matching b3ecc2c format
+    with pytest.raises(ValueError, match=r"Input data is missing \d+ required feature\(s\) for scoring:"):
+        score_mvp_batch(df_missing, model_name="E_A", allow_missing=False, components=mvp_comp)
+
+    # When allow_missing=True, imputes cleanly
+    res = score_mvp_batch(df_missing, model_name="E_A", allow_missing=True, components=mvp_comp)
     assert res.loc[0, "status"] == "ok"
     assert res.loc[0, "missing_feature_count"] == 5
     assert res.loc[0, "missing_feature_ratio"] == pytest.approx(5 / 95.0)
@@ -128,7 +133,7 @@ def test_score_mvp_batch_with_missing_over_limit(train_sample_50):
     cols_to_nan = list(mvp_comp["raw_features_95"][:25])
     df_missing.loc[0, cols_to_nan] = np.nan
 
-    res = score_mvp_batch(df_missing, model_name="E_A", components=mvp_comp)
+    res = score_mvp_batch(df_missing, model_name="E_A", allow_missing=True, components=mvp_comp)
     assert res.loc[0, "status"] == "rejected_high_missing"
     assert res.loc[0, "missing_feature_count"] == 25
     assert res.loc[0, "missing_feature_ratio"] == pytest.approx(25 / 95.0)
@@ -152,7 +157,7 @@ def test_single_sample_rejection(train_sample_50):
     single_row[cols_to_nan] = np.nan
 
     with pytest.raises(ValueError, match="Single sample request rejected"):
-        score_mvp_batch(single_row, components=mvp_comp)
+        score_mvp_batch(single_row, allow_missing=True, components=mvp_comp)
 
 
 # ==============================================================================
@@ -350,8 +355,8 @@ def test_nan_imputation_equivalence_to_manual_medians(train_sample_50):
     for col in nan_cols:
         df_manually_filled.loc[:4, col] = train_medians[col]
 
-    res_auto = score_mvp_batch(df_with_nan, model_name="E_A", components=mvp_comp)
-    res_manual = score_mvp_batch(df_manually_filled, model_name="E_A", components=mvp_comp)
+    res_auto = score_mvp_batch(df_with_nan, model_name="E_A", allow_missing=True, components=mvp_comp)
+    res_manual = score_mvp_batch(df_manually_filled, model_name="E_A", allow_missing=False, components=mvp_comp)
 
     # Risk scores must match bitwise exactly
     diff_scores = np.abs(res_auto["risk_score"].values - res_manual["risk_score"].values)

@@ -315,27 +315,42 @@ def score_mvp_batch(
     X: pd.DataFrame,
     model_name: str = "E_A",
     operating_point: str = "R90",
-    allow_missing: bool = True,
+    allow_missing: bool = False,
     components: Optional[dict[str, Any]] = None,
 ) -> pd.DataFrame:
     """
     End-to-end MVP batch and single-case scoring with rigorous missingness safeguards.
 
     Architectural design:
-    - Missingness protection: evaluates missing feature count and ratio per row against MAX_MISSING_FEATURE_RATIO (20%).
-    - Rows with missingness > 20% are flagged as 'rejected_high_missing'; their risk scores and ranks are set to None/NaN
-      and excluded from the valid ranking population N_valid.
-    - Single-record inference: if a single record has missingness > 20%, ValueError is raised directly.
-    - Non-intrusive imputation: for valid rows, missing features are imputed using components['train_medians_95']
-      strictly prior to passing data into frozen pipelines. Frozen pipelines in outputs/models/final/ remain hash-locked
-      without requiring internal modifications.
-    - Capacity ranking: batch_rank and in_batch_top_10_pct share compute_top_k_quota(N_valid, method='floor')
-      and require N_valid >= MIN_BATCH_SIZE_FOR_TOP_K (25); otherwise in_batch_top_10_pct is set to None.
-    - Full metadata: outputs include status, missing_feature_count, missing_feature_ratio, risk_score, reference_percentile,
-      calibrated_score, in_reference_top_10_pct, alert, batch_rank, in_batch_top_10_pct, margin_validated, threshold_note.
+    - Normalization: strips column whitespace, handles permuted order, preserves extra columns,
+      and deduplicates duplicate column names keeping the first occurrence.
+    - Missingness protection:
+      * When allow_missing=False (default, matching b3ecc2c), any missing feature column or NaN
+        in required features raises ValueError with the exact b3ecc2c exception message format.
+      * When allow_missing=True, features with missingness <= 20% are imputed using train_medians_95.
+      * Rows with missingness > 20% are flagged as 'rejected_high_missing'; their risk scores and ranks
+        are set to None/NaN and excluded from the valid ranking population N_valid.
+      * Single-record inference: if a single record has missingness > 20%, ValueError is raised directly.
+    - Capacity ranking: batch_rank (pessimistic max rank) and in_batch_top_10_pct share compute_top_k_quota
+      (k_percent=TOP_K_PERCENT, method='floor') and require N_valid >= MIN_BATCH_SIZE_FOR_TOP_K (25);
+      otherwise in_batch_top_10_pct is set to None.
+    - Methodological Notes:
+      * Ties: batch_rank reflects pessimistic competitive rank; in_batch_top_10_pct resolves quota boundary
+        ties stably by input appearance order (method='first') so that the number of flagged records strictly
+        equals k_quota.
+      * Calibrated score: calibrated_score is Platt-scaled to the training dataset's ~3.2% prevalence (max ~0.26
+        for E_A), NOT an unadjusted real-world population bankruptcy probability.
+      * Risk score scales: risk_score scale varies across models (e.g. E_A ~ 0.74 at R90, M4 ~ 0.0176 at R90);
+        cross-model relative risk should be referenced via reference_percentile.
     """
     if not isinstance(X, pd.DataFrame):
         raise TypeError("Input X must be a pandas DataFrame.")
+
+    # Normalize column names: strip whitespace and deduplicate keeping first
+    X = X.copy()
+    X.columns = X.columns.str.strip()
+    if X.columns.duplicated().any():
+        X = X.loc[:, ~X.columns.duplicated(keep="first")]
 
     valid_models = ["E_A", "M3", "M4", "M1"]
     if model_name not in valid_models:
@@ -354,8 +369,18 @@ def score_mvp_batch(
     # Detect extra / pass-through columns
     extra_cols = [c for c in X.columns if c not in raw_features_95 and c != "Bankrupt?"]
 
-    # Check for missing required feature columns in DataFrame
+    # When allow_missing=False, check for missing columns or NaNs and raise b3ecc2c error format
     missing_cols_in_df = [c for c in raw_features_95 if c not in X.columns]
+    nan_cols_in_df = [c for c in raw_features_95 if c in X.columns and X[c].isna().any()]
+    missing_features = sorted(list(set(missing_cols_in_df + nan_cols_in_df)))
+
+    if not allow_missing and missing_features:
+        err_msg = (
+            f"Input data is missing {len(missing_features)} required feature(s) for scoring: "
+            f"{missing_features}"
+        )
+        raise ValueError(err_msg)
+
     if len(missing_cols_in_df) == len(raw_features_95):
         raise ValueError("Input data contains none of the required 95 financial features.")
 
@@ -363,7 +388,7 @@ def score_mvp_batch(
     n_rows = len(X)
     is_single_sample = (n_rows == 1)
 
-    # Build evaluation DataFrame for the 95 features
+    # Build evaluation DataFrame for the 95 features in canonical order
     X_95 = pd.DataFrame(index=X.index)
     for col in raw_features_95:
         if col in X.columns:
@@ -376,8 +401,6 @@ def score_mvp_batch(
 
     # Determine status per row
     is_rejected = missing_ratios > MAX_MISSING_FEATURE_RATIO
-    if not allow_missing and np.any(missing_counts > 0):
-        raise ValueError(f"allow_missing=False but found {np.sum(missing_counts > 0)} rows with missing values.")
 
     if is_single_sample and is_rejected[0]:
         raise ValueError(
@@ -457,7 +480,7 @@ def score_mvp_batch(
         valid_indices = np.where(valid_mask)[0]
         for idx_pos, row_idx in enumerate(valid_indices):
             alerts[row_idx] = bool(valid_risk[idx_pos] >= threshold_val)
-            in_ref_top10[row_idx] = bool(valid_pct[idx_pos] >= 0.90)
+            in_ref_top10[row_idx] = bool(valid_pct[idx_pos] >= (1.0 - TOP_K_PERCENT))
 
         # Batch ranking among valid samples (pessimistic max rank)
         valid_s = pd.Series(valid_risk)

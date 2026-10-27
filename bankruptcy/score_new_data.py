@@ -58,13 +58,13 @@ def score_csv(
     operating_point: str = "R90",
     model: str = "E_A",
     components_dir: str | Path | None = None,
-    allow_missing: bool = True,
+    allow_missing: bool = False,
     sort_by_risk: bool = False,
     high_risk_only: bool = False,
 ) -> pd.DataFrame:
     """
     Reads new input CSV, performs integrity checks, scores data, and writes output.
-    Supports --allow-missing, --sort-by-risk, and --high-risk-only filtering.
+    Supports --allow-missing (default False), --sort-by-risk, and --high-risk-only filtering.
     """
     in_path = Path(input_path)
     out_path = Path(output_path)
@@ -87,21 +87,21 @@ def score_csv(
     logger.info(f"Loading input data from {in_path} ...")
     df = pd.read_csv(in_path)
     df.columns = df.columns.str.strip()
+    if df.columns.duplicated().any():
+        df = df.loc[:, ~df.columns.duplicated(keep="first")]
 
-    # Identify missing required features
-    missing_features = [f for f in expected_features if f not in df.columns]
-    if missing_features:
+    # Identify missing required features (columns not present in input or containing NaN)
+    missing_cols = [f for f in expected_features if f not in df.columns]
+    nan_cols = [f for f in expected_features if f in df.columns and df[f].isna().any()]
+    missing_features = sorted(list(set(missing_cols + nan_cols)))
+
+    if not allow_missing and missing_features:
         err_msg = (
             f"Input data is missing {len(missing_features)} required feature(s) for scoring: "
             f"{missing_features}"
         )
         logger.error(err_msg)
         raise ValueError(err_msg)
-
-    # Check for NaNs if allow_missing is False
-    if not allow_missing and df[expected_features].isna().any().any():
-        n_nan_rows = int(df[expected_features].isna().any(axis=1).sum())
-        raise ValueError(f"Missing feature values detected in {n_nan_rows} row(s) but allow_missing=False was specified.")
 
     # Identify extra / identifier columns
     extra_cols = [c for c in df.columns if c not in expected_features and c != "Bankrupt?"]
@@ -110,22 +110,22 @@ def score_csv(
             f"Found {len(extra_cols)} extra / non-feature column(s) which will be preserved as identifiers: {extra_cols}"
         )
 
-    # Score dataset using unified single-path inference
-    X_features = df[expected_features].copy()
-    logger.info(f"Scoring {len(X_features)} records using model '{model}' at operating point '{operating_point}' ...")
+    # Score dataset using unified inference
+    logger.info(f"Scoring {len(df)} records using model '{model}' at operating point '{operating_point}' ...")
 
-    if model in ["M4", "M1"]:
+    if allow_missing or model in ["M4", "M1"]:
+        from src.scoring import load_mvp_components, score_mvp_batch
         mvp_comp = load_mvp_components()
-        scored_mvp = score_mvp_batch(X_features, model_name=model, operating_point=operating_point, components=mvp_comp)
+        scored_mvp = score_mvp_batch(df, model_name=model, operating_point=operating_point, allow_missing=allow_missing, components=mvp_comp)
         risk_score = scored_mvp["risk_score"].values
         threshold_info = mvp_comp["thresholds"][model][operating_point]
         threshold_val = float(threshold_info["threshold"])
         alert_flag = scored_mvp["alert"].values
         platt_prob = scored_mvp["calibrated_score"].values
     else:
+        X_features = df[expected_features].copy()
         scored_df = score_dataset(X_features, components)
 
-        # Extract model-specific metrics
         threshold_info = components["thresholds"][model][operating_point]
         threshold_val = float(threshold_info["threshold"])
 
@@ -209,9 +209,9 @@ def main():
     )
     parser.add_argument(
         "--allow-missing",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Allow missing features up to 20% by imputing with training medians (default: True).",
+        action="store_true",
+        default=False,
+        help="Allow missing features up to 20% by imputing with training medians (default: False).",
     )
     parser.add_argument(
         "--sort-by-risk",
