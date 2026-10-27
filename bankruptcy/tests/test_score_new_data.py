@@ -128,3 +128,90 @@ def test_score_new_data_missing_column_raises_error(train_sample_data, tmp_path:
             operating_point="R90",
             model="E_A",
         )
+
+
+def test_score_new_data_matches_b3ecc2c_golden(tmp_path: Path):
+    """Verifies default score_new_data CLI output matches b3ecc2c golden file in names, order, and values."""
+    fixture_dir = Path(__file__).resolve().parent / "fixtures"
+    golden_in = fixture_dir / "golden_input_sample.csv"
+    golden_ref = fixture_dir / "golden_cli_default.csv"
+    assert golden_in.exists(), f"Missing fixture input: {golden_in}"
+    assert golden_ref.exists(), f"Missing golden reference: {golden_ref}"
+
+    golden_df = pd.read_csv(golden_ref)
+    out_csv = tmp_path / "cli_default_out.csv"
+
+    res_df = score_csv(
+        input_path=golden_in,
+        output_path=out_csv,
+        operating_point="R90",
+        model="E_A",
+    )
+
+    # Column names and order must match golden exactly
+    assert list(res_df.columns) == list(golden_df.columns)
+
+    # Identifiers must match exactly
+    assert (res_df["company_id"] == golden_df["company_id"]).all()
+    assert (res_df["extra_note"] == golden_df["extra_note"]).all()
+
+    # Float values must be bitwise identical
+    diff_scores = np.abs(res_df["risk_percentile_score"].values - golden_df["risk_percentile_score"].values)
+    assert np.max(diff_scores) == pytest.approx(0.0, abs=1e-12)
+
+    diff_thresh = np.abs(res_df["threshold"].values - golden_df["threshold"].values)
+    assert np.max(diff_thresh) == pytest.approx(0.0, abs=1e-12)
+
+    assert (res_df["alert"].values == golden_df["alert"].values).all()
+
+    diff_cal = np.abs(res_df["calibrated_probability_platt"].values - golden_df["calibrated_probability_platt"].values)
+    assert np.max(diff_cal) == pytest.approx(0.0, abs=1e-12)
+
+
+def test_score_new_data_cli_flags_sort_and_filter(tmp_path: Path):
+    """Verifies --sort-by-risk and --high-risk-only behavior in score_csv."""
+    fixture_dir = Path(__file__).resolve().parent / "fixtures"
+    golden_in = fixture_dir / "golden_input_sample.csv"
+
+    out_sort = tmp_path / "out_sort.csv"
+    res_sort = score_csv(
+        input_path=golden_in,
+        output_path=out_sort,
+        operating_point="R90",
+        model="E_A",
+        sort_by_risk=True,
+    )
+    # Scores must be strictly non-increasing
+    scores = res_sort["risk_percentile_score"].values
+    assert np.all(scores[:-1] >= scores[1:])
+
+    out_high = tmp_path / "out_high.csv"
+    res_high = score_csv(
+        input_path=golden_in,
+        output_path=out_high,
+        operating_point="R90",
+        model="E_A",
+        high_risk_only=True,
+    )
+    assert (res_high["alert"] == True).all()
+
+
+def test_score_new_data_cli_no_allow_missing_raises(tmp_path: Path):
+    """Verifies that allow_missing=False raises error when NaNs are present."""
+    fixture_dir = Path(__file__).resolve().parent / "fixtures"
+    golden_in = fixture_dir / "golden_input_sample.csv"
+    df = pd.read_csv(golden_in)
+    # Inject a NaN
+    df.loc[0, "Operating Gross Margin"] = np.nan
+    in_nan = tmp_path / "in_nan.csv"
+    df.to_csv(in_nan, index=False)
+
+    out_csv = tmp_path / "out_nan.csv"
+    with pytest.raises(ValueError, match="allow_missing=False was specified"):
+        score_csv(
+            input_path=in_nan,
+            output_path=out_csv,
+            operating_point="R90",
+            model="E_A",
+            allow_missing=False,
+        )

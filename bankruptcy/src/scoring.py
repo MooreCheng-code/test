@@ -459,34 +459,37 @@ def score_mvp_batch(
             alerts[row_idx] = bool(valid_risk[idx_pos] >= threshold_val)
             in_ref_top10[row_idx] = bool(valid_pct[idx_pos] >= 0.90)
 
-        # Batch ranking among valid samples
+        # Batch ranking among valid samples (pessimistic max rank)
         valid_s = pd.Series(valid_risk)
-        ranks_series = valid_s.rank(ascending=False, method="min").astype(int)
+        pessimistic_ranks = valid_s.rank(ascending=False, method="max").astype(int)
 
-        # Top 10% quota within batch
+        # Top 10% quota within batch: flagged count strictly equals k_quota
+        # Ties crossing quota boundary are stably resolved by input sequence order (method='first')
         if n_valid >= MIN_BATCH_SIZE_FOR_TOP_K:
             k_quota = compute_top_k_quota(n_valid, k_percent=TOP_K_PERCENT, method="floor")
         else:
             k_quota = None
 
+        if k_quota is not None and k_quota > 0:
+            stable_ranks = valid_s.rank(ascending=False, method="first").astype(int)
+            is_top_k = (stable_ranks <= k_quota)
+        else:
+            is_top_k = None
+
         for idx_pos, row_idx in enumerate(valid_indices):
-            r_val = int(ranks_series.iloc[idx_pos])
-            batch_ranks[row_idx] = r_val
-            if k_quota is not None and k_quota > 0:
-                in_batch_top10[row_idx] = bool(r_val <= k_quota)
+            batch_ranks[row_idx] = int(pessimistic_ranks.iloc[idx_pos])
+            if is_top_k is not None:
+                in_batch_top10[row_idx] = bool(is_top_k.iloc[idx_pos])
             else:
                 in_batch_top10[row_idx] = None
 
-    # Construct result dataframe
+    # Construct result dataframe with strictly standard column names and ordering
     out_dict = {}
     for col in extra_cols:
         out_dict[col] = X[col].values
     if "Bankrupt?" in X.columns:
         out_dict["Bankrupt?"] = X["Bankrupt?"].values
 
-    out_dict["status"] = ["rejected_high_missing" if r else "ok" for r in is_rejected]
-    out_dict["missing_feature_count"] = missing_counts
-    out_dict["missing_feature_ratio"] = missing_ratios
     out_dict["risk_score"] = risk_scores
     out_dict["reference_percentile"] = ref_percentiles
     out_dict["calibrated_score"] = calibrated_scores
@@ -494,6 +497,9 @@ def score_mvp_batch(
     out_dict["alert"] = alerts
     out_dict["batch_rank"] = batch_ranks
     out_dict["in_batch_top_10_pct"] = in_batch_top10
+    out_dict["missing_feature_count"] = missing_counts
+    out_dict["missing_feature_ratio"] = missing_ratios
+    out_dict["status"] = ["rejected_high_missing" if r else "ok" for r in is_rejected]
     out_dict["margin_validated"] = [margin_validated] * n_rows
     out_dict["threshold_note"] = [threshold_note] * n_rows
 

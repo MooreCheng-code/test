@@ -226,3 +226,145 @@ def test_no_bankrupt_col_tolerant(train_sample_50):
     assert "Bankrupt?" not in res.columns
     assert len(res) == 50
     assert (res["status"] == "ok").all()
+
+
+# ==============================================================================
+# 8. Tie-Breaking & Pessimistic Ranking Tests (Boundary & All-Tied)
+# ==============================================================================
+def test_batch_top_10_pct_all_tied(train_sample_50):
+    """When all 50 samples are tied, pessimistic rank is 50, and exactly k=5 are flagged stably."""
+    mvp_comp = load_mvp_components()
+    # Create 50 identical rows
+    single_row = train_sample_50.iloc[[0]].copy()
+    tied_50 = pd.concat([single_row] * 50, ignore_index=True)
+    tied_50["company_id"] = [f"COMP_{i:04d}" for i in range(50)]
+
+    res = score_mvp_batch(tied_50, model_name="E_A", components=mvp_comp)
+    assert len(res) == 50
+
+    # Under pessimistic max ranking, all 50 identical scores must have batch_rank == 50
+    assert (res["batch_rank"] == 50).all()
+
+    # in_batch_top_10_pct count must strictly equal k_quota = floor(0.10 * 50) = 5
+    top10_flags = res["in_batch_top_10_pct"].values
+    assert int(np.sum(top10_flags == True)) == 5
+    assert int(np.sum(top10_flags == False)) == 45
+
+    # Stable resolution: the first 5 in input order must be True, remaining False
+    assert (res.iloc[:5]["in_batch_top_10_pct"] == True).all()
+    assert (res.iloc[5:]["in_batch_top_10_pct"] == False).all()
+
+
+def test_batch_top_10_pct_boundary_tied(train_sample_50):
+    """When ties cross the k=5 quota boundary, exactly k=5 are flagged stably by input order."""
+    mvp_comp = load_mvp_components()
+    # 50 rows: rows 0..2 are high risk, rows 3..7 are identical medium risk crossing k=5, rows 8..49 are low risk
+    sample = train_sample_50.copy()
+    # We can create boundary ties by duplicating row 3 into rows 4, 5, 6, 7
+    raw_feats = mvp_comp["raw_features_95"]
+    for idx in [4, 5, 6, 7]:
+        sample.loc[idx, raw_feats] = sample.loc[3, raw_feats].values
+
+    res = score_mvp_batch(sample, model_name="E_A", components=mvp_comp)
+    assert len(res) == 50
+
+    # Quota is floor(0.10 * 50) = 5
+    assert int(np.sum(res["in_batch_top_10_pct"] == True)) == 5
+    assert int(np.sum(res["in_batch_top_10_pct"] == False)) == 45
+
+
+# ==============================================================================
+# 9. Reference E_A Construction & Derivation Equivalence
+# ==============================================================================
+def test_reference_EA_matches_component_references_formula():
+    """Verifies reference_E_A equals average of ECDF percentiles of reference_M3, M4, M5."""
+    final_dir = project_root / "outputs" / "models" / "final"
+    extras_dir = project_root / "outputs" / "models" / "mvp_extras"
+
+    ref_m3 = np.load(final_dir / "reference_M3.npy")
+    ref_m4 = np.load(final_dir / "reference_M4.npy")
+    ref_m5 = np.load(final_dir / "reference_M5.npy")
+    ref_ea = np.load(extras_dir / "reference_E_A.npy")
+
+    pct_m3 = to_percentile(ref_m3, ref_m3)
+    pct_m4 = to_percentile(ref_m4, ref_m4)
+    pct_m5 = to_percentile(ref_m5, ref_m5)
+    expected_ea = (pct_m3 + pct_m4 + pct_m5) / 3.0
+
+    diff = np.max(np.abs(ref_ea - expected_ea))
+    assert diff == pytest.approx(0.0, abs=1e-12)
+
+
+def test_training_oof_EA_matches_derivation_formula_and_recall():
+    """Verifies that 5,455 2-Repeat mean OOF E_A score reproduces final/thresholds.json actual recall."""
+    import json
+    final_dir = project_root / "outputs" / "models" / "final"
+
+    oof_r0_m3 = np.load(final_dir / "_tmp_oof_r0_M3.npy")
+    oof_r1_m3 = np.load(final_dir / "_tmp_oof_r1_M3.npy")
+    oof_r0_m4 = np.load(final_dir / "_tmp_oof_r0_M4.npy")
+    oof_r1_m4 = np.load(final_dir / "_tmp_oof_r1_M4.npy")
+    oof_r0_m5 = np.load(final_dir / "_tmp_oof_r0_M5.npy")
+    oof_r1_m5 = np.load(final_dir / "_tmp_oof_r1_M5.npy")
+
+    ref_m3 = np.load(final_dir / "reference_M3.npy")
+    ref_m4 = np.load(final_dir / "reference_M4.npy")
+    ref_m5 = np.load(final_dir / "reference_M5.npy")
+
+    pct_oof_m3 = to_percentile((oof_r0_m3 + oof_r1_m3) / 2.0, ref_m3)
+    pct_oof_m4 = to_percentile((oof_r0_m4 + oof_r1_m4) / 2.0, ref_m4)
+    pct_oof_m5 = to_percentile((oof_r0_m5 + oof_r1_m5) / 2.0, ref_m5)
+    ea_5455 = (pct_oof_m3 + pct_oof_m4 + pct_oof_m5) / 3.0
+
+    from src.cv import get_train_data
+    _, y_train = get_train_data()
+    y_arr = y_train.values
+
+    with open(final_dir / "thresholds.json", "r", encoding="utf-8") as f:
+        t_json = json.load(f)["E_A"]
+
+    for pt in ["R80", "R90", "R95", "R100"]:
+        t_val = t_json[pt]["threshold"]
+        caught = int(np.sum((y_arr == 1) & (ea_5455 >= t_val)))
+        rec = caught / 176.0
+        exp_rec = t_json[pt]["training_oof_actual_recall"]
+        assert rec == pytest.approx(exp_rec, abs=1e-4)
+
+
+# ==============================================================================
+# 10. NaN Automatic Imputation vs Manual Medians Imputation Equivalence
+# ==============================================================================
+def test_nan_imputation_equivalence_to_manual_medians(train_sample_50):
+    """Verifies that injecting NaNs gives bitwise identical results to manual median filling."""
+    mvp_comp = load_mvp_components()
+    raw_feats = mvp_comp["raw_features_95"]
+    train_medians = mvp_comp["train_medians_95"]
+
+    # Copy 1: Inject NaNs in first 10 columns for rows 0..4 (< 20% missing)
+    df_with_nan = train_sample_50.copy()
+    nan_cols = list(raw_feats[:10])
+    df_with_nan.loc[:4, nan_cols] = np.nan
+
+    # Copy 2: Manually fill those exact NaNs with train_medians_95
+    df_manually_filled = train_sample_50.copy()
+    for col in nan_cols:
+        df_manually_filled.loc[:4, col] = train_medians[col]
+
+    res_auto = score_mvp_batch(df_with_nan, model_name="E_A", components=mvp_comp)
+    res_manual = score_mvp_batch(df_manually_filled, model_name="E_A", components=mvp_comp)
+
+    # Risk scores must match bitwise exactly
+    diff_scores = np.abs(res_auto["risk_score"].values - res_manual["risk_score"].values)
+    assert np.max(diff_scores) == pytest.approx(0.0, abs=1e-12)
+
+    # Reference percentiles must match bitwise exactly
+    diff_pct = np.abs(res_auto["reference_percentile"].values - res_manual["reference_percentile"].values)
+    assert np.max(diff_pct) == pytest.approx(0.0, abs=1e-12)
+
+    # Calibrated scores must match bitwise exactly
+    diff_cal = np.abs(res_auto["calibrated_score"].values - res_manual["calibrated_score"].values)
+    assert np.max(diff_cal) == pytest.approx(0.0, abs=1e-12)
+
+    # Alerts and ranks must match
+    assert (res_auto["alert"].values == res_manual["alert"].values).all()
+    assert (res_auto["batch_rank"].values == res_manual["batch_rank"].values).all()

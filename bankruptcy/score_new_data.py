@@ -58,9 +58,13 @@ def score_csv(
     operating_point: str = "R90",
     model: str = "E_A",
     components_dir: str | Path | None = None,
+    allow_missing: bool = True,
+    sort_by_risk: bool = False,
+    high_risk_only: bool = False,
 ) -> pd.DataFrame:
     """
     Reads new input CSV, performs integrity checks, scores data, and writes output.
+    Supports --allow-missing, --sort-by-risk, and --high-risk-only filtering.
     """
     in_path = Path(input_path)
     out_path = Path(output_path)
@@ -93,6 +97,11 @@ def score_csv(
         )
         logger.error(err_msg)
         raise ValueError(err_msg)
+
+    # Check for NaNs if allow_missing is False
+    if not allow_missing and df[expected_features].isna().any().any():
+        n_nan_rows = int(df[expected_features].isna().any(axis=1).sum())
+        raise ValueError(f"Missing feature values detected in {n_nan_rows} row(s) but allow_missing=False was specified.")
 
     # Identify extra / identifier columns
     extra_cols = [c for c in df.columns if c not in expected_features and c != "Bankrupt?"]
@@ -141,6 +150,12 @@ def score_csv(
 
     result_df = pd.DataFrame(output_dict, index=df.index)
 
+    # Optional post-processing: high-risk filtering and risk sorting
+    if high_risk_only:
+        result_df = result_df[result_df["alert"] == True]
+    if sort_by_risk:
+        result_df = result_df.sort_values(by="risk_percentile_score", ascending=False)
+
     # Save pure CSV output without comment header (first line must be column header)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     result_df.to_csv(out_path, index=False)
@@ -166,7 +181,7 @@ def score_csv(
 
     logger.info(f"Successfully generated predictions at {out_path}")
     logger.info(f"Generated methodological README at {readme_path}")
-    logger.info(f"Summary: {int(alert_flag.sum())} / {len(result_df)} records flagged as alert ({alert_flag.mean():.2%}).")
+    logger.info(f"Summary: {int(alert_flag.sum())} / {len(df)} records flagged as alert ({alert_flag.mean():.2%}).")
     return result_df
 
 
@@ -192,6 +207,24 @@ def main():
         type=str,
         help="Directory containing frozen model components (default: outputs/models/final).",
     )
+    parser.add_argument(
+        "--allow-missing",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Allow missing features up to 20% by imputing with training medians (default: True).",
+    )
+    parser.add_argument(
+        "--sort-by-risk",
+        action="store_true",
+        default=False,
+        help="Sort output records by risk score in descending order.",
+    )
+    parser.add_argument(
+        "--high-risk-only",
+        action="store_true",
+        default=False,
+        help="Filter output to only records flagged as high risk (alert == True).",
+    )
     args = parser.parse_args()
 
     score_csv(
@@ -200,6 +233,9 @@ def main():
         operating_point=args.operating_point,
         model=args.model,
         components_dir=args.components_dir,
+        allow_missing=args.allow_missing,
+        sort_by_risk=args.sort_by_risk,
+        high_risk_only=args.high_risk_only,
     )
 
 
