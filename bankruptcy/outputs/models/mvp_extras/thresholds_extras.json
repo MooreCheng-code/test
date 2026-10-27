@@ -9,6 +9,9 @@
       "training_oof_alert_ratio": 3.4545454545454546,
       "training_oof_alert_proportion": 0.11145737855178735,
       "training_oof_precision": 0.23848684210526316,
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 285,
+      "reference_actual_recall_10910": 0.8096590909090909,
       "reference_alert_count_10910": 1205,
       "reference_alert_ratio": 3.4232954545454546,
       "reference_alert_proportion": 0.11044912923923006
@@ -22,6 +25,9 @@
       "training_oof_alert_ratio": 7.829545454545454,
       "training_oof_alert_proportion": 0.25261228230980753,
       "training_oof_precision": 0.12264150943396226,
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 335,
+      "reference_actual_recall_10910": 0.9517045454545454,
       "reference_alert_count_10910": 2704,
       "reference_alert_ratio": 7.681818181818182,
       "reference_alert_proportion": 0.24784601283226398
@@ -35,6 +41,9 @@
       "training_oof_alert_ratio": 12.170454545454545,
       "training_oof_alert_proportion": 0.3926672777268561,
       "training_oof_precision": 0.08169934640522876,
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 347,
+      "reference_actual_recall_10910": 0.9857954545454546,
       "reference_alert_count_10910": 4182,
       "reference_alert_ratio": 11.880681818181818,
       "reference_alert_proportion": 0.3833180568285976
@@ -48,9 +57,14 @@
       "training_oof_alert_ratio": 27.335227272727273,
       "training_oof_alert_proportion": 0.8819431714023831,
       "training_oof_precision": 0.03658283101226356,
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 351,
+      "reference_actual_recall_10910": 0.9971590909090909,
       "reference_alert_count_10910": 9362,
       "reference_alert_ratio": 26.59659090909091,
-      "reference_alert_proportion": 0.8581118240146655
+      "reference_alert_proportion": 0.8581118240146655,
+      "operating_label": "接近全抓",
+      "operating_note": "R100 標示為接近全抓；在 10,910 參考分布上實際捕獲 351/352 家破產樣本（召回率 99.72%）"
     }
   },
   "M3": {
@@ -63,6 +77,9 @@
       "training_oof_alert_ratio": 3.8806818181818183,
       "training_oof_alert_proportion": 0.12520623281393217,
       "training_oof_precision": 0.21669106881405564,
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 290,
+      "reference_actual_recall_10910": 0.8238636363636364,
       "reference_alert_count_10910": 1371,
       "reference_alert_ratio": 3.8948863636363638,
       "reference_alert_proportion": 0.12566452795600366
@@ -76,6 +93,9 @@
       "training_oof_alert_ratio": 6.920454545454546,
       "training_oof_alert_proportion": 0.2232813932172319,
       "training_oof_precision": 0.13628899835796388,
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 330,
+      "reference_actual_recall_10910": 0.9375,
       "reference_alert_count_10910": 2399,
       "reference_alert_ratio": 6.815340909090909,
       "reference_alert_proportion": 0.21989000916590284
@@ -89,6 +109,9 @@
       "training_oof_alert_ratio": 11.056818181818182,
       "training_oof_alert_proportion": 0.35673693858845096,
       "training_oof_precision": 0.08992805755395683,
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 347,
+      "reference_actual_recall_10910": 0.9857954545454546,
       "reference_alert_count_10910": 3874,
       "reference_alert_ratio": 11.005681818181818,
       "reference_alert_proportion": 0.3550870760769936
@@ -102,9 +125,14 @@
       "training_oof_alert_ratio": 24.289772727272727,
       "training_oof_alert_proportion": 0.7836846929422548,
       "training_oof_precision": 0.041169590643274856,
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 351,
+      "reference_actual_recall_10910": 0.9971590909090909,
       "reference_alert_count_10910": 7994,
       "reference_alert_ratio": 22.710227272727273,
-      "reference_alert_proportion": 0.7327222731439047
+      "reference_alert_proportion": 0.7327222731439047,
+      "operating_label": "接近全抓",
+      "operating_note": "R100 標示為接近全抓；在 10,910 參考分布上實際捕獲 351/352 家破產樣本（召回率 99.72%）"
     }
   },
   "M4": {
@@ -118,6 +146,9 @@
       "training_oof_alert_proportion": 0.09770852428964252,
       "training_oof_precision": 0.26454033771106944,
       "note": "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）",
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 278,
+      "reference_actual_recall_10910": 0.7897727272727273,
       "reference_alert_count_10910": 1050,
       "reference_alert_ratio": 2.9829545454545454,
       "reference_alert_proportion": 0.09624197983501374
@@ -132,6 +163,9 @@
       "training_oof_alert_proportion": 0.1926672777268561,
       "training_oof_precision": 0.15128449096098953,
       "note": "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）",
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 318,
+      "reference_actual_recall_10910": 0.9034090909090909,
       "reference_alert_count_10910": 2062,
       "reference_alert_ratio": 5.857954545454546,
       "reference_alert_proportion": 0.18900091659028415
@@ -146,6 +180,9 @@
       "training_oof_alert_proportion": 0.2700274977085243,
       "training_oof_precision": 0.11405295315682282,
       "note": "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）",
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 333,
+      "reference_actual_recall_10910": 0.9460227272727273,
       "reference_alert_count_10910": 2871,
       "reference_alert_ratio": 8.15625,
       "reference_alert_proportion": 0.26315307057745185
@@ -160,9 +197,14 @@
       "training_oof_alert_proportion": 0.9439046746104491,
       "training_oof_precision": 0.0341813944455234,
       "note": "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）",
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 351,
+      "reference_actual_recall_10910": 0.9971590909090909,
       "reference_alert_count_10910": 10157,
       "reference_alert_ratio": 28.855113636363637,
-      "reference_alert_proportion": 0.930980751604033
+      "reference_alert_proportion": 0.930980751604033,
+      "operating_label": "接近全抓",
+      "operating_note": "R100 標示為接近全抓；在 10,910 參考分布上實際捕獲 351/352 家破產樣本（召回率 99.72%）"
     }
   },
   "M1": {
@@ -176,6 +218,9 @@
       "training_oof_alert_proportion": 0.11219065077910174,
       "training_oof_precision": 0.23039215686274508,
       "note": "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）",
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 275,
+      "reference_actual_recall_10910": 0.78125,
       "reference_alert_count_10910": 1214,
       "reference_alert_ratio": 3.4488636363636362,
       "reference_alert_proportion": 0.11127406049495875
@@ -190,6 +235,9 @@
       "training_oof_alert_proportion": 0.20403299725022914,
       "training_oof_precision": 0.14285714285714285,
       "note": "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）",
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 320,
+      "reference_actual_recall_10910": 0.9090909090909091,
       "reference_alert_count_10910": 2201,
       "reference_alert_ratio": 6.252840909090909,
       "reference_alert_proportion": 0.20174152153987168
@@ -204,6 +252,9 @@
       "training_oof_alert_proportion": 0.25407882676443627,
       "training_oof_precision": 0.12121212121212122,
       "note": "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）",
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 332,
+      "reference_actual_recall_10910": 0.9431818181818182,
       "reference_alert_count_10910": 2754,
       "reference_alert_ratio": 7.823863636363637,
       "reference_alert_proportion": 0.2524289642529789
@@ -218,9 +269,14 @@
       "training_oof_alert_proportion": 0.8465627864344638,
       "training_oof_precision": 0.038111736682546554,
       "note": "margin=0.0（未做跨折轉移與安全邊際搜尋，直接取 10 折 OOF 經驗分位數）",
+      "derivation_dataset": "5455_mean_oof",
+      "reference_caught_positives_10910": 351,
+      "reference_actual_recall_10910": 0.9971590909090909,
       "reference_alert_count_10910": 9201,
       "reference_alert_ratio": 26.139204545454547,
-      "reference_alert_proportion": 0.8433547204399633
+      "reference_alert_proportion": 0.8433547204399633,
+      "operating_label": "接近全抓",
+      "operating_note": "R100 標示為接近全抓；在 10,910 參考分布上實際捕獲 351/352 家破產樣本（召回率 99.72%）"
     }
   },
   "demo_r0_f0_E_A": {
@@ -264,5 +320,11 @@
       "alert_ratio": 14.833333333333334,
       "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）"
     }
+  },
+  "_field_definitions": {
+    "alert_ratio": "預警數 ÷ 總破產正樣本數（Alert Multiplier，代表抓出破產案件需調查之正樣本倍數）",
+    "alert_proportion": "預警數 ÷ 總樣本數（Alert Population Proportion，代表全體母體中被標記為高風險之比例）",
+    "derivation_dataset": "門檻推導資料集（E_A, M3, M4, M1 全數統一同源為 5,455 筆 2-Repeat 均值 OOF）",
+    "R100_label": "R100 標示為「接近全抓」，在 10,910 堆疊分布中捕獲 351/352（99.72%）"
   }
 }

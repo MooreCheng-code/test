@@ -31,6 +31,7 @@ from config import (
     TOP_K_PERCENT,
 )
 from src.metrics import (
+    compute_top_k_quota,
     confusion_and_cost_at_top_k_percent,
     confusion_matrix_at_threshold,
     cost_sensitivity_table,
@@ -235,3 +236,60 @@ def test_cost_sensitivity_table():
 
     # Row 2: cost_fn=50.0 -> 1*50 + 3*1 = 53.0
     assert df_sens.iloc[2]["total_cost"] == 53.0
+
+
+# ==============================================================================
+# 7. Additional Edge Case Tests (All-tied, No Positives, k=0, N<10)
+# ==============================================================================
+def test_compute_top_k_quota():
+    # floor method (default)
+    assert compute_top_k_quota(100, 0.10) == 10
+    assert compute_top_k_quota(1091, 0.10) == 109
+    assert compute_top_k_quota(9, 0.10) is None  # floor(0.9) = 0 -> None
+    assert compute_top_k_quota(4, 0.10) is None  # floor(0.4) = 0 -> None
+    assert compute_top_k_quota(0, 0.10) is None
+
+    # ceil method
+    assert compute_top_k_quota(9, 0.10, method="ceil") == 1
+    assert compute_top_k_quota(1091, 0.10, method="ceil") == 110
+
+
+def test_recall_at_top_k_percent_all_tied():
+    # N=10, P=2. All 10 samples tied with score 0.5.
+    y_true = np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 0])
+    score = np.array([0.5] * 10)
+
+    # If k = 5 (top 50%):
+    # Pessimistic: all 8 negatives take the quota first.
+    # Slots available = 5 <= 8 negatives -> TP = 0 -> recall = 0.0
+    assert recall_at_top_k_percent(y_true, score, k_percent=0.50) == 0.0
+
+    # If k = 9 (top 90%):
+    # 8 negatives take 8 slots, remaining 1 slot takes 1 positive -> TP = 1 -> recall = 1/2 = 0.5
+    assert recall_at_top_k_percent(y_true, score, k_percent=0.90) == pytest.approx(0.5)
+
+    # If k = 10 (100%): all 10 slots taken -> TP = 2 -> recall = 1.0
+    assert recall_at_top_k_percent(y_true, score, k_percent=1.00) == pytest.approx(1.0)
+
+
+def test_recall_at_top_k_percent_no_positives():
+    y_no_pos = np.array([0, 0, 0, 0, 0])
+    score = np.array([0.9, 0.8, 0.7, 0.6, 0.5])
+    with pytest.raises(ValueError, match="at least one positive sample"):
+        recall_at_top_k_percent(y_no_pos, score, k_percent=0.20)
+
+
+def test_recall_at_top_k_percent_small_n_k_zero():
+    # N=5 < 10, k_percent=0.10 -> floor(0.5) = 0 -> quota is None
+    y_small = np.array([1, 0, 0, 0, 0])
+    score = np.array([0.9, 0.8, 0.7, 0.6, 0.5])
+
+    res_rec = recall_at_top_k_percent(y_small, score, k_percent=0.10)
+    assert res_rec is None  # Does not divide by zero or return misleading 0
+
+    res_cc = confusion_and_cost_at_top_k_percent(y_small, score, k_percent=0.10)
+    assert res_cc is None  # Does not divide by zero or crash
+
+    with pytest.raises(ValueError, match="too small"):
+        cost_sensitivity_table(y_small, score, k_percent=0.10)
+

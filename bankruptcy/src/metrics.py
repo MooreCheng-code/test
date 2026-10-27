@@ -310,14 +310,44 @@ def brier(y_true: ArrayLike, proba: ArrayLike) -> float:
     return float(brier_score_loss(y_arr, p_arr))
 
 
+def compute_top_k_quota(
+    n_samples: int,
+    k_percent: float = DEFAULT_TOP_K_PERCENT,
+    method: str = "floor",
+) -> Optional[int]:
+    """
+    Compute the top-k sample quota based on total population size and percentage budget.
+
+    Shared helper across evaluation metrics and batch scoring (in_batch_top_10_pct).
+
+    Standard policy:
+        method="floor": Guarantees flagged budget does not exceed k_percent (Budget Cap constraint).
+        k = floor(k_percent * n_samples).
+        If k <= 0 (e.g. n_samples < 10 for k_percent=0.10), returns None to indicate
+        insufficient sample size. Prevents division-by-zero or misleading 0 returns.
+    """
+    if n_samples <= 0 or not (0.0 < k_percent <= 1.0):
+        return None
+
+    if method == "floor":
+        k = int(np.floor(k_percent * n_samples))
+    elif method == "ceil":
+        k = int(np.ceil(k_percent * n_samples))
+    else:
+        raise ValueError(f"Unknown quota method: {method}. Supported: 'floor', 'ceil'.")
+
+    return k if k > 0 else None
+
+
 def recall_at_top_k_percent(
     y_true: ArrayLike,
     score: ArrayLike,
     k_percent: float = DEFAULT_TOP_K_PERCENT,
-) -> float:
+    method: str = "floor",
+) -> Optional[float]:
     """
     Compute the recall achieved when flagging the top k% highest risk samples.
-    k = floor(k_percent * N).
+    k is computed via compute_top_k_quota(N, k_percent, method=method).
 
     Higher is better (1.0 is perfect recall).
 
@@ -327,22 +357,28 @@ def recall_at_top_k_percent(
         For the remaining quota within the tied group at the k-th score threshold,
         negative samples are assumed to be picked first.
 
+    Edge cases:
+        If k is None or k <= 0 (insufficient N, e.g. N < 10 for 10% budget), returns None.
+        If y_true contains no positive samples, raises ValueError.
+
     Parameters:
         y_true: Ground truth binary labels (0 or 1).
         score: Continuous predicted risk scores (higher indicates higher risk).
         k_percent: Top fraction of total population to flag (0, 1]. Defaults to config.TOP_K_PERCENT (0.10).
+        method: Quota computation method ('floor' or 'ceil'). Defaults to 'floor'.
 
     Returns:
-        float: Recall rate achieved within the top k% budget.
+        Optional[float]: Recall rate achieved within the top k% budget, or None if quota is 0.
     """
     if not (0.0 < k_percent <= 1.0):
         raise ValueError(f"k_percent must be strictly in the interval (0, 1], got {k_percent}.")
 
     y_arr, s_arr, P, N = _validate_inputs(y_true, score)
 
-    k = int(np.floor(k_percent * N))
-    if k <= 0:
-        return 0.0
+    k = compute_top_k_quota(N, k_percent=k_percent, method=method)
+    if k is None or k <= 0:
+        return None
+
     if k >= N:
         return 1.0
 
@@ -455,23 +491,24 @@ def confusion_and_cost_at_top_k_percent(
     k_percent: float = DEFAULT_TOP_K_PERCENT,
     cost_fn: float = DEFAULT_COST_FN,
     cost_fp: float = DEFAULT_COST_FP,
-) -> dict[str, Any]:
+    method: str = "floor",
+) -> Optional[dict[str, Any]]:
     """
     Compute confusion matrix, recall, precision, F1, and cost under fixed top k% capacity budget.
     Adheres to pessimistic tie-breaking if scores are tied at the rank-k boundary.
+
+    If k is None or k <= 0 (insufficient N, e.g. N < 10 for 10% budget), returns None.
     """
     if not (0.0 < k_percent <= 1.0):
         raise ValueError(f"k_percent must be strictly in the interval (0, 1], got {k_percent}.")
 
     y_arr, s_arr, P, N = _validate_inputs(y_true, score)
 
-    k = int(np.floor(k_percent * N))
+    k = compute_top_k_quota(N, k_percent=k_percent, method=method)
+    if k is None or k <= 0:
+        return None
 
-    if k <= 0:
-        tp, fp = 0, 0
-        fn, tn = P, N - P
-        thr = float("inf")
-    elif k >= N:
+    if k >= N:
         tp, fp = P, N - P
         fn, tn = 0, 0
         thr = float(np.min(s_arr))
@@ -522,6 +559,7 @@ def cost_sensitivity_table(
     k_percent: Optional[float] = None,
     sensitivity_list: Sequence[float] = None,
     cost_fp: float = DEFAULT_COST_FP,
+    method: str = "floor",
 ) -> pd.DataFrame:
     """
     Generate business misclassification cost sensitivity table across various false negative cost weights.
@@ -541,7 +579,12 @@ def cost_sensitivity_table(
         tp, fp, tn, fn = cm["tp"], cm["fp"], cm["tn"], cm["fn"]
         eval_point = f"Threshold >= {threshold:.4f}"
     else:
-        k_res = confusion_and_cost_at_top_k_percent(y_arr, s_arr, k_percent=k_percent)
+        k_res = confusion_and_cost_at_top_k_percent(y_arr, s_arr, k_percent=k_percent, method=method)
+        if k_res is None:
+            raise ValueError(
+                f"Cannot compute cost sensitivity table at Top {k_percent*100:.1f}%: "
+                f"sample size N={N} is too small to yield quota k >= 1."
+            )
         tp, fp, tn, fn = k_res["tp"], k_res["fp"], k_res["tn"], k_res["fn"]
         eval_point = f"Top {k_percent * 100:.1f}%"
 
