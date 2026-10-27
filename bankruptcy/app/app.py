@@ -28,6 +28,19 @@ try:
 except ImportError:
     from app import logic, ui_text
 
+import config
+from src.batch_ui_helper import (
+    compute_batch_summary_metrics,
+    filter_and_sort_batch,
+    format_operating_point_option,
+    format_top_k_header,
+    format_top_k_pct_text,
+    format_pct,
+    prepare_export_csv_bytes,
+)
+from src.local_explain import explain_case, get_local_explainer
+from src.scoring import load_mvp_components, score_mvp_batch
+
 # ==============================================================================
 # Page configuration & Caching
 # ==============================================================================
@@ -47,6 +60,24 @@ def get_cached_components():
 def get_cached_defaults():
     return logic.load_defaults()
 
+@st.cache_resource(show_spinner="正在載入 MVP 評分組件...")
+def get_cached_mvp_components():
+    return load_mvp_components()
+
+
+@st.cache_resource(show_spinner="正在載入特徵歸因解釋器...")
+def get_cached_explainer():
+    return get_local_explainer()
+
+
+@st.cache_data(show_spinner="正在載入 OOF 示範資料...")
+def get_cached_demo_data():
+    csv_path = PROJECT_ROOT / "outputs" / "models" / "mvp_extras" / "oof_demo_batch.csv"
+    if not csv_path.exists():
+        return pd.DataFrame()
+    return pd.read_csv(csv_path)
+    return logic.load_defaults()
+
 
 def format_value_smart(val: float) -> str:
     """Format float cleanly in scientific notation if extreme, else fixed decimal."""
@@ -63,7 +94,7 @@ def main():
     st.title(ui_text.APP_HEADER_TITLE)
     st.caption(ui_text.APP_HEADER_SUBTITLE)
 
-    tab1, tab2, tab3, tab4 = st.tabs(ui_text.TAB_LABELS)
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(ui_text.TAB_LABELS)
 
     # ==========================================================================
     # Tab 1: 輸入與結果
@@ -543,6 +574,266 @@ def main():
         st.subheader(ui_text.TAB4_TITLE)
         train_rate = float(defaults["meta"]["train_bankruptcy_rate"])
         st.markdown(ui_text.format_tab4_disclaimer(train_rate))
+
+
+    # ==========================================================================
+    # Tab 5: 批次評分與示範
+    # ==========================================================================
+    with tab5:
+        st.subheader(ui_text.TAB5_TITLE)
+
+        mvp_comp = get_cached_mvp_components()
+        explainer = get_cached_explainer()
+        thresholds_meta = mvp_comp.get("thresholds", {})
+
+        mode_choice = st.radio(
+            ui_text.TAB5_MODE_RADIO_LABEL,
+            [ui_text.TAB5_MODE_DEMO, ui_text.TAB5_MODE_UPLOAD],
+            horizontal=True,
+        )
+
+        col_m1, col_m2 = st.columns([1, 1])
+        with col_m1:
+            model_selected = st.selectbox(
+                ui_text.TAB5_MODEL_SELECT_LABEL,
+                ["E_A", "M3", "M4", "M1"],
+                index=0,
+            )
+        with col_m2:
+            op_choices = ["R80", "R90", "R95", "R100"]
+            op_selected = st.selectbox(
+                ui_text.TAB5_OP_SELECT_LABEL,
+                op_choices,
+                index=1,
+                format_func=lambda op: format_operating_point_option(
+                    op, thresholds_meta.get(model_selected, {})
+                ),
+            )
+
+        col_f1, col_f2 = st.columns([1, 1])
+        with col_f1:
+            high_risk_only = st.checkbox(ui_text.TAB5_HIGH_RISK_FILTER_LABEL, value=False)
+        with col_f2:
+            sort_by_risk = st.checkbox(ui_text.TAB5_SORT_BY_RISK_LABEL, value=True)
+
+        if mode_choice == ui_text.TAB5_MODE_DEMO:
+            st.info(ui_text.TAB5_DEMO_EXPLANATION)
+            df_demo_raw = get_cached_demo_data()
+
+            if df_demo_raw.empty:
+                st.warning("查無 OOF 示範資料檔案。")
+            else:
+                demo_df = df_demo_raw.copy()
+                if "company_id" not in demo_df.columns:
+                    demo_df.insert(0, "company_id", [f"DEMO_{i+1:04d}" for i in range(len(demo_df))])
+
+                score_col = f"oof_score_{model_selected}"
+                if score_col in demo_df.columns:
+                    demo_df["risk_score"] = demo_df[score_col]
+                else:
+                    demo_df["risk_score"] = demo_df.get("oof_score_E_A", np.nan)
+
+                demo_df["status"] = "ok"
+
+                # Threshold and alert evaluation
+                if model_selected == "E_A":
+                    thresh_dict = thresholds_meta.get("demo_r0_f0_E_A", {}).get(op_selected, {})
+                    thresh_val = float(thresh_dict.get("threshold", 0.7235))
+                    demo_df["threshold"] = thresh_val
+                    demo_df["alert"] = (demo_df["risk_score"] >= thresh_val)
+                    cal_platt = mvp_comp.get("calibrators", {}).get("platt")
+                    if cal_platt is not None:
+                        demo_df["calibrated_score"] = cal_platt.predict_proba(demo_df["risk_score"].values.reshape(-1, 1))[:, 1]
+                    else:
+                        demo_df["calibrated_score"] = np.nan
+                else:
+                    thresh_dict = thresholds_meta.get(model_selected, {}).get(op_selected, {})
+                    thresh_val = float(thresh_dict.get("threshold", 0.5))
+                    demo_df["threshold"] = thresh_val
+                    demo_df["alert"] = (demo_df["risk_score"] >= thresh_val)
+                    demo_df["calibrated_score"] = "N/A"
+
+                # Top-K capacity calculation
+                from src.metrics import compute_top_k_quota
+                k_quota = compute_top_k_quota(len(demo_df), k_percent=config.TOP_K_PERCENT, method="floor")
+                demo_df["batch_rank"] = demo_df["risk_score"].rank(ascending=False, method="max").astype(int)
+                demo_df["in_batch_top_10_pct"] = False
+                sorted_idx = demo_df["risk_score"].sort_values(ascending=False, kind="stable").index
+                if k_quota is not None and k_quota > 0:
+                    demo_df.loc[sorted_idx[:k_quota], "in_batch_top_10_pct"] = True
+
+                summary = compute_batch_summary_metrics(demo_df, target_col="Bankrupt?")
+
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("總企業家數", f"{summary['total_records']:,} 家")
+                c2.metric("預警標記家數", f"{summary['alert_count']:,} 家 ({format_pct(summary['alert_proportion'])})")
+                if summary["target_available"] and summary["total_positives"] is not None:
+                    c3.metric("示範實際破產家數", f"{summary['total_positives']} 家")
+                    if summary["top_k_enabled"] and summary["recall_at_top_k"] is not None:
+                        top_k_hdr = format_top_k_header()
+                        c4.metric(f"{top_k_hdr} 召回率", format_pct(summary['recall_at_top_k']))
+                    else:
+                        c4.metric("召回率", "未達評估門檻")
+                else:
+                    c3.metric("資料狀態", "無標籤資料")
+                    c4.metric("Top K 評估", "未啟用")
+
+                if summary.get("note"):
+                    st.caption(f"ℹ️ {summary['note']}")
+
+                display_df = filter_and_sort_batch(demo_df, high_risk_only=high_risk_only, sort_by_risk=sort_by_risk)
+                cols_to_show = ["company_id", "risk_score", "batch_rank", "in_batch_top_10_pct", "alert", "calibrated_score", "Bankrupt?"]
+                cols_present = [c for c in cols_to_show if c in display_df.columns]
+                st.dataframe(display_df[cols_present], width="stretch", hide_index=True)
+
+                csv_bytes = prepare_export_csv_bytes(display_df)
+                st.download_button(
+                    label="📥 匯出評分結果 (Excel UTF-8-BOM CSV)",
+                    data=csv_bytes,
+                    file_name=f"demo_scored_{model_selected}_{op_selected}.csv",
+                    mime="text/csv",
+                )
+
+                st.markdown("---")
+                st.markdown("#### 🔍 單一企業特徵歸因分析 (Local Attribution)")
+                company_ids = display_df["company_id"].tolist()
+                if company_ids:
+                    selected_company = st.selectbox("選擇欲深入解析之企業代號", company_ids)
+                    case_row = demo_df[demo_df["company_id"] == selected_company].iloc[0]
+
+                    explain_model = "M4" if model_selected in ["E_A", "M4", "M3", "M5"] else "M1"
+                    st.caption(f"歸因模型：{explain_model} (mode='demo_oof')")
+
+                    try:
+                        explain_res = explain_case(
+                            case_row.to_dict(),
+                            model_name=explain_model,
+                            mode="demo_oof",
+                            top_k=5,
+                            explainer=explainer,
+                        )
+
+                        pos_df = pd.DataFrame(explain_res["top_positive_drivers"])
+                        neg_df = pd.DataFrame(explain_res["top_negative_drivers"])
+
+                        col_p, col_n = st.columns(2)
+                        with col_p:
+                            st.markdown("🔴 **主要風險推升特徵 (Top Risk Drivers)**")
+                            if not pos_df.empty:
+                                st.dataframe(pos_df[["feature", "attribution", "transformed_value"]], hide_index=True)
+                            else:
+                                st.caption("無顯著推升特徵")
+                        with col_n:
+                            st.markdown("🟢 **主要安全保護特徵 (Top Protective Drivers)**")
+                            if not neg_df.empty:
+                                st.dataframe(neg_df[["feature", "attribution", "transformed_value"]], hide_index=True)
+                            else:
+                                st.caption("無顯著保護特徵")
+
+                        st.caption(explain_res.get("disclaimer", ""))
+                    except Exception as ex:
+                        st.error(f"特徵歸因分析失敗：{ex}")
+
+        else:
+            st.warning(ui_text.TAB5_UPLOAD_IN_SAMPLE_WARNING)
+            uploaded_file = st.file_uploader("請上傳企業財務特徵 CSV 檔案", type=["csv"])
+            allow_missing_cb = st.checkbox(ui_text.TAB5_ALLOW_MISSING_LABEL, value=False)
+
+            if uploaded_file is not None:
+                try:
+                    df_upload = pd.read_csv(uploaded_file)
+                except Exception as ex:
+                    st.error(f"讀取 CSV 檔案失敗：{ex}")
+                    df_upload = None
+
+                if df_upload is not None:
+                    try:
+                        with st.spinner("正在執行企業財務風險評分..."):
+                            scored_upload = score_mvp_batch(
+                                df_upload,
+                                model_name=model_selected,
+                                operating_point=op_selected,
+                                allow_missing=allow_missing_cb,
+                                components=mvp_comp,
+                            )
+
+                        summary_u = compute_batch_summary_metrics(scored_upload, target_col="Bankrupt?")
+
+                        c1, c2, c3, c4 = st.columns(4)
+                        c1.metric("總上傳家數", f"{summary_u['total_records']:,} 家")
+                        c2.metric("有效評分家數", f"{summary_u['valid_records']:,} 家")
+                        c3.metric("預警標記家數", f"{summary_u['alert_count']:,} 家 ({format_pct(summary_u['alert_proportion'])})")
+                        if summary_u["target_available"] and summary_u["total_positives"] is not None:
+                            c4.metric("標籤破產家數", f"{summary_u['total_positives']} 家")
+                        else:
+                            c4.metric("被拒絕筆數 (缺值過高)", f"{summary_u['rejected_records']} 家")
+
+                        if summary_u.get("note"):
+                            st.caption(f"ℹ️ {summary_u['note']}")
+
+                        disp_upload = filter_and_sort_batch(scored_upload, high_risk_only=high_risk_only, sort_by_risk=sort_by_risk)
+                        st.dataframe(disp_upload, width="stretch", hide_index=True)
+
+                        up_csv_bytes = prepare_export_csv_bytes(disp_upload)
+                        st.download_button(
+                            label="📥 匯出評分結果 (Excel UTF-8-BOM CSV)",
+                            data=up_csv_bytes,
+                            file_name=f"scored_{model_selected}_{op_selected}.csv",
+                            mime="text/csv",
+                        )
+
+                        st.markdown("---")
+                        st.markdown("#### 🔍 上傳資料特徵歸因分析 (Local Attribution, mode='final')")
+                        row_indices = list(disp_upload.index)
+                        if row_indices:
+                            sel_idx = st.selectbox("選擇欲解析之樣本列號 (Index)", row_indices)
+                            sel_row = disp_upload.loc[sel_idx]
+
+                            if sel_row.get("status") == "rejected_high_missing":
+                                st.warning("此樣本因缺值超過允許上限被拒絕評分，無法執行特徵歸因。")
+                            else:
+                                explain_model = "M4" if model_selected in ["E_A", "M4", "M3", "M5"] else "M1"
+                                try:
+                                    exp_res_u = explain_case(
+                                        df_upload.loc[sel_idx].to_dict(),
+                                        model_name=explain_model,
+                                        mode="final",
+                                        top_k=5,
+                                        explainer=explainer,
+                                    )
+                                    p_df = pd.DataFrame(exp_res_u["top_positive_drivers"])
+                                    n_df = pd.DataFrame(exp_res_u["top_negative_drivers"])
+
+                                    col_p, col_n = st.columns(2)
+                                    with col_p:
+                                        st.markdown("🔴 **主要風險推升特徵 (Top Risk Drivers)**")
+                                        if not p_df.empty:
+                                            st.dataframe(p_df[["feature", "attribution", "transformed_value"]], hide_index=True)
+                                        else:
+                                            st.caption("無顯著推升特徵")
+                                    with col_n:
+                                        st.markdown("🟢 **主要安全保護特徵 (Top Protective Drivers)**")
+                                        if not n_df.empty:
+                                            st.dataframe(n_df[["feature", "attribution", "transformed_value"]], hide_index=True)
+                                        else:
+                                            st.caption("無顯著保護特徵")
+
+                                    st.caption(exp_res_u.get("disclaimer", ""))
+                                except Exception as e_attr:
+                                    st.error(f"特徵歸因失敗：{e_attr}")
+
+                    except Exception as e_score:
+                        st.error(f"批次評分發生錯誤：{e_score}")
+
+        st.markdown("---")
+        st.caption("📌 **方法學與業務規範免責聲明**")
+        st.caption(f"• {ui_text.TAB5_DISCLAIMER_SMALL_SAMPLE}")
+        st.caption(f"• {ui_text.TAB5_DISCLAIMER_R100}")
+        st.caption(f"• {ui_text.TAB5_DISCLAIMER_MARGIN_NOT_VALIDATED}")
+        st.caption(f"• {ui_text.TAB5_DISCLAIMER_SHAP_VS_EA}")
+        st.caption(f"• {ui_text.TAB5_DISCLAIMER_MULTICOLLINEARITY}")
+        st.caption(f"• {ui_text.TAB5_DISCLAIMER_CALIBRATED_SCORE}")
+        st.caption(f"• {ui_text.TAB5_DISCLAIMER_RISK_SCORE_SCALE}")
 
 
 if __name__ == "__main__":

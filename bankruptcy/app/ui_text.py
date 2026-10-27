@@ -26,6 +26,7 @@ TAB_LABELS = [
     "為什麼",
     "模型如何運作",
     "限制與免責",
+    "批次評分與示範",
 ]
 
 # ==============================================================================
@@ -206,3 +207,50 @@ def format_tab4_disclaimer(train_bankruptcy_rate: float) -> str:
         "### 5. 模型盲點\n"
         "少數破產公司的財報比率看起來與正常公司相近，模型可能抓不到；若要涵蓋這類案例，需要發出較高比例的預警。"
     )
+
+
+# ==============================================================================
+# Tab 5: Batch Scoring & OOF Demo
+# ==============================================================================
+TAB5_TITLE = "批次財務數據評分與 OOF 示範"
+TAB5_MODE_RADIO_LABEL = "操作模式選擇"
+TAB5_MODE_DEMO = "OOF 驗證折示範模式 (Demo Mode)"
+TAB5_MODE_UPLOAD = "上傳自訂 CSV 評分 (Upload Mode)"
+
+TAB5_MODEL_SELECT_LABEL = "選擇評分模型"
+TAB5_OP_SELECT_LABEL = "選擇目標工作點"
+TAB5_ALLOW_MISSING_LABEL = "允許特徵缺值自動補中位數（依系統缺失率門檻自動補值）"
+TAB5_HIGH_RISK_FILTER_LABEL = "僅顯示高風險預警企業 (Alert Only)"
+TAB5_SORT_BY_RISK_LABEL = "依風險評分由高至低排序 (Sort by Risk)"
+
+TAB5_DEMO_EXPLANATION = (
+    "本示範載入訓練期首折之驗證集企業樣本，展示無洩漏之袋外 (OOF) 預警評分、排序與特徵歸因分析。"
+)
+TAB5_UPLOAD_IN_SAMPLE_WARNING = (
+    "請注意：若上傳之資料包含訓練集樣本，評估結果屬樣本內表現，指標可能樂觀高估。"
+    "真實落地前應於時間外樣本重新校準。"
+)
+
+# Mandatory Business & Methodological Disclaimers
+TAB5_DISCLAIMER_SMALL_SAMPLE = (
+    "小樣本示意：示範資料與結果僅供業務流程與模型功能演示，不代表母體整體分布。"
+)
+TAB5_DISCLAIMER_R100 = (
+    "R100 工作點為接近全抓設定，預警門檻較寬鬆且預警比例偏高，適合漏網成本極高之場景。"
+)
+TAB5_DISCLAIMER_MARGIN_NOT_VALIDATED = (
+    "M1 與 M4 模型之門檻未執行跨折轉移驗證 (margin_validated=False)，預警旗標僅供單模對照參考。"
+)
+TAB5_DISCLAIMER_SHAP_VS_EA = (
+    "特徵歸因由單一模型 (M4 XGBoost TreeSHAP 或 M1 正規化迴歸) 提供；主排序與風險分數為集成模型 E_A，"
+    "兩者架構不同，歸因僅供風險方向參考。"
+)
+TAB5_DISCLAIMER_MULTICOLLINEARITY = (
+    "財務特徵間具高度共線性，各比率之貢獻權重具替代性，不可作單一因果推論。"
+)
+TAB5_DISCLAIMER_CALIBRATED_SCORE = (
+    "校準分數反映資料集盛行率，非全市場未調整破產機率。"
+)
+TAB5_DISCLAIMER_RISK_SCORE_SCALE = (
+    "不同模型之原始 risk_score 尺度不具直接可比性，跨模型比較請參考百分位排名。"
+)

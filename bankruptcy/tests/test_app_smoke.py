@@ -211,7 +211,7 @@ def test_t8_apptest_smoke():
     at = AppTest.from_file(str(APP_DIR / "app.py"), default_timeout=30)
     at.run()
     assert not at.exception
-    assert len(at.tabs) == 4
+    assert len(at.tabs) == 5
 
     # 1. Normal profile preset
     btn_norm = [b for b in at.button if "典型正常公司" in b.label][0]
@@ -302,3 +302,15 @@ def test_t8_tab2_renders_with_bankrupt_profile_and_matches_logic():
     )
     assert 1 <= len(curve_res["curve_df"]) <= 40
     assert np.allclose(df_curve_ui.values, curve_res["curve_df"].values, rtol=1e-12, atol=1e-12)
+
+
+def test_t8_tab5_smoke_demo_and_upload():
+    """Verify Tab 5 renders batch scoring and demo without exception."""
+    at = AppTest.from_file(str(APP_DIR / "app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception
+    assert len(at.tabs) == 5
+
+    # Check metrics and controls exist in Tab 5
+    metric_labels = [m.label for m in at.metric]
+    assert any("企業家數" in lbl or "家數" in lbl for lbl in metric_labels)
