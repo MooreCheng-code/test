@@ -21,6 +21,8 @@
       "reference_alert_ratio": 3.4232954545454546,
       "reference_alert_proportion": 0.11044912923923006,
       "reference_alerts_per_hit_10910": 4.228070175438597,
+      "alert_ratio": 3.4232954545454546,
+      "alerts_per_hit": 4.228070175438597,
       "threshold_note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)"
     },
     "R90": {
@@ -44,6 +46,8 @@
       "reference_alert_ratio": 7.681818181818182,
       "reference_alert_proportion": 0.24784601283226398,
       "reference_alerts_per_hit_10910": 8.071641791044776,
+      "alert_ratio": 7.681818181818182,
+      "alerts_per_hit": 8.071641791044776,
       "threshold_note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)"
     },
     "R95": {
@@ -67,6 +71,8 @@
       "reference_alert_ratio": 11.880681818181818,
       "reference_alert_proportion": 0.3833180568285976,
       "reference_alerts_per_hit_10910": 12.051873198847263,
+      "alert_ratio": 11.880681818181818,
+      "alerts_per_hit": 12.051873198847263,
       "threshold_note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)"
     },
     "R100": {
@@ -90,6 +96,8 @@
       "reference_alert_ratio": 26.59659090909091,
       "reference_alert_proportion": 0.8581118240146655,
       "reference_alerts_per_hit_10910": 26.672364672364672,
+      "alert_ratio": 26.59659090909091,
+      "alerts_per_hit": 26.672364672364672,
       "threshold_note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)",
       "operating_label": "接近全抓",
       "operating_note": "R100 標示為接近全抓；在 10,910 參考分布上實際捕獲 351/352 家破產樣本（召回率 99.72%）"
@@ -117,6 +125,8 @@
       "reference_alert_ratio": 3.8948863636363638,
       "reference_alert_proportion": 0.12566452795600366,
       "reference_alerts_per_hit_10910": 4.727586206896552,
+      "alert_ratio": 3.8948863636363638,
+      "alerts_per_hit": 4.727586206896552,
       "threshold_note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)"
     },
     "R90": {
@@ -140,6 +150,8 @@
       "reference_alert_ratio": 6.815340909090909,
       "reference_alert_proportion": 0.21989000916590284,
       "reference_alerts_per_hit_10910": 7.2696969696969695,
+      "alert_ratio": 6.815340909090909,
+      "alerts_per_hit": 7.2696969696969695,
       "threshold_note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)"
     },
     "R95": {
@@ -163,6 +175,8 @@
       "reference_alert_ratio": 11.005681818181818,
       "reference_alert_proportion": 0.3550870760769936,
       "reference_alerts_per_hit_10910": 11.164265129682997,
+      "alert_ratio": 11.005681818181818,
+      "alerts_per_hit": 11.164265129682997,
       "threshold_note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)"
     },
     "R100": {
@@ -186,6 +200,8 @@
       "reference_alert_ratio": 22.710227272727273,
       "reference_alert_proportion": 0.7327222731439047,
       "reference_alerts_per_hit_10910": 22.774928774928775,
+      "alert_ratio": 22.710227272727273,
+      "alerts_per_hit": 22.774928774928775,
       "threshold_note": "含 E4a 跨折轉移驗證推薦安全邊際 (margin_validated=true)",
       "operating_label": "接近全抓",
       "operating_note": "R100 標示為接近全抓；在 10,910 參考分布上實際捕獲 351/352 家破產樣本（召回率 99.72%）"
@@ -214,6 +230,8 @@
       "reference_alert_ratio": 2.9829545454545454,
       "reference_alert_proportion": 0.09624197983501374,
       "reference_alerts_per_hit_10910": 3.776978417266187,
+      "alert_ratio": 2.9829545454545454,
+      "alerts_per_hit": 3.776978417266187,
       "threshold_note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)"
     },
     "R90": {
@@ -238,6 +256,8 @@
       "reference_alert_ratio": 5.857954545454546,
       "reference_alert_proportion": 0.18900091659028415,
       "reference_alerts_per_hit_10910": 6.484276729559748,
+      "alert_ratio": 5.857954545454546,
+      "alerts_per_hit": 6.484276729559748,
       "threshold_note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)"
     },
     "R95": {
@@ -262,6 +282,8 @@
       "reference_alert_ratio": 8.15625,
       "reference_alert_proportion": 0.26315307057745185,
       "reference_alerts_per_hit_10910": 8.621621621621621,
+      "alert_ratio": 8.15625,
+      "alerts_per_hit": 8.621621621621621,
       "threshold_note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)"
     },
     "R100": {
@@ -286,6 +308,8 @@
       "reference_alert_ratio": 28.855113636363637,
       "reference_alert_proportion": 0.930980751604033,
       "reference_alerts_per_hit_10910": 28.937321937321936,
+      "alert_ratio": 28.855113636363637,
+      "alerts_per_hit": 28.937321937321936,
       "threshold_note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)",
       "operating_label": "接近全抓",
       "operating_note": "R100 標示為接近全抓；在 10,910 參考分布上實際捕獲 351/352 家破產樣本（召回率 99.72%）"
@@ -314,6 +338,8 @@
       "reference_alert_ratio": 3.4488636363636362,
       "reference_alert_proportion": 0.11127406049495875,
       "reference_alerts_per_hit_10910": 4.414545454545454,
+      "alert_ratio": 3.4488636363636362,
+      "alerts_per_hit": 4.414545454545454,
       "threshold_note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)"
     },
     "R90": {
@@ -338,6 +364,8 @@
       "reference_alert_ratio": 6.252840909090909,
       "reference_alert_proportion": 0.20174152153987168,
       "reference_alerts_per_hit_10910": 6.878125,
+      "alert_ratio": 6.252840909090909,
+      "alerts_per_hit": 6.878125,
       "threshold_note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)"
     },
     "R95": {
@@ -362,6 +390,8 @@
       "reference_alert_ratio": 7.823863636363637,
       "reference_alert_proportion": 0.2524289642529789,
       "reference_alerts_per_hit_10910": 8.295180722891565,
+      "alert_ratio": 7.823863636363637,
+      "alerts_per_hit": 8.295180722891565,
       "threshold_note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)"
     },
     "R100": {
@@ -386,6 +416,8 @@
       "reference_alert_ratio": 26.139204545454547,
       "reference_alert_proportion": 0.8433547204399633,
       "reference_alerts_per_hit_10910": 26.213675213675213,
+      "alert_ratio": 26.139204545454547,
+      "alerts_per_hit": 26.213675213675213,
       "threshold_note": "未做跨折轉移與安全邊際搜尋，margin=0.0，effective_target等於target_recall (margin_validated=false)",
       "operating_label": "接近全抓",
       "operating_note": "R100 標示為接近全抓；在 10,910 參考分布上實際捕獲 351/352 家破產樣本（召回率 99.72%）"
@@ -400,6 +432,7 @@
       "training_oof_precision": 0.2328767123287671,
       "alert_count": 146,
       "alert_ratio": 4.055555555555555,
+      "alerts_per_hit": 4.294117647058823,
       "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）"
     },
     "R90": {
@@ -410,6 +443,7 @@
       "training_oof_precision": 0.1151315789473684,
       "alert_count": 304,
       "alert_ratio": 8.444444444444445,
+      "alerts_per_hit": 8.685714285714285,
       "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）"
     },
     "R95": {
@@ -420,6 +454,7 @@
       "training_oof_precision": 0.0897435897435897,
       "alert_count": 390,
       "alert_ratio": 10.833333333333334,
+      "alerts_per_hit": 11.142857142857142,
       "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）"
     },
     "R100": {
@@ -430,6 +465,7 @@
       "training_oof_precision": 0.0655430711610486,
       "alert_count": 534,
       "alert_ratio": 14.833333333333334,
+      "alerts_per_hit": 15.257142857142858,
       "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）"
     }
   },

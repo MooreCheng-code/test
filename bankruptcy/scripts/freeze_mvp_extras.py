@@ -309,6 +309,8 @@ def main() -> None:
             entry["reference_alert_ratio"] = ar_ref
             entry["reference_alert_proportion"] = prop_ref
             entry["reference_alerts_per_hit_10910"] = aph_ref
+            entry["alert_ratio"] = ar_ref
+            entry["alerts_per_hit"] = aph_ref
             entry["threshold_note"] = default_note
 
             if pt == "R100":
@@ -344,6 +346,8 @@ def main() -> None:
         assert len(match_rows) == 1, f"Could not match unique row for R={R}, margin={m_rec}"
         row = match_rows.iloc[0]
         key_name = f"R{int(R*100)}"
+        caught_demo = int(round(float(row["actual_recall"]) * 36.0))
+        aph_demo = float(int(row["alert_count"]) / caught_demo) if caught_demo > 0 else 0.0
         thresholds_extras["demo_r0_f0_E_A"][key_name] = {
             "target_recall": float(R),
             "recommended_margin": float(m_rec),
@@ -352,6 +356,7 @@ def main() -> None:
             "training_oof_precision": float(row["precision"]),
             "alert_count": int(row["alert_count"]),
             "alert_ratio": float(row["alert_count"] / 36.0),
+            "alerts_per_hit": aph_demo,
             "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）",
         }
 
