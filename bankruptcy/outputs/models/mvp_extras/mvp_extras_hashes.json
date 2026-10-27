@@ -1,0 +1,46 @@
+{
+  "created_at": "2026-10-27T11:05:35.775755",
+  "n_files": 10,
+  "files": {
+    "feature_manifest.json": {
+      "sha256": "c6f054d9a73b451b3c97be796766aeb859d6f71d99792a90145f1e50ca8c01b0",
+      "size_bytes": 11411
+    },
+    "model_M1.joblib": {
+      "sha256": "263d3329ab718405f0b80d2ec59f96ad2e9c6206ba26c32d28190f540d357069",
+      "size_bytes": 778070
+    },
+    "reference_M1.npy": {
+      "sha256": "5b407fdd1f7a9d556cf3f734c0f863df2e7fabd645af0db64d856e9e672dc847",
+      "size_bytes": 87408
+    },
+    "calibrator_M1_platt.joblib": {
+      "sha256": "9ed4847b4109681081c7a9115825024bde0083ad2a02db3d6c2c1611cf3472fb",
+      "size_bytes": 879
+    },
+    "calibrator_M3_platt.joblib": {
+      "sha256": "eebb4760cd14fdcc8363b16d83842c258846db33b3ecef3462d61317abfaaeb4",
+      "size_bytes": 879
+    },
+    "calibrator_M4_platt.joblib": {
+      "sha256": "0957ff85c9aa3f1ff00544a3db5aa960aaf35ba1f8792c7f157bb60832f34952",
+      "size_bytes": 879
+    },
+    "thresholds_extras.json": {
+      "sha256": "e957efaf88e8fb6557cf545f8ab2abb145df77b5d362daec49d8a4a9ed41f691",
+      "size_bytes": 7673
+    },
+    "demo_r0_f0_M4.joblib": {
+      "sha256": "0fc29f0eea38319e07d06e44bdc490370fdc4fe73153c12bc7f17bbf4295bf36",
+      "size_bytes": 1811843
+    },
+    "demo_r0_f0_M1.joblib": {
+      "sha256": "d9cf592d52452b6b233ccf6bd17b7bcf607d25112f3d53041508529dab7ca0f0",
+      "size_bytes": 861718
+    },
+    "oof_demo_batch.csv": {
+      "sha256": "ae20779776c4074fd54525d060169c44cffee712bf1be397e8e4a902fc1ceb85",
+      "size_bytes": 1905255
+    }
+  }
+}
