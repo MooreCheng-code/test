@@ -14,3 +14,7 @@ joblib==1.6.0
 altair==6.3.0
 pyarrow==26.0.0
 pytest==9.1.1
+fastapi>=0.115.0
+starlette>=0.41.0
+shap>=0.45.0
+httpx>=0.28.0

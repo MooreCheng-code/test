@@ -202,3 +202,62 @@ def test_batch_ui_helper_isolation_and_no_test_set_references():
     forbidden_tokens = ["get_test_data", "test_idx", "e6_", "outputs/e6"]
     for token in forbidden_tokens:
         assert token not in content, f"Forbidden token '{token}' found in {HELPER_PATH}"
+
+
+def test_batch_ui_upload_end_to_end_workflow():
+    """
+    Simulates the exact Streamlit Tab 5 upload path end-to-end:
+    1. Loads golden_input_sample.csv (20 companies).
+    2. Runs score_mvp_batch (model='E_A', operating_point='R90', allow_missing=True).
+    3. Computes batch summary metrics.
+    4. Filters and sorts the batch.
+    5. Prepares export CSV bytes with UTF-8 BOM.
+    """
+    from src.scoring import load_mvp_components, score_mvp_batch
+
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "golden_input_sample.csv"
+    assert fixture_path.exists(), f"Fixture {fixture_path} not found"
+    df_raw = pd.read_csv(fixture_path)
+    assert len(df_raw) == 20
+
+    # 1. Score batch using MVP pipeline
+    mvp_comp = load_mvp_components()
+    scored_df = score_mvp_batch(
+        df_raw,
+        model_name="E_A",
+        operating_point="R90",
+        allow_missing=True,
+        components=mvp_comp,
+    )
+    assert len(scored_df) == 20
+    assert "risk_score" in scored_df.columns
+    assert "status" in scored_df.columns
+    assert (scored_df["status"] == "ok").all()
+
+    # 2. Compute summary metrics (golden_input_sample has no labels)
+    summary = compute_batch_summary_metrics(scored_df, target_col="Bankrupt?")
+    assert summary["total_records"] == 20
+    assert summary["valid_records"] == 20
+    assert summary["rejected_records"] == 0
+    assert summary["alert_count"] == 10
+    assert summary["target_available"] is False
+    assert summary["total_positives"] is None
+    assert summary["top_k_enabled"] is False
+    assert summary["recall_at_top_k"] is None
+    assert "未含標籤欄位" in summary["note"]
+
+    # 3. Filter and sort
+    filtered_sorted = filter_and_sort_batch(scored_df, high_risk_only=True, sort_by_risk=True)
+    assert len(filtered_sorted) == 10
+    assert (filtered_sorted["alert"] == True).all()
+    # Check monotonicity of sorted risk_score
+    scores = filtered_sorted["risk_score"].values
+    assert (scores[:-1] >= scores[1:]).all()
+
+    # 4. Export bytes
+    export_bytes = prepare_export_csv_bytes(filtered_sorted)
+    assert isinstance(export_bytes, bytes)
+    assert export_bytes.startswith(b"\xef\xbb\xbf")
+    df_reloaded = pd.read_csv(io.BytesIO(export_bytes), encoding="utf-8-sig")
+    assert len(df_reloaded) == 10
+    assert "risk_score" in df_reloaded.columns

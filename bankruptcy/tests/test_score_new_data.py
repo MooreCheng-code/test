@@ -196,7 +196,7 @@ def test_score_new_data_cli_flags_sort_and_filter(tmp_path: Path):
     assert (res_high["alert"] == True).all()
 
 
-def test_score_new_data_cli_no_allow_missing_raises(tmp_path: Path):
+def test_score_new_data_cli_single_nan_succeeds_and_missing_col_raises(tmp_path: Path):
     """
     Verifies that allow_missing=False (default):
     1. Replicates b3ecc2c true behavior on single-cell NaNs: runs inference to completion without throwing.
@@ -328,3 +328,96 @@ def test_score_new_data_column_normalization(tmp_path: Path):
         allow_missing=True,
     )
     assert len(res_imputed) == 20
+
+
+def test_score_new_data_cli_single_nan_behavior_across_models(tmp_path: Path, caplog):
+    """
+    Verifies behavior across all models when allow_missing=False (default) and a single cell contains NaN:
+    - E_A: succeeds without error; scores are computed on raw NaN; compare with median-imputed score.
+    - M3: succeeds without error (ExtraTrees handles NaNs natively).
+    - M4: raises ValueError (delegates to score_mvp_batch with allow_missing=False).
+    - M1: raises ValueError (delegates to score_mvp_batch with allow_missing=False).
+    - Verifies logger warning is emitted when NaNs are detected under allow_missing=False.
+    """
+    import logging
+    from src.preprocessing import TrainingMedianImputer
+
+    fixture_dir = Path(__file__).resolve().parent / "fixtures"
+    golden_in = fixture_dir / "golden_input_sample.csv"
+    df = pd.read_csv(golden_in)
+    feat = "Operating Gross Margin"
+    df_nan = df.copy()
+    df_nan.loc[0, feat] = np.nan
+    in_nan = tmp_path / "single_nan_input.csv"
+    df_nan.to_csv(in_nan, index=False)
+
+    # 1. E_A raw NaN scoring
+    with caplog.at_level(logging.WARNING):
+        caplog.clear()
+        res_ea_raw = score_csv(
+            input_path=in_nan,
+            output_path=tmp_path / "out_ea_raw.csv",
+            operating_point="R90",
+            model="E_A",
+            allow_missing=False,
+        )
+    assert len(res_ea_raw) == 20
+    score_ea_raw = float(res_ea_raw.loc[0, "risk_percentile_score"])
+    assert any("未啟用 --allow-missing，結果未補值" in r.message for r in caplog.records)
+
+    # 2. E_A median-imputed scoring
+    project_root = Path(__file__).resolve().parent.parent
+    imputer = TrainingMedianImputer(project_root / "outputs" / "models" / "mvp_extras" / "train_medians_95.json")
+    meta_cols = [c for c in df_nan.columns if c not in imputer.medians_]
+    feat_df = df_nan.drop(columns=meta_cols)
+    imputed_feat = imputer.transform(feat_df)
+    df_imp = df_nan.copy()
+    for c in imputed_feat.columns:
+        df_imp[c] = imputed_feat[c]
+    in_imp = tmp_path / "single_nan_imputed.csv"
+    df_imp.to_csv(in_imp, index=False)
+
+    res_ea_imp = score_csv(
+        input_path=in_imp,
+        output_path=tmp_path / "out_ea_imp.csv",
+        operating_point="R90",
+        model="E_A",
+        allow_missing=False,
+    )
+    score_ea_imp = float(res_ea_imp.loc[0, "risk_percentile_score"])
+
+    print(f"\n[E_A Single NaN Comparison]")
+    print(f"E_A score on raw NaN:       {score_ea_raw:.10f}")
+    print(f"E_A score after median imp: {score_ea_imp:.10f}")
+
+    # 3. M3 raw NaN scoring (succeeds via ExtraTrees native missing handling)
+    res_m3_raw = score_csv(
+        input_path=in_nan,
+        output_path=tmp_path / "out_m3_raw.csv",
+        operating_point="R90",
+        model="M3",
+        allow_missing=False,
+    )
+    assert len(res_m3_raw) == 20
+    score_m3_raw = float(res_m3_raw.loc[0, "risk_percentile_score"])
+    print(f"M3 score on raw NaN:        {score_m3_raw:.10f}")
+
+    # 4. M4 raw NaN scoring (raises ValueError via score_mvp_batch allow_missing=False)
+    with pytest.raises(ValueError, match=r"Input data is missing 1 required feature\(s\) for scoring:.*Operating Gross Margin"):
+        score_csv(
+            input_path=in_nan,
+            output_path=tmp_path / "out_m4_err.csv",
+            operating_point="R90",
+            model="M4",
+            allow_missing=False,
+        )
+
+    # 5. M1 raw NaN scoring (raises ValueError via score_mvp_batch allow_missing=False)
+    with pytest.raises(ValueError, match=r"Input data is missing 1 required feature\(s\) for scoring:.*Operating Gross Margin"):
+        score_csv(
+            input_path=in_nan,
+            output_path=tmp_path / "out_m1_err.csv",
+            operating_point="R90",
+            model="M1",
+            allow_missing=False,
+        )

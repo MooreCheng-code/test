@@ -75,6 +75,15 @@ def test_explain_case_m4_final(sample_case):
     diff_shap_vs_logit = abs(total_shap - independent_logit)
     diff_margin_vs_logit = abs(independent_margin - independent_logit)
 
+    print(f"\n[test_explain_case_m4_final_additivity]")
+    print(f"p_val:                {p_val:.16f}")
+    print(f"independent_margin:   {independent_margin:.16f}")
+    print(f"independent_logit:    {independent_logit:.16f}")
+    print(f"total_shap:           {total_shap:.16f}")
+    print(f"diff_shap_vs_margin:  {diff_shap_vs_margin:.16e}")
+    print(f"diff_shap_vs_logit:   {diff_shap_vs_logit:.16e}")
+    print(f"diff_margin_vs_logit: {diff_margin_vs_logit:.16e}")
+
     assert diff_shap_vs_margin == pytest.approx(0.0, abs=1e-5)
     assert diff_shap_vs_logit == pytest.approx(0.0, abs=1e-5)
     assert diff_margin_vs_logit == pytest.approx(0.0, abs=1e-5)
@@ -121,6 +130,14 @@ def test_explain_case_m4_demo_oof(sample_case):
     independent_logit = float(logit(p_val))
 
     total_shap = res["base_value"] + sum(res["all_attributions"].values())
+    p_val_d = float(pipe_m4.predict_proba(sample_case)[:, 1][0])
+    logit_d = float(logit(p_val_d))
+    print(f"\n[test_explain_case_m4_demo_oof_additivity]")
+    print(f"p_val:                {p_val_d:.16f}")
+    print(f"independent_margin:   {independent_margin:.16f}")
+    print(f"independent_logit:    {logit_d:.16f}")
+    print(f"total_shap:           {total_shap:.16f}")
+    print(f"diff_shap_vs_margin:  {abs(total_shap - independent_margin):.16e}")
     assert abs(total_shap - independent_margin) == pytest.approx(0.0, abs=1e-5)
     assert abs(total_shap - independent_logit) == pytest.approx(0.0, abs=1e-5)
 def test_explain_case_m1_final(sample_case):

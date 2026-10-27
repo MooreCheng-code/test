@@ -153,3 +153,32 @@ bankruptcy/
 ## 9. 授權說明
 
 資料授權與程式授權待確認。
+
+---
+
+## 9. 批次推論 CLI 工具 (`score_new_data.py`) 與缺失值規範
+
+專案提供獨立 CLI 工具執行外部資料批次評估：
+```bash
+python score_new_data.py --input <path_to_input.csv> --output <path_to_output.csv> [--model E_A] [--operating-point R90] [--allow-missing] [--sort-by-risk] [--high-risk-only]
+```
+
+### 缺失值規範與日誌警告
+1. **預設行為（`--allow-missing False`）**：
+   - 嚴格向下相容於 `b3ecc2c`：若輸入資料缺少整欄特徵，拋出 `ValueError`。
+   - 若特徵完整但欄位內含單格 `NaN`：底層樹模型（E_A 之 M3/M4/M5）原生支援缺失值分裂，推論正常執行不報錯。
+   - **安全審計警告**：當輸入含單格 `NaN` 且未指定 `--allow-missing` 時，系統將記錄警告日誌：
+     `[WARNING] 偵測到輸入資料包含 NaN 缺失值且未啟用 --allow-missing，結果未補值。若欲依訓練集中位數自動補值，請指定 --allow-missing。`
+2. **啟用自動補值（`--allow-missing`）**：
+   - 啟用後，所有缺失特徵將以凍結之 95 維特徵訓練集中位數（`train_medians_95.json`）進行自動插補，適合特徵欄位有缺失之生產環境。
+
+---
+
+## 10. 生態系相容性與 Deprecation 警示說明
+
+### Starlette / TestClient 與 httpx 警示
+在執行全套測試或啟動測試客戶端時，終端機可能出現以下警示：
+`StarletteDeprecationWarning: Using 'httpx' with 'starlette.testclient' is deprecated; install 'httpx2' instead.`
+
+- **說明**：此警示為 Starlette 1.9.0+ 針對未來次世代 HTTP 用戶端套件（httpx2）之轉移提示。
+- **處理原則**：本專案嚴格鎖定官方穩定版依賴（`httpx>=0.28.0`），具備最高生產穩定性與零中斷保證。**請勿盲目安裝非官方或未經驗證之 `httpx2` 分支**。此警示不影響 API 效能與測試正確性。

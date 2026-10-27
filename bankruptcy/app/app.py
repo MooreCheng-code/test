@@ -731,13 +731,37 @@ def main():
                                 st.caption("無顯著保護特徵")
 
                         st.caption(explain_res.get("disclaimer", ""))
+
+                        with st.expander("對照基準：M1 正則化羅吉斯迴歸係數貢獻 (Control Baseline, mode='demo_oof')"):
+                            try:
+                                exp_m1 = explain_case(
+                                    case_row.to_dict(),
+                                    model_name="M1",
+                                    mode="demo_oof",
+                                    top_k=5,
+                                    explainer=explainer,
+                                )
+                                pos_m1 = pd.DataFrame(exp_m1["top_positive_drivers"])
+                                neg_m1 = pd.DataFrame(exp_m1["top_negative_drivers"])
+                                c_mp, c_mn = st.columns(2)
+                                with c_mp:
+                                    st.markdown("🔴 **M1 提高風險特徵 (Top Risk Drivers)**")
+                                    if not pos_m1.empty:
+                                        st.dataframe(pos_m1[["feature", "attribution", "transformed_value"]], hide_index=True)
+                                with c_mn:
+                                    st.markdown("🟢 **M1 降低風險特徵 (Top Protective Drivers)**")
+                                    if not neg_m1.empty:
+                                        st.dataframe(neg_m1[["feature", "attribution", "transformed_value"]], hide_index=True)
+                                st.caption(exp_m1.get("disclaimer", ""))
+                            except Exception as ex_m1:
+                                st.caption(f"M1 基準解釋未顯示：{ex_m1}")
                     except Exception as ex:
                         st.error(f"特徵歸因分析失敗：{ex}")
 
         else:
             st.warning(ui_text.TAB5_UPLOAD_IN_SAMPLE_WARNING)
             uploaded_file = st.file_uploader("請上傳企業財務特徵 CSV 檔案", type=["csv"])
-            allow_missing_cb = st.checkbox(ui_text.TAB5_ALLOW_MISSING_LABEL, value=False)
+            allow_missing_cb = st.checkbox(ui_text.TAB5_ALLOW_MISSING_LABEL, value=True)
 
             if uploaded_file is not None:
                 try:
@@ -818,6 +842,11 @@ def main():
                                         else:
                                             st.caption("無顯著保護特徵")
 
+                                    imp_feats = exp_res_u.get("imputed_features", [])
+                                    if imp_feats:
+                                        st.info(f"以下 {len(imp_feats)} 個特徵因缺失由訓練集中位數自動補值：{', '.join(imp_feats)}")
+                                    else:
+                                        st.caption("此樣本無缺失特徵補值（所有必要特徵完整）。")
                                     st.caption(exp_res_u.get("disclaimer", ""))
                                 except Exception as e_attr:
                                     st.error(f"特徵歸因失敗：{e_attr}")

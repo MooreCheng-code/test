@@ -105,6 +105,16 @@ def score_csv(
         logger.error(err_msg)
         raise ValueError(err_msg)
 
+    # Warn via logger if NaNs exist while allow_missing is False (legacy un-imputed pass-through)
+    if not allow_missing:
+        present_features = [f for f in expected_features if f in df.columns]
+        if df[present_features].isna().any().any():
+            nan_count = int(df[present_features].isna().sum().sum())
+            logger.warning(
+                f"偵測到輸入資料包含 {nan_count} 格 NaN 缺失值且未啟用 --allow-missing，結果未補值。"
+                f"若欲依訓練集中位數自動補值，請指定 --allow-missing。"
+            )
+
     # Identify extra / identifier columns
     extra_cols = [c for c in df.columns if c not in expected_features and c != "Bankrupt?"]
     if extra_cols:
