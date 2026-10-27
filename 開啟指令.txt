@@ -1,0 +1,5 @@
+1.進入終端機 "C:\Users\moore\Desktop\破產預測\bankruptcy"
+
+2.輸入
+
+python -m streamlit run app/app.py --server.address localhost
