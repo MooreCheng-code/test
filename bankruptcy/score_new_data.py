@@ -26,7 +26,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.scoring import load_final_components, load_mvp_components, score_dataset, score_mvp_batch
+from src.scoring import (
+    check_and_deduplicate_columns,
+    load_final_components,
+    load_mvp_components,
+    score_dataset,
+    score_mvp_batch,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("score_new_data")
@@ -86,19 +92,15 @@ def score_csv(
 
     logger.info(f"Loading input data from {in_path} ...")
     df = pd.read_csv(in_path)
-    df.columns = df.columns.str.strip()
-    if df.columns.duplicated().any():
-        df = df.loc[:, ~df.columns.duplicated(keep="first")]
+    df = check_and_deduplicate_columns(df)
 
-    # Identify missing required features (columns not present in input or containing NaN)
+    # Identify missing required features (columns not present in input, matching b3ecc2c behavior)
     missing_cols = [f for f in expected_features if f not in df.columns]
-    nan_cols = [f for f in expected_features if f in df.columns and df[f].isna().any()]
-    missing_features = sorted(list(set(missing_cols + nan_cols)))
 
-    if not allow_missing and missing_features:
+    if not allow_missing and missing_cols:
         err_msg = (
-            f"Input data is missing {len(missing_features)} required feature(s) for scoring: "
-            f"{missing_features}"
+            f"Input data is missing {len(missing_cols)} required feature(s) for scoring: "
+            f"{missing_cols}"
         )
         logger.error(err_msg)
         raise ValueError(err_msg)

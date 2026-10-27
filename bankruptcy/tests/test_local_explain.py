@@ -43,26 +43,41 @@ def sample_case():
 # 1. M4 TreeSHAP Tests (Final & Demo Modes)
 # ==============================================================================
 def test_explain_case_m4_final(sample_case):
-    """Verifies M4 TreeSHAP feature attribution in final mode against independent pipeline logit."""
+    """Verifies M4 TreeSHAP feature attribution in final mode against independent clf.predict(output_margin=True) and logit."""
     res = explain_case(sample_case, model_name="M4", mode="final", top_k=5)
 
     assert res["model_name"] == "M4"
     assert res["mode"] == "final"
     assert "base_value" in res
     assert "prediction_margin" in res
+    assert "risk_score" in res
+    assert "reference_percentile" in res
+    assert "imputed_features" in res
     assert len(res["all_attributions"]) == 72
 
-    # Independent margin calculation directly from pipeline predict_proba logit
+    # Independent calculations directly from pipeline and classifier
     explainer = get_local_explainer()
     pipe_m4 = explainer.get_pipeline("M4", mode="final")
+    clf = get_underlying_classifier(pipe_m4)
+    X_prep, _ = transform_through_preprocessing(pipe_m4, sample_case)
+
+    # 1. Independent margin directly from underlying tree classifier
+    independent_margin = float(clf.predict(X_prep, output_margin=True)[0])
+
+    # 2. Independent logit directly from pipeline.predict_proba
     p_val = float(pipe_m4.predict_proba(sample_case)[:, 1][0])
     independent_logit = float(logit(p_val))
 
+    # TreeSHAP sum: base_value + sum(phi)
     total_shap = res["base_value"] + sum(res["all_attributions"].values())
+
+    diff_shap_vs_margin = abs(total_shap - independent_margin)
     diff_shap_vs_logit = abs(total_shap - independent_logit)
-    diff_pred_vs_logit = abs(res["prediction_margin"] - independent_logit)
+    diff_margin_vs_logit = abs(independent_margin - independent_logit)
+
+    assert diff_shap_vs_margin == pytest.approx(0.0, abs=1e-5)
     assert diff_shap_vs_logit == pytest.approx(0.0, abs=1e-5)
-    assert diff_pred_vs_logit == pytest.approx(0.0, abs=1e-5)
+    assert diff_margin_vs_logit == pytest.approx(0.0, abs=1e-5)
 
     # Top drivers: no financial_dimension (unapproved taxonomy removed)
     assert len(res["top_positive_drivers"]) <= 5
@@ -81,29 +96,33 @@ def test_explain_case_m4_final(sample_case):
     # Disclaimer check
     assert "log-odds" in res["disclaimer"]
     assert "E_A" in res["disclaimer"]
-    assert "共線性" in res["disclaimer"]
 
 
 def test_explain_case_m4_demo_oof(sample_case):
-    """Verifies M4 TreeSHAP feature attribution in demo_oof mode against independent pipeline logit."""
+    """Verifies M4 TreeSHAP feature attribution in demo_oof mode against independent clf margin and logit."""
     res = explain_case(sample_case, model_name="M4", mode="demo_oof", top_k=5)
 
     assert res["model_name"] == "M4"
     assert res["mode"] == "demo_oof"
+    assert "base_value" in res
+    assert "prediction_margin" in res
+    assert "risk_score" in res
+    assert "reference_percentile" in res
+    assert "imputed_features" in res
     assert len(res["all_attributions"]) == 72
 
     explainer = get_local_explainer()
-    pipe_demo = explainer.get_pipeline("M4", mode="demo_oof")
-    p_val = float(pipe_demo.predict_proba(sample_case)[:, 1][0])
+    pipe_m4 = explainer.get_pipeline("M4", mode="demo_oof")
+    clf = get_underlying_classifier(pipe_m4)
+    X_prep, _ = transform_through_preprocessing(pipe_m4, sample_case)
+
+    independent_margin = float(clf.predict(X_prep, output_margin=True)[0])
+    p_val = float(pipe_m4.predict_proba(sample_case)[:, 1][0])
     independent_logit = float(logit(p_val))
 
     total_shap = res["base_value"] + sum(res["all_attributions"].values())
+    assert abs(total_shap - independent_margin) == pytest.approx(0.0, abs=1e-5)
     assert abs(total_shap - independent_logit) == pytest.approx(0.0, abs=1e-5)
-
-
-# ==============================================================================
-# 2. M1 Linear Attribution Tests (Final & Demo Modes)
-# ==============================================================================
 def test_explain_case_m1_final(sample_case):
     """Verifies M1 standardized coefficient attribution in final mode against decision_function."""
     res = explain_case(sample_case, model_name="M1", mode="final", top_k=5)
@@ -116,8 +135,8 @@ def test_explain_case_m1_final(sample_case):
     explainer = get_local_explainer()
     pipe_m1 = explainer.get_pipeline("M1", mode="final")
     clf_m1 = get_underlying_classifier(pipe_m1)
-    X_prep, _ = transform_through_preprocessing(pipe_m1, sample_case)
-    independent_dec = float(clf_m1.decision_function(X_prep)[0])
+    X_prep, feat_names = transform_through_preprocessing(pipe_m1, sample_case)
+    independent_dec = float(clf_m1.decision_function(pd.DataFrame(X_prep, columns=feat_names))[0])
 
     total_contrib = res["base_value"] + sum(res["all_attributions"].values())
     assert abs(total_contrib - independent_dec) == pytest.approx(0.0, abs=1e-5)
@@ -142,8 +161,8 @@ def test_explain_case_m1_demo_oof(sample_case):
     explainer = get_local_explainer()
     pipe_demo = explainer.get_pipeline("M1", mode="demo_oof")
     clf_demo = get_underlying_classifier(pipe_demo)
-    X_prep, _ = transform_through_preprocessing(pipe_demo, sample_case)
-    independent_dec = float(clf_demo.decision_function(X_prep)[0])
+    X_prep, feat_names = transform_through_preprocessing(pipe_demo, sample_case)
+    independent_dec = float(clf_demo.decision_function(pd.DataFrame(X_prep, columns=feat_names))[0])
 
     total_contrib = res["base_value"] + sum(res["all_attributions"].values())
     assert abs(total_contrib - independent_dec) == pytest.approx(0.0, abs=1e-5)

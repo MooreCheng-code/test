@@ -30,7 +30,7 @@ from src.explain import (
     get_underlying_classifier,
     transform_through_preprocessing,
 )
-from src.scoring import load_mvp_components
+from src.scoring import load_mvp_components, to_percentile
 
 # Project root path
 project_root = Path(__file__).resolve().parent.parent
@@ -60,6 +60,7 @@ class LocalExplainer:
 
         self.pipelines: dict[str, Any] = {}
         self.tree_explainers: dict[str, shap.TreeExplainer] = {}
+        self.components = load_mvp_components(self.final_dir, self.extras_dir)
 
         # Load manifest for training medians and raw feature order
         manifest_path = self.extras_dir / "feature_manifest.json"
@@ -168,6 +169,12 @@ class LocalExplainer:
                 f"exceeds allowed limit (20%)."
             )
 
+        # Track features that were missing/NaN and imputed
+        imputed_features = [
+            col for col in self.raw_features_95
+            if col not in df_row.columns or pd.isna(df_row[col].iloc[0])
+        ]
+
         # Impute missing features with train_medians_95
         if missing_count > 0:
             for col in self.raw_features_95:
@@ -178,11 +185,11 @@ class LocalExplainer:
         pipe = self.get_pipeline(model_name, mode=mode)
         clf = get_underlying_classifier(pipe)
         X_prep, feat_names_72 = transform_through_preprocessing(pipe, X_95)
+        X_prep_df = pd.DataFrame(X_prep, columns=feat_names_72)
 
         # Compute attributions based on model type
         if model_name == "M4":
             explainer = self.get_tree_explainer(model_name, mode=mode)
-            X_prep_df = pd.DataFrame(X_prep, columns=feat_names_72)
             shap_values = explainer.shap_values(X_prep_df)
 
             if isinstance(shap_values, list):
@@ -195,6 +202,9 @@ class LocalExplainer:
             attributions = shap_arr[0]
             base_val = float(explainer.expected_value) if np.isscalar(explainer.expected_value) else float(explainer.expected_value[0])
             pred_margin = float(clf.predict(X_prep, output_margin=True)[0])
+            risk_score = float(pipe.predict_proba(X_95)[:, 1][0])
+            ref_scores = self.components["references"].get("M4")
+            ref_pct = float(to_percentile(np.array([risk_score]), ref_scores)[0]) if ref_scores is not None else None
             model_desc = f"M4 (XGBoost TreeSHAP, {mode})"
 
         elif model_name == "M1":
@@ -202,8 +212,11 @@ class LocalExplainer:
             intercept = float(clf.intercept_[0])
             attributions = coefs * X_prep[0]
             base_val = intercept
-            pred_margin = float(clf.decision_function(X_prep)[0])
-            model_desc = f"M1 (正規化回歸係數, {mode})"
+            pred_margin = float(clf.decision_function(X_prep_df)[0])
+            risk_score = float(pipe.predict_proba(X_95)[:, 1][0])
+            ref_scores = self.components["references"].get("M1")
+            ref_pct = float(to_percentile(np.array([risk_score]), ref_scores)[0]) if ref_scores is not None else None
+            model_desc = f"M1 (正則化邏輯迴歸係數, {mode})"
 
         else:
             raise ValueError(f"Local explanation not supported for model '{model_name}'.")
@@ -241,6 +254,9 @@ class LocalExplainer:
         return {
             "model_name": model_name,
             "mode": mode,
+            "risk_score": risk_score,
+            "reference_percentile": ref_pct,
+            "imputed_features": imputed_features,
             "base_value": base_val,
             "prediction_margin": pred_margin,
             "top_positive_drivers": top_positive,

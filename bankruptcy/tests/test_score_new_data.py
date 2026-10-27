@@ -197,29 +197,47 @@ def test_score_new_data_cli_flags_sort_and_filter(tmp_path: Path):
 
 
 def test_score_new_data_cli_no_allow_missing_raises(tmp_path: Path):
-    """Verifies that allow_missing=False (default) raises exact b3ecc2c error format on NaNs."""
+    """
+    Verifies that allow_missing=False (default):
+    1. Replicates b3ecc2c true behavior on single-cell NaNs: runs inference to completion without throwing.
+    2. Strictly raises exact b3ecc2c error format when an entire required column is missing.
+    """
     fixture_dir = Path(__file__).resolve().parent / "fixtures"
     golden_in = fixture_dir / "golden_input_sample.csv"
     df = pd.read_csv(golden_in)
-    # Inject a NaN
+    # Inject a single-cell NaN
     df.loc[0, "Operating Gross Margin"] = np.nan
     in_nan = tmp_path / "in_nan.csv"
     df.to_csv(in_nan, index=False)
 
     out_csv = tmp_path / "out_nan.csv"
-    # Default is allow_missing=False
-    with pytest.raises(ValueError, match=r"Input data is missing \d+ required feature\(s\) for scoring:.*Operating Gross Margin"):
+    # Default is allow_missing=False: succeeds and scores 20 rows (matching b3ecc2c empirical behavior)
+    res_nan = score_csv(
+        input_path=in_nan,
+        output_path=out_csv,
+        operating_point="R90",
+        model="E_A",
+    )
+    assert len(res_nan) == 20
+    assert not np.isnan(res_nan.loc[0, "risk_percentile_score"])
+
+    # Whole column missing under allow_missing=False: raises exact b3ecc2c error
+    df_missing_col = pd.read_csv(golden_in).drop(columns=["Operating Gross Margin"])
+    in_missing = tmp_path / "in_missing.csv"
+    df_missing_col.to_csv(in_missing, index=False)
+
+    with pytest.raises(ValueError, match=r"Input data is missing 1 required feature\(s\) for scoring:.*Operating Gross Margin"):
         score_csv(
-            input_path=in_nan,
-            output_path=out_csv,
+            input_path=in_missing,
+            output_path=tmp_path / "err.csv",
             operating_point="R90",
             model="E_A",
         )
 
-    # When allow_missing=True, scoring succeeds cleanly
+    # When allow_missing=True, whole column missing succeeds cleanly via median imputation
     out_ok = tmp_path / "out_ok.csv"
     res_ok = score_csv(
-        input_path=in_nan,
+        input_path=in_missing,
         output_path=out_ok,
         operating_point="R90",
         model="E_A",
@@ -235,7 +253,7 @@ def test_score_new_data_column_normalization(tmp_path: Path):
     1. Leading/trailing whitespace in column names.
     2. Permuted column order.
     3. Extra unknown columns preserved as identifiers.
-    4. Duplicate column names deduplicated safely.
+    4. Duplicate column names deduplicated safely if values identical; raises ValueError if values differ.
     5. Whole column missing behavior under allow_missing=False and True.
     """
     fixture_dir = Path(__file__).resolve().parent / "fixtures"
@@ -252,8 +270,9 @@ def test_score_new_data_column_normalization(tmp_path: Path):
     # 3. Add extra unknown column
     df["custom_meta_tag"] = "audit_2026"
 
-    # 4. Add duplicate column name
-    df.insert(0, "  ROA(C) before interest and depreciation before interest  ", df.iloc[:, 5].values, allow_duplicates=True)
+    # 4a. Add duplicate column name with IDENTICAL values (deduplicated safely)
+    col_to_dup = "  ROA(C) before interest and depreciation before interest  "
+    df.insert(0, col_to_dup, df[col_to_dup].values, allow_duplicates=True)
 
     in_mod = tmp_path / "in_mod.csv"
     df.to_csv(in_mod, index=False)
@@ -269,6 +288,21 @@ def test_score_new_data_column_normalization(tmp_path: Path):
     assert len(res_mod) == 20
     assert "custom_meta_tag" in res_mod.columns
     assert (res_mod["custom_meta_tag"] == "audit_2026").all()
+
+    # 4b. Add duplicate column name with CONFLICTING values (raises ValueError)
+    df_conflict = pd.read_csv(golden_in)
+    differing_vals = df_conflict["Operating Gross Margin"].values + 999.0
+    df_conflict.insert(0, "Operating Gross Margin", differing_vals, allow_duplicates=True)
+    in_conflict = tmp_path / "in_conflict.csv"
+    df_conflict.to_csv(in_conflict, index=False)
+
+    with pytest.raises(ValueError, match=r"Input data contains conflicting duplicate column\(s\) with differing values:.*Operating Gross Margin"):
+        score_csv(
+            input_path=in_conflict,
+            output_path=tmp_path / "err_conflict.csv",
+            operating_point="R90",
+            model="E_A",
+        )
 
     # 5. Whole column missing
     df_missing_col = pd.read_csv(golden_in).drop(columns=["Operating Gross Margin"])

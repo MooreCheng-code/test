@@ -12,6 +12,7 @@ Provides reusable inference functions for Phase E6 and live deployment:
 from __future__ import annotations
 
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Any, Optional
@@ -19,6 +20,8 @@ from typing import Any, Optional
 import joblib
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger("scoring")
 
 # Ensure config is importable regardless of working directory
 project_root = Path(__file__).resolve().parent.parent
@@ -206,6 +209,71 @@ def score_dataset(
     return results_df
 
 
+def check_and_deduplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normalizes column whitespace and strictly checks for duplicate column names:
+    - Handles in-memory duplicate column names (df.columns.duplicated()).
+    - Handles pandas read_csv mangled duplicate column names (e.g. 'col.1', 'col.2' when 'col' exists).
+    - If duplicates have identical values across all rows, deduplicates keeping the first occurrence and logs a warning.
+    - If duplicates have conflicting values, raises ValueError listing the conflicting column names.
+    """
+    import re
+    df = df.copy()
+    df.columns = df.columns.str.strip()
+
+    # 1. In-memory exact duplicate column names
+    if df.columns.duplicated().any():
+        dup_cols = df.columns[df.columns.duplicated()].unique()
+        conflicting = []
+        for col in dup_cols:
+            sub = df.loc[:, col]
+            first_col = sub.iloc[:, 0]
+            if not all(first_col.equals(sub.iloc[:, i]) for i in range(1, sub.shape[1])):
+                conflicting.append(col)
+        if conflicting:
+            raise ValueError(
+                f"Input data contains conflicting duplicate column(s) with differing values: {conflicting}"
+            )
+        for col in dup_cols:
+            logger.warning(f"Duplicate column '{col}' detected with identical values; keeping first occurrence.")
+        df = df.loc[:, ~df.columns.duplicated(keep="first")]
+
+    # 2. Mangled duplicate columns from CSV reading (e.g. 'Feature.1')
+    mangled_dupes: dict[str, list[str]] = {}
+    for col in list(df.columns):
+        m = re.match(r"^(.*?)\.\d+$", col)
+        if m:
+            base = m.group(1).strip()
+            if base in df.columns:
+                mangled_dupes.setdefault(base, []).append(col)
+
+    if mangled_dupes:
+        conflicting = []
+        to_drop = []
+        for base, dupe_cols in mangled_dupes.items():
+            base_col = df[base]
+            has_conflict = False
+            for d in dupe_cols:
+                if not base_col.equals(df[d]):
+                    has_conflict = True
+                    break
+            if has_conflict:
+                conflicting.append(base)
+            else:
+                logger.warning(
+                    f"Duplicate column '{base}' detected with identical values (mangled as {dupe_cols}); keeping first occurrence."
+                )
+                to_drop.extend(dupe_cols)
+        if conflicting:
+            raise ValueError(
+                f"Input data contains conflicting duplicate column(s) with differing values: {conflicting}"
+            )
+        if to_drop:
+            df = df.drop(columns=to_drop)
+
+    return df
+
+
 def load_mvp_components(
     final_dir: Path | str | None = None,
     extras_dir: Path | str | None = None,
@@ -338,19 +406,17 @@ def score_mvp_batch(
       * Ties: batch_rank reflects pessimistic competitive rank; in_batch_top_10_pct resolves quota boundary
         ties stably by input appearance order (method='first') so that the number of flagged records strictly
         equals k_quota.
-      * Calibrated score: calibrated_score is Platt-scaled to the training dataset's ~3.2% prevalence (max ~0.26
-        for E_A), NOT an unadjusted real-world population bankruptcy probability.
-      * Risk score scales: risk_score scale varies across models (e.g. E_A ~ 0.74 at R90, M4 ~ 0.0176 at R90);
+      * Calibrated score: calibrated_score is Platt-scaled to the training dataset's prevalence,
+        NOT an unadjusted real-world population bankruptcy probability. If deployed in lower-prevalence environments,
+        prior odds ratio adjustment is required.
+      * Risk score scales: risk_score scale varies across models (e.g. E_A vs M4 vs M1);
         cross-model relative risk should be referenced via reference_percentile.
     """
     if not isinstance(X, pd.DataFrame):
         raise TypeError("Input X must be a pandas DataFrame.")
 
-    # Normalize column names: strip whitespace and deduplicate keeping first
-    X = X.copy()
-    X.columns = X.columns.str.strip()
-    if X.columns.duplicated().any():
-        X = X.loc[:, ~X.columns.duplicated(keep="first")]
+    # Normalize column names: strip whitespace and check duplicates with value verification
+    X = check_and_deduplicate_columns(X)
 
     valid_models = ["E_A", "M3", "M4", "M1"]
     if model_name not in valid_models:
