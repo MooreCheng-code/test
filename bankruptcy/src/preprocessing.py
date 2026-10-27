@@ -31,6 +31,61 @@ from sklearn.preprocessing import QuantileTransformer, StandardScaler
 from config import SEED
 
 
+class TrainingMedianImputer(BaseEstimator, TransformerMixin):
+    """
+    Imputes missing values using feature medians computed strictly on training data.
+
+    Preserves DataFrame column names and index. If a column has no missing values,
+    it remains unchanged. If a new column in transform was not seen during fit,
+    its missing values are filled with 0.0 or the provided fallback.
+    """
+
+    def __init__(self, fallback_medians: Union[dict[str, float], None] = None):
+        self.fallback_medians = fallback_medians
+        self.medians_: dict[str, float] = {}
+
+    def fit(self, X: Union[pd.DataFrame, np.ndarray], y=None) -> "TrainingMedianImputer":
+        if isinstance(X, pd.DataFrame):
+            med_s = X.median(numeric_only=True)
+            self.medians_ = {str(k): float(v) for k, v in med_s.items()}
+        else:
+            X_arr = np.asarray(X, dtype=float)
+            med_arr = np.nanmedian(X_arr, axis=0)
+            self.medians_ = {str(i): float(v) for i, v in enumerate(med_arr)}
+
+        if self.fallback_medians:
+            for k, v in self.fallback_medians.items():
+                if k not in self.medians_ or np.isnan(self.medians_[k]):
+                    self.medians_[k] = float(v)
+
+        return self
+
+    def transform(self, X: Union[pd.DataFrame, np.ndarray]) -> Union[pd.DataFrame, np.ndarray]:
+        if isinstance(X, pd.DataFrame):
+            X_out = X.copy()
+            for col in X_out.columns:
+                if X_out[col].isna().any():
+                    fill_val = self.medians_.get(str(col), 0.0)
+                    X_out[col] = X_out[col].fillna(fill_val)
+            return X_out
+        else:
+            X_out = np.array(X, copy=True, dtype=float)
+            for i in range(X_out.shape[1]):
+                col_vals = X_out[:, i]
+                nan_mask = np.isnan(col_vals)
+                if nan_mask.any():
+                    fill_val = self.medians_.get(str(i), 0.0)
+                    X_out[nan_mask, i] = fill_val
+            return X_out
+
+    def get_feature_names_out(self, input_features: Any = None) -> np.ndarray:
+        if input_features is not None:
+            return np.asarray(input_features)
+        if self.medians_:
+            return np.asarray(list(self.medians_.keys()))
+        return np.array([])
+
+
 class FeatureSelector(BaseEstimator, TransformerMixin):
     """
     Selects a predefined subset of features.

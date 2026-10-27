@@ -25,7 +25,7 @@ is to capture nearly all bankruptcies while monitoring alert costs:
 
 import sys
 from pathlib import Path
-from typing import Sequence, Union
+from typing import Any, Optional, Sequence, Union
 
 # Ensure config is importable regardless of working directory
 project_root = Path(__file__).resolve().parent.parent
@@ -37,6 +37,7 @@ import pandas as pd
 from sklearn.metrics import (
     average_precision_score,
     brier_score_loss,
+    f1_score,
     fbeta_score,
     matthews_corrcoef,
     roc_auc_score,
@@ -45,9 +46,21 @@ from sklearn.metrics import (
 try:
     from config import ALERT_RATIOS as DEFAULT_ALERT_RATIOS
     from config import TARGET_RECALLS as DEFAULT_TARGET_RECALLS
+    from config import (
+        COST_FN as DEFAULT_COST_FN,
+        COST_FP as DEFAULT_COST_FP,
+        COST_FN_SENSITIVITY_LIST as DEFAULT_COST_FN_SENSITIVITY_LIST,
+        TOP_K_PERCENT as DEFAULT_TOP_K_PERCENT,
+        MIN_BATCH_SIZE_FOR_TOP_K as DEFAULT_MIN_BATCH_SIZE_FOR_TOP_K,
+    )
 except ImportError:
     DEFAULT_TARGET_RECALLS = [0.80, 0.90, 0.95, 1.00]
     DEFAULT_ALERT_RATIOS = [1.5, 3, 5, 10]
+    DEFAULT_TOP_K_PERCENT = 0.10
+    DEFAULT_MIN_BATCH_SIZE_FOR_TOP_K = 25
+    DEFAULT_COST_FN = 20.0
+    DEFAULT_COST_FP = 1.0
+    DEFAULT_COST_FN_SENSITIVITY_LIST = [10.0, 20.0, 50.0]
 
 
 ArrayLike = Union[Sequence, np.ndarray, pd.Series]
@@ -295,3 +308,257 @@ def brier(y_true: ArrayLike, proba: ArrayLike) -> float:
     """
     y_arr, p_arr, _, _ = _validate_inputs(y_true, proba)
     return float(brier_score_loss(y_arr, p_arr))
+
+
+def recall_at_top_k_percent(
+    y_true: ArrayLike,
+    score: ArrayLike,
+    k_percent: float = DEFAULT_TOP_K_PERCENT,
+) -> float:
+    """
+    Compute the recall achieved when flagging the top k% highest risk samples.
+    k = floor(k_percent * N).
+
+    Higher is better (1.0 is perfect recall).
+
+    Tie-breaking policy:
+        Pessimistic / Worst-case guarantee (identical to recall_at_alert_ratio).
+        Samples with scores strictly greater than the k-th score are taken first.
+        For the remaining quota within the tied group at the k-th score threshold,
+        negative samples are assumed to be picked first.
+
+    Parameters:
+        y_true: Ground truth binary labels (0 or 1).
+        score: Continuous predicted risk scores (higher indicates higher risk).
+        k_percent: Top fraction of total population to flag (0, 1]. Defaults to config.TOP_K_PERCENT (0.10).
+
+    Returns:
+        float: Recall rate achieved within the top k% budget.
+    """
+    if not (0.0 < k_percent <= 1.0):
+        raise ValueError(f"k_percent must be strictly in the interval (0, 1], got {k_percent}.")
+
+    y_arr, s_arr, P, N = _validate_inputs(y_true, score)
+
+    k = int(np.floor(k_percent * N))
+    if k <= 0:
+        return 0.0
+    if k >= N:
+        return 1.0
+
+    sorted_scores = np.sort(s_arr)[::-1]
+    thr = sorted_scores[k - 1]
+
+    strictly_greater = s_arr > thr
+    tp_strictly_greater = int((strictly_greater & (y_arr == 1)).sum())
+    n_strictly_greater = int(strictly_greater.sum())
+
+    rem = k - n_strictly_greater
+
+    tied_mask = s_arr == thr
+    tied_negatives = int((tied_mask & (y_arr == 0)).sum())
+
+    tp_from_ties = max(0, rem - tied_negatives)
+    total_tp = tp_strictly_greater + tp_from_ties
+
+    return float(total_tp / P)
+
+
+def confusion_matrix_at_threshold(
+    y_true: ArrayLike,
+    score: ArrayLike,
+    threshold: float,
+) -> dict[str, int]:
+    """
+    Compute confusion matrix counts (tp, fp, tn, fn) at a given decision threshold (`score >= threshold`).
+    """
+    y_arr, s_arr, _, _ = _validate_inputs(y_true, score)
+    pred = (s_arr >= threshold).astype(int)
+
+    tp = int(((pred == 1) & (y_arr == 1)).sum())
+    fp = int(((pred == 1) & (y_arr == 0)).sum())
+    fn = int(((pred == 0) & (y_arr == 1)).sum())
+    tn = int(((pred == 0) & (y_arr == 0)).sum())
+
+    return {"tp": tp, "fp": fp, "tn": tn, "fn": fn}
+
+
+def misclassification_cost(
+    tp: int,
+    fp: int,
+    tn: int,
+    fn: int,
+    cost_fn: float = DEFAULT_COST_FN,
+    cost_fp: float = DEFAULT_COST_FP,
+) -> float:
+    """
+    Compute total business misclassification cost:
+        Total Cost = fn * cost_fn + fp * cost_fp
+
+    By default, cost_fn = 20.0 (missed bankruptcy cost) and cost_fp = 1.0 (investigation cost).
+    """
+    return float(fn * cost_fn + fp * cost_fp)
+
+
+def evaluate_mvp_threshold_metrics(
+    y_true: ArrayLike,
+    score: ArrayLike,
+    threshold: float,
+    cost_fn: float = DEFAULT_COST_FN,
+    cost_fp: float = DEFAULT_COST_FP,
+) -> dict[str, Any]:
+    """
+    Comprehensive MVP evaluation at a fixed decision threshold (`score >= threshold`).
+
+    Includes standard metrics, confusion matrix, F1, F2, MCC, alert volume, and misclassification cost.
+    """
+    y_arr, s_arr, P, N = _validate_inputs(y_true, score)
+    pred = (s_arr >= threshold).astype(int)
+
+    tp = int(((pred == 1) & (y_arr == 1)).sum())
+    fp = int(((pred == 1) & (y_arr == 0)).sum())
+    fn = int(((pred == 0) & (y_arr == 1)).sum())
+    tn = int(((pred == 0) & (y_arr == 0)).sum())
+
+    recall = float(tp / P) if P > 0 else 0.0
+    precision = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
+    f1 = float(f1_score(y_arr, pred, zero_division=0.0))
+    f2 = float(fbeta_score(y_arr, pred, beta=2, zero_division=0.0))
+    mcc = float(matthews_corrcoef(y_arr, pred))
+
+    cost = misclassification_cost(tp, fp, tn, fn, cost_fn=cost_fn, cost_fp=cost_fp)
+    alert_count = int(tp + fp)
+    alert_ratio = float((tp + fp) / P) if P > 0 else 0.0
+    alert_proportion = float((tp + fp) / N)
+
+    return {
+        "threshold": float(threshold),
+        "recall": recall,
+        "precision": precision,
+        "f1": f1,
+        "f2": f2,
+        "mcc": mcc,
+        "tp": tp,
+        "fp": fp,
+        "tn": tn,
+        "fn": fn,
+        "cost": cost,
+        "alert_count": alert_count,
+        "alert_ratio": alert_ratio,
+        "alert_proportion": alert_proportion,
+    }
+
+
+def confusion_and_cost_at_top_k_percent(
+    y_true: ArrayLike,
+    score: ArrayLike,
+    k_percent: float = DEFAULT_TOP_K_PERCENT,
+    cost_fn: float = DEFAULT_COST_FN,
+    cost_fp: float = DEFAULT_COST_FP,
+) -> dict[str, Any]:
+    """
+    Compute confusion matrix, recall, precision, F1, and cost under fixed top k% capacity budget.
+    Adheres to pessimistic tie-breaking if scores are tied at the rank-k boundary.
+    """
+    if not (0.0 < k_percent <= 1.0):
+        raise ValueError(f"k_percent must be strictly in the interval (0, 1], got {k_percent}.")
+
+    y_arr, s_arr, P, N = _validate_inputs(y_true, score)
+
+    k = int(np.floor(k_percent * N))
+
+    if k <= 0:
+        tp, fp = 0, 0
+        fn, tn = P, N - P
+        thr = float("inf")
+    elif k >= N:
+        tp, fp = P, N - P
+        fn, tn = 0, 0
+        thr = float(np.min(s_arr))
+    else:
+        sorted_scores = np.sort(s_arr)[::-1]
+        thr = float(sorted_scores[k - 1])
+
+        strictly_greater = s_arr > thr
+        tp_strictly = int((strictly_greater & (y_arr == 1)).sum())
+        n_strictly = int(strictly_greater.sum())
+
+        rem = k - n_strictly
+        tied_mask = s_arr == thr
+        tied_negatives = int((tied_mask & (y_arr == 0)).sum())
+
+        tp = int(tp_strictly + max(0, rem - tied_negatives))
+        fp = int(k - tp)
+        fn = int(P - tp)
+        tn = int((N - P) - fp)
+
+    recall = float(tp / P) if P > 0 else 0.0
+    precision = float(tp / k) if k > 0 else 0.0
+    f1 = float(2 * tp / (2 * tp + fp + fn)) if (2 * tp + fp + fn) > 0 else 0.0
+    cost = misclassification_cost(tp, fp, tn, fn, cost_fn=cost_fn, cost_fp=cost_fp)
+
+    return {
+        "k": k,
+        "k_percent": float(k_percent),
+        "threshold": thr,
+        "tp": tp,
+        "fp": fp,
+        "tn": tn,
+        "fn": fn,
+        "recall": recall,
+        "precision": precision,
+        "f1": f1,
+        "cost": cost,
+        "alert_count": k,
+        "alert_ratio": float(k / P) if P > 0 else 0.0,
+        "alert_proportion": float(k / N),
+    }
+
+
+def cost_sensitivity_table(
+    y_true: ArrayLike,
+    score: ArrayLike,
+    threshold: Optional[float] = None,
+    k_percent: Optional[float] = None,
+    sensitivity_list: Sequence[float] = None,
+    cost_fp: float = DEFAULT_COST_FP,
+) -> pd.DataFrame:
+    """
+    Generate business misclassification cost sensitivity table across various false negative cost weights.
+
+    Can evaluate at either a fixed score threshold (threshold != None) or a capacity percentage (k_percent != None).
+    """
+    if threshold is None and k_percent is None:
+        k_percent = DEFAULT_TOP_K_PERCENT
+
+    if sensitivity_list is None:
+        sensitivity_list = DEFAULT_COST_FN_SENSITIVITY_LIST
+
+    y_arr, s_arr, P, N = _validate_inputs(y_true, score)
+
+    if threshold is not None:
+        cm = confusion_matrix_at_threshold(y_arr, s_arr, threshold)
+        tp, fp, tn, fn = cm["tp"], cm["fp"], cm["tn"], cm["fn"]
+        eval_point = f"Threshold >= {threshold:.4f}"
+    else:
+        k_res = confusion_and_cost_at_top_k_percent(y_arr, s_arr, k_percent=k_percent)
+        tp, fp, tn, fn = k_res["tp"], k_res["fp"], k_res["tn"], k_res["fn"]
+        eval_point = f"Top {k_percent * 100:.1f}%"
+
+    rows = []
+    for c_fn in sensitivity_list:
+        cost = misclassification_cost(tp, fp, tn, fn, cost_fn=c_fn, cost_fp=cost_fp)
+        rows.append({
+            "evaluation_point": eval_point,
+            "cost_fn": float(c_fn),
+            "cost_fp": float(cost_fp),
+            "cost_ratio": f"{c_fn:g}:{cost_fp:g}",
+            "tp": tp,
+            "fp": fp,
+            "tn": tn,
+            "fn": fn,
+            "total_cost": float(cost),
+            "cost_per_sample": float(cost / N),
+        })
+
+    return pd.DataFrame(rows)
