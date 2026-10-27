@@ -19,7 +19,7 @@
 - **核心套件**：
   - `scikit-learn`: 1.9.1 | `imbalanced-learn`: 0.14.2 | `xgboost`: 3.4.1 | `lightgbm`: 4.7.0
   - `optuna`: 5.0.0 | `scipy`: 1.18.1 | `numpy`: 2.4.6 | `pandas`: 3.0.6 | `pytest`: 9.1.1
-- **測試執行方式**：在 `bankruptcy/` 目錄下執行 `pytest -q`（目前 125 項單元與整合測試全數通過，涵蓋 MVP 擴充之 Top-10% 召回率、混淆矩陣、分類成本與敏感度測試）。
+- **測試執行方式**：在 `bankruptcy/` 目錄下執行 `pytest -q`（目前 129 項單元與整合測試全數通過，涵蓋 MVP 擴充之 Top-K 名額防護、邊界同分、補值器與敏感度測試）。
 
 ## 3. 專案結構與檔案地圖
 - **原始碼 (`bankruptcy/src/`)**：
