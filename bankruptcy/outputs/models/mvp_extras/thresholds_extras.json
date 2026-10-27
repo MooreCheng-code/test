@@ -175,7 +175,7 @@
       "training_oof_actual_recall": 0.9444444444444444,
       "training_oof_precision": 0.2328767123287671,
       "alert_count": 146,
-      "note": "Outer CV repeat 0 fold 0 inner threshold at recommended margin from e4a"
+      "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）"
     },
     "R90": {
       "target_recall": 0.9,
@@ -184,7 +184,7 @@
       "training_oof_actual_recall": 0.9722222222222222,
       "training_oof_precision": 0.1151315789473684,
       "alert_count": 304,
-      "note": "Outer CV repeat 0 fold 0 inner threshold at recommended margin from e4a"
+      "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）"
     },
     "R95": {
       "target_recall": 0.95,
@@ -193,7 +193,7 @@
       "training_oof_actual_recall": 0.9722222222222222,
       "training_oof_precision": 0.0897435897435897,
       "alert_count": 390,
-      "note": "Outer CV repeat 0 fold 0 inner threshold at recommended margin from e4a"
+      "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）"
     },
     "R100": {
       "target_recall": 1.0,
@@ -202,7 +202,7 @@
       "training_oof_actual_recall": 0.9722222222222222,
       "training_oof_precision": 0.0655430711610486,
       "alert_count": 534,
-      "note": "Outer CV repeat 0 fold 0 inner threshold at recommended margin from e4a"
+      "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）"
     }
   }
 }

@@ -257,7 +257,7 @@ def main() -> None:
             "training_oof_actual_recall": float(row["actual_recall"]),
             "training_oof_precision": float(row["precision"]),
             "alert_count": int(row["alert_count"]),
-            "note": "Outer CV repeat 0 fold 0 inner threshold at recommended margin from e4a",
+            "note": "採選項 A：r0_f0 折內門檻（推薦安全邊際來自 e4a_margin_recommendation.csv，數值記錄於 e4a_threshold_transfer_per_fold.csv）",
         }
 
     thresh_extras_path = MVP_EXTRAS_DIR / "thresholds_extras.json"

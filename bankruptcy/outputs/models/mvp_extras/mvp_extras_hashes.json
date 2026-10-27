@@ -1,9 +1,9 @@
 {
-  "created_at": "2026-10-27T11:05:35.775755",
+  "created_at": "2026-10-27T11:54:55.227419",
   "n_files": 10,
   "files": {
     "feature_manifest.json": {
-      "sha256": "c6f054d9a73b451b3c97be796766aeb859d6f71d99792a90145f1e50ca8c01b0",
+      "sha256": "a5b3deff3fc408be09caa7f369bdec5a3169e803b845ddc10259dcc9f6fed531",
       "size_bytes": 11411
     },
     "model_M1.joblib": {
@@ -27,8 +27,8 @@
       "size_bytes": 879
     },
     "thresholds_extras.json": {
-      "sha256": "e957efaf88e8fb6557cf545f8ab2abb145df77b5d362daec49d8a4a9ed41f691",
-      "size_bytes": 7673
+      "sha256": "017a802f957f6506ad577e4632debd91d4b496cac1c6169bf76166428015a1b3",
+      "size_bytes": 7973
     },
     "demo_r0_f0_M4.joblib": {
       "sha256": "0fc29f0eea38319e07d06e44bdc490370fdc4fe73153c12bc7f17bbf4295bf36",
