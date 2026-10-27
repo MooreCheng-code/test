@@ -174,7 +174,7 @@ python score_new_data.py --input <path_to_input.csv> --output <path_to_output.cs
 
 ---
 
-## 10. 生態系相容性與 Deprecation 警示說明
+## 11. 生態系相容性與 Deprecation 警示說明
 
 ### Starlette / TestClient 與 httpx 警示
 在執行全套測試或啟動測試客戶端時，終端機可能出現以下警示：
@@ -182,3 +182,15 @@ python score_new_data.py --input <path_to_input.csv> --output <path_to_output.cs
 
 - **說明**：此警示為 Starlette 1.9.0+ 針對未來次世代 HTTP 用戶端套件（httpx2）之轉移提示。
 - **處理原則**：本專案嚴格鎖定官方穩定版依賴（`httpx>=0.28.0`），具備最高生產穩定性與零中斷保證。**請勿盲目安裝非官方或未經驗證之 `httpx2` 分支**。此警示不影響 API 效能與測試正確性。
+
+---
+
+## 12. 模型卡 (Model Card) 與審計度量生成器
+
+專案提供自動化模型卡與審計度量產生器：
+```bash
+python scripts/generate_mvp_report_and_card.py
+```
+- **產出文件**：
+  * [`MODEL_CARD.md`](MODEL_CARD.md)：遵循 Mitchell et al. (2019) 國際 AI 治理規範之全量模型卡，包含 15 折交叉驗證矩陣、E6 獨立未接觸測試集指標、4 級工作點與成本敏感度矩陣、以及 8 大模型限制與治理公約。
+  * `outputs/tables/mvp_model_card_metrics.csv`：供自動化測試與回歸比對之數值正本，確保模型卡所有數字具備 100% 程式碼可重現性。

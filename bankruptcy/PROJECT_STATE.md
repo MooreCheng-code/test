@@ -115,7 +115,18 @@
 3. **破產盛行率與母體偏離**：資料集破產率 3.23% 遠高於真實商業世界的母體破產率（商業世界常態破產率通常更低），絕對機率與預警倍數在實際落地時需做母體先驗勝算比調整。
 4. **ECDF 參考分布在外部資料的代表性未驗證**：目前推論依賴訓練集 10 折 OOF 分布進行百分位轉換，若外部真實資料分布發生宏觀共變異數漂移，百分位映射可能失真。
 
-## 8. 專案狀態：實驗階段完成
+## 8. 專案狀態：MVP 全量拓展完成 (v2.0.0 Production Ready)
+- **測試驗證全數通過**：全套 189 項測試 100% 通過（含無快取乾淨虛擬環境驗證），包含單元測試、FastAPI 整合測試、Streamlit 冒煙測試、產物完整性與 SHA-256 防竄改測試。
+- **凍結產物不變性**：`outputs/models/final/`（11 個凍結檔）持續維持零變更；`outputs/models/mvp_extras/` 經 SHA-256 清單驗證。
+- **全模組架構落地**：
+  1. `src/scoring.py` & `score_new_data.py`：四模型（E_A, M3, M4, M1）與四級門檻（R80, R90, R95, R100）批次推論、20% 缺失率保護與中位數補值。
+  2. `src/local_explain.py`：單筆財務個案歸因（M4 TreeSHAP 水平展開與 M1 線性迴歸對照）。
+  3. `api/main.py`：FastAPI 批次與解釋服務（10MB 區塊串流防護、1,000 筆上限、本機綁定與嚴格無 NaN JSON）。
+  4. `app/app.py` & `src/batch_ui_helper.py`：Streamlit 第 5 分頁「批次評估與示範」（示範模式、CSV 上傳評估、Waterfall 水平貢獻展開、UTF-8-BOM 匯出）。
+  5. `scripts/generate_mvp_report_and_card.py` & `MODEL_CARD.md`：程式化模型卡生成器，動態由 15 折 CV 與 E6 分數檔計算所有指標，含 8 大治理限制宣告。
+  6. `tests/test_mvp_completeness.py`：模型卡、特徵中位數與產物雜湊完整性自動化測試。
+
+## 9. 實驗階段歷史紀錄
 - **E6 鎖定狀態**：
   - 鎖檔位置：`outputs/logs/E6_LOCK`
   - 測試分數固化檔案：`outputs/e6/e6_test_scores.npz`（SHA256: `ca3b5205ac69d005c39ef6af0bca0521990a1a309932e04a6a401c7e2390f6f1`）
