@@ -435,20 +435,27 @@ def score_mvp_batch(
     # Detect extra / pass-through columns
     extra_cols = [c for c in X.columns if c not in raw_features_95 and c != "Bankrupt?"]
 
-    # When allow_missing=False, check for missing columns or NaNs and raise b3ecc2c error format
+    # Missing columns vs NaN cell values validation
     missing_cols_in_df = [c for c in raw_features_95 if c not in X.columns]
     nan_cols_in_df = [c for c in raw_features_95 if c in X.columns and X[c].isna().any()]
-    missing_features = sorted(list(set(missing_cols_in_df + nan_cols_in_df)))
-
-    if not allow_missing and missing_features:
-        err_msg = (
-            f"Input data is missing {len(missing_features)} required feature(s) for scoring: "
-            f"{missing_features}"
-        )
-        raise ValueError(err_msg)
 
     if len(missing_cols_in_df) == len(raw_features_95):
         raise ValueError("Input data contains none of the required 95 financial features.")
+
+    if not allow_missing:
+        if missing_cols_in_df:
+            err_msg = (
+                f"Input data is missing {len(missing_cols_in_df)} required feature(s) for scoring: "
+                f"{sorted(missing_cols_in_df)}"
+            )
+            raise ValueError(err_msg)
+
+        if nan_cols_in_df:
+            err_msg = (
+                f"Input data contains NaN/null values in {len(nan_cols_in_df)} required feature(s) while allow_missing=False: "
+                f"{sorted(nan_cols_in_df)}"
+            )
+            raise ValueError(err_msg)
 
     # Check row-level missingness
     n_rows = len(X)

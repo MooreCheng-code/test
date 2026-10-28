@@ -50,9 +50,14 @@
    ```
 
 3. **安裝相依套件**：
-   ```bash
-   pip install -r requirements-app.txt
-   ```
+   - **應用與推論服務**（Streamlit + FastAPI）：
+     ```bash
+     pip install -r requirements-app.txt
+     ```
+   - **測試套件相依**（執行 pytest）：
+     ```bash
+     pip install -r requirements-test.txt
+     ```
 
 4. **啟動 Streamlit 服務**：
    ```bash
@@ -133,6 +138,7 @@ bankruptcy/
 ├── .streamlit/
 │   └── config.toml                # 伺服器綁定 localhost 與停用數據收集設定
 ├── requirements-app.txt           # App 執行與模型推論所需之精確套件版本清單
+├── requirements-test.txt          # 測試框架依賴清單 (pytest)
 └── README_APP.md                  # 本說明文件
 ```
 
@@ -166,7 +172,7 @@ python score_new_data.py --input <path_to_input.csv> --output <path_to_output.cs
 ### 缺失值規範與日誌警告
 1. **預設行為（`--allow-missing False`）**：
    - 嚴格向下相容於 `b3ecc2c`：若輸入資料缺少整欄特徵，拋出 `ValueError`。
-   - 若特徵完整但欄位內含單格 `NaN`：底層樹模型（E_A 之 M3/M4/M5）原生支援缺失值分裂，推論正常執行不報錯。
+   - 若特徵完整但欄位內含單格 `NaN`：底層樹模型（E_A 之 M3/M4/M5）原生支援缺失值分裂，推論正常執行不報錯（注意：E_A 的 ECDF 百分位在參考分布頂端會接近 1，單一特徵的小幅變動可能不改變 E_A 分數）。
    - **安全審計警告**：當輸入含單格 `NaN` 且未指定 `--allow-missing` 時，系統將記錄警告日誌：
      `[WARNING] 偵測到輸入資料包含 NaN 缺失值且未啟用 --allow-missing，結果未補值。若欲依訓練集中位數自動補值，請指定 --allow-missing。`
 2. **啟用自動補值（`--allow-missing`）**：

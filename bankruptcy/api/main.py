@@ -39,8 +39,6 @@ MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
 CHUNK_SIZE_BYTES = 1024 * 1024  # 1 MB stream chunk
 MAX_JSON_RECORDS = 1000
 
-HTTP_422 = getattr(status, "HTTP_422_UNPROCESSABLE_CONTENT", status.HTTP_422_UNPROCESSABLE_ENTITY)
-HTTP_413 = getattr(status, "HTTP_413_CONTENT_TOO_LARGE", status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
 
 DISCLAIMER_TEXT = (
     "本系統模型預測與評估結果僅供內部審查與風險控管流程參考，"
@@ -178,13 +176,13 @@ def score_json(payload: ScoreJsonRequest):
 
     if not payload.records:
         raise HTTPException(
-            status_code=HTTP_422,
+            status_code=422,
             detail="The 'records' list cannot be empty.",
         )
 
     if len(payload.records) > MAX_JSON_RECORDS:
         raise HTTPException(
-            status_code=HTTP_422,
+            status_code=422,
             detail=f"The 'records' list exceeds maximum limit of {MAX_JSON_RECORDS} records. Please use /score/batch-csv for larger batches.",
         )
 
@@ -199,7 +197,7 @@ def score_json(payload: ScoreJsonRequest):
 
         if not payload.allow_missing and missing_count > 0:
             raise HTTPException(
-                status_code=HTTP_422,
+                status_code=422,
                 detail={
                     "message": f"Input data is missing {missing_count} required feature(s) for scoring while allow_missing=False.",
                     "missing_feature_count": missing_count,
@@ -210,7 +208,7 @@ def score_json(payload: ScoreJsonRequest):
 
         if missing_ratio > 0.20:
             raise HTTPException(
-                status_code=HTTP_422,
+                status_code=422,
                 detail={
                     "message": f"Single sample rejected: missing feature ratio {missing_ratio:.1%} ({missing_count}/95) exceeds allowed limit (20%).",
                     "missing_feature_count": missing_count,
@@ -229,7 +227,7 @@ def score_json(payload: ScoreJsonRequest):
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=HTTP_422,
+            status_code=422,
             detail=str(e),
         )
 
@@ -304,7 +302,7 @@ async def score_batch_csv(
         total_bytes += len(chunk)
         if total_bytes > MAX_UPLOAD_SIZE_BYTES:
             raise HTTPException(
-                status_code=HTTP_413,
+                status_code=413,
                 detail=f"Uploaded file exceeds maximum allowed limit of {MAX_UPLOAD_SIZE_BYTES // (1024*1024)} MB. Upload aborted during stream.",
             )
         chunks.append(chunk)
@@ -324,7 +322,7 @@ async def score_batch_csv(
         df_input = pd.read_csv(io.StringIO(csv_text))
     except Exception as e:
         raise HTTPException(
-            status_code=HTTP_422,
+            status_code=422,
             detail=f"Failed to parse uploaded CSV: {e}",
         )
 
@@ -339,7 +337,7 @@ async def score_batch_csv(
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=HTTP_422,
+            status_code=422,
             detail=str(e),
         )
 
@@ -424,7 +422,7 @@ def explain_case_endpoint(payload: ExplainCaseRequest):
 
     if payload.model_name not in ["M4", "M1"]:
         raise HTTPException(
-            status_code=HTTP_422,
+            status_code=422,
             detail=f"Local explanation only supports 'M4' (TreeSHAP) or 'M1' (Linear), got '{payload.model_name}'.",
         )
 
@@ -435,7 +433,7 @@ def explain_case_endpoint(payload: ExplainCaseRequest):
 
     if missing_ratio > 0.20:
         raise HTTPException(
-            status_code=HTTP_422,
+            status_code=422,
             detail={
                 "message": f"Single sample rejected: missing feature ratio {missing_ratio:.1%} ({missing_count}/95) exceeds allowed limit (20%).",
                 "missing_feature_count": missing_count,
@@ -454,7 +452,7 @@ def explain_case_endpoint(payload: ExplainCaseRequest):
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=HTTP_422,
+            status_code=422,
             detail=str(e),
         )
 

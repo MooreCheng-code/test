@@ -39,8 +39,8 @@ def test_t5_static_check_no_hardcoded_numbers():
         r"百分之三",
     ]
 
-    py_files = list(APP_DIR.glob("*.py"))
-    assert len(py_files) >= 3, f"Expected at least 3 python files in app/, found {len(py_files)}"
+    py_files = list(APP_DIR.glob("*.py")) + [PROJECT_ROOT / "src" / "batch_ui_helper.py"]
+    assert len(py_files) >= 4, f"Expected at least 4 python files in app/ and src/, found {len(py_files)}"
 
     for py_file in py_files:
         content = py_file.read_text(encoding="utf-8")
@@ -50,13 +50,20 @@ def test_t5_static_check_no_hardcoded_numbers():
                 f"File {py_file.name} contains hardcoded pattern '{pat}': {matches}"
             )
 
-    # Strict AST scan on app.py, logic.py, ui_text.py for any numeric percent or decimal literals
+    # Strict AST scan on app.py, logic.py, ui_text.py, batch_ui_helper.py for any numeric percent or decimal literals
     pat_pct = re.compile(r"\b\d+(?:\.\d+)?%")
     pat_decimal = re.compile(r"\b\d+\.\d+\b")
     pat_chinese_pct = re.compile(r"百分之[一二三四五六七八九十百千點\d]+")
 
-    for target_name in ["app.py", "logic.py", "ui_text.py"]:
-        target_path = APP_DIR / target_name
+    scan_targets = [
+        APP_DIR / "app.py",
+        APP_DIR / "logic.py",
+        APP_DIR / "ui_text.py",
+        PROJECT_ROOT / "src" / "batch_ui_helper.py",
+    ]
+
+    for target_path in scan_targets:
+        target_name = target_path.name
         tree = ast.parse(target_path.read_text(encoding="utf-8"))
         docstrings = set()
         for node in ast.walk(tree):
@@ -157,8 +164,11 @@ def test_t5_page_display_matches_json_and_csv():
 # T6: Test Data Isolation Static Scan
 # ==============================================================================
 def test_t6_isolation_scan():
-    """Verify app/ and scripts/make_app_defaults.py do not access holdout test data."""
-    target_files = list(APP_DIR.glob("*.py")) + [SCRIPTS_DIR / "make_app_defaults.py"]
+    """Verify app/, src/batch_ui_helper.py and scripts/make_app_defaults.py do not access holdout test data."""
+    target_files = list(APP_DIR.glob("*.py")) + [
+        SCRIPTS_DIR / "make_app_defaults.py",
+        PROJECT_ROOT / "src" / "batch_ui_helper.py",
+    ]
     prohibited_tokens = [
         "get_test_data",
         "test_idx",
@@ -305,12 +315,34 @@ def test_t8_tab2_renders_with_bankrupt_profile_and_matches_logic():
 
 
 def test_t8_tab5_smoke_demo_and_upload():
-    """Verify Tab 5 renders batch scoring and demo without exception."""
+    """Verify Tab 5 renders batch scoring and demo dynamically matching oof_demo_batch.csv."""
     at = AppTest.from_file(str(APP_DIR / "app.py"), default_timeout=30)
     at.run()
     assert not at.exception
     assert len(at.tabs) == 5
 
-    # Check metrics and controls exist in Tab 5
-    metric_labels = [m.label for m in at.metric]
-    assert any("企業家數" in lbl or "家數" in lbl for lbl in metric_labels)
+    # Dynamically verify rendered metrics against oof_demo_batch.csv
+    demo_csv = PROJECT_ROOT / "outputs" / "models" / "mvp_extras" / "oof_demo_batch.csv"
+    assert demo_csv.exists()
+    df_demo = pd.read_csv(demo_csv)
+    n_demo = len(df_demo)
+    target_col = "Bankrupt?" if "Bankrupt?" in df_demo.columns else "bankrupt"
+    n_pos = int(df_demo[target_col].sum())
+
+    m_total = [m for m in at.metric if "總企業家數" in m.label]
+    assert m_total, "Missing '總企業家數' metric in Tab 5 demo"
+    assert m_total[0].value == f"{n_demo:,} 家"
+
+    m_pos = [m for m in at.metric if "實際破產家數" in m.label]
+    assert m_pos, "Missing '實際破產家數' metric in Tab 5 demo"
+    assert m_pos[0].value == f"{n_pos} 家"
+
+    m_alerts = [m for m in at.metric if "預警標記家數" in m.label]
+    assert m_alerts, "Missing '預警標記家數' metric in Tab 5 demo"
+
+    # Test switching to Upload Mode
+    from app import ui_text
+    tab5_mode_radios = [r for r in at.radio if ui_text.TAB5_MODE_DEMO in r.options]
+    assert tab5_mode_radios, "Tab 5 mode radio not found"
+    tab5_mode_radios[0].set_value(ui_text.TAB5_MODE_UPLOAD).run()
+    assert not at.exception

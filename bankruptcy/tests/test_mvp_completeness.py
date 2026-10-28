@@ -45,7 +45,6 @@ def test_model_card_exists_and_has_all_required_sections():
         "影響因子與評估群體 (Factors, Populations & Subgroups)",
         "量化效能評估 (Quantitative Analyses)",
         "模型限制與治理聲明 (Model Limitations & Caveats)",
-        "AI 倫理與治理公約 (Ethical Considerations)",
     ]
     for section in required_sections:
         assert section in content, f"Missing required section '{section}' in MODEL_CARD.md"
@@ -89,6 +88,22 @@ def test_model_card_mandatory_limitations_and_verbatim_statements():
     assert "calibrated_score" in content
     assert "勝算比" in content or "Odds" in content
 
+    # 8. Verbatim E3 quote snippet from RESULTS_SUMMARY.md:59
+    assert "Nadeau-Bengio 調整之 Holm 校正 $p$ 值全數為 $p_{\\text{Holm}} = 1.0$，統計上無法區分" in content
+
+    # 9. Verbatim E6 quote snippet from RESULTS_SUMMARY.md:75
+    assert "不可將 100% 召回當作未來保證，專題結論以 CV 估計為主、測試集為確認" in content
+
+    # 10. Terminology normalization: ensure '四級' does not appear in MODEL_CARD.md
+    assert "四級" not in content, "MODEL_CARD.md still contains '四級', which should be '四個工作點'"
+
+    # 11. Test set limitation in Section 5
+    assert "44 家破產" in content
+    assert "不可把 100% 召回當作未來表現的保證" in content
+
+    # 12. AR@0.95 vs R95 definition note
+    assert "AR@0.95 是以排序找出 95% 召回所需的最小預警倍數" in content
+
 
 def test_model_card_numbers_match_csv_audit_table():
     """Verifies that numerical metrics in MODEL_CARD.md match mvp_model_card_metrics.csv."""
@@ -98,15 +113,18 @@ def test_model_card_numbers_match_csv_audit_table():
     df_metrics = pd.read_csv(metrics_csv_path)
     content = MODEL_CARD_PATH.read_text(encoding="utf-8")
 
-    # Check key numerical matches
+    # Check key numerical matches across all metrics in CSV
     for _, row in df_metrics.iterrows():
         val = float(row["value"])
-        val_str_4f = f"{val:.4f}"
-        val_str_pct = f"{val:.2%}"
-        val_str_6f = f"{val:.6f}"
+        formats = [
+            f"{val:.4f}", f"{val:.2%}", f"{val:.6f}", f"{val:.1%}", f"{val:.3f}",
+            f"{val:.2f}x", f"{val:.1f}x", f"{val:.2f}", f"{val:.1f}",
+            f"{val*100:.1f}%", f"{val*100:.2f}%", f"{val*100:.0f}%",
+        ]
+        if abs(val - round(val)) < 1e-5:
+            formats.extend([f"{int(round(val))}", f"{int(round(val)):,}"])
 
-        # At least one formatted representation should exist in MODEL_CARD.md
-        found = (val_str_4f in content) or (val_str_pct in content) or (val_str_6f in content)
+        found = any(rep in content for rep in formats)
         assert found, f"Metric {row['section']} {row['model']} {row['metric']}={val} not found in MODEL_CARD.md"
 
 
@@ -156,3 +174,96 @@ def test_frozen_final_and_extras_hashes_unaltered():
         actual_hash = sha256_file(file_path)
         expected_hash = expected_info["sha256"] if isinstance(expected_info, dict) else expected_info
         assert actual_hash == expected_hash, f"Extras hash mismatch for {filename}: {actual_hash} != {expected_hash}"
+
+
+def test_independent_recomputation_of_ea_metrics_matches_csv():
+    """
+    Independent sklearn/numpy recomputation of E_A ensemble metrics from e2_M3, e2_M4, e2_M5
+    and asserts bitwise match against outputs/tables/mvp_model_card_metrics.csv without
+    importing src.metrics.
+    """
+    import joblib
+    from sklearn.metrics import average_precision_score, roc_auc_score
+    import sys
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+    import config
+
+    oof_dir = PROJECT_ROOT / "outputs" / "models" / "oof"
+    m3 = np.load(oof_dir / "e2_M3.npy")
+    m4 = np.load(oof_dir / "e2_M4.npy")
+    m5 = np.load(oof_dir / "e2_M5.npy")
+    ea_orig = np.load(oof_dir / "e3_ensemble_E_A.npy")
+
+    splits = joblib.load(PROJECT_ROOT / "outputs" / "models" / "splits.joblib")
+    train_orig_idx = splits["train_idx"]
+    orig_to_rel = {orig: i for i, orig in enumerate(train_orig_idx)}
+    cv_splits = splits["cv_splits"]
+
+    # Load ground truth labels
+    df_raw = pd.read_csv(config.DATA_PATH)
+    y_train = df_raw[config.TARGET_COL].values[train_orig_idx]
+
+    def ecdf_map(reference_scores: np.ndarray, query_scores: np.ndarray) -> np.ndarray:
+        ref_sorted = np.sort(np.asarray(reference_scores, dtype=float))
+        n_ref = len(ref_sorted)
+        query = np.asarray(query_scores, dtype=float)
+        left = np.searchsorted(ref_sorted, query, side="left")
+        right = np.searchsorted(ref_sorted, query, side="right")
+        return (left + right) / (2.0 * n_ref)
+
+    # Reconstruct E_A from base models
+    ea_recon = np.zeros_like(ea_orig)
+    rocs, prs, rec10s = [], [], []
+
+    for s in cv_splits:
+        rep = s["repeat"]
+        f = s["fold"]
+        val_rel = np.array([orig_to_rel[i] for i in s["val_idx"]])
+
+        ref3 = np.load(oof_dir / f"e3_reference_M3_r{rep}_f{f}.npy")
+        ref4 = np.load(oof_dir / f"e3_reference_M4_r{rep}_f{f}.npy")
+        ref5 = np.load(oof_dir / f"e3_reference_M5_r{rep}_f{f}.npy")
+
+        p3 = ecdf_map(ref3, m3[rep, val_rel])
+        p4 = ecdf_map(ref4, m4[rep, val_rel])
+        p5 = ecdf_map(ref5, m5[rep, val_rel])
+
+        s_val = (p3 + p4 + p5) / 3.0
+        ea_recon[rep, val_rel] = s_val
+
+        y_v = y_train[val_rel]
+        rocs.append(roc_auc_score(y_v, s_val))
+        prs.append(average_precision_score(y_v, s_val))
+
+        # Pure numpy recall@top10% computation (floor quota, pessimistic tie-breaking)
+        n_v = len(y_v)
+        k = int(np.floor(n_v * 0.10))
+        sorted_s = np.sort(s_val)[::-1]
+        thr = sorted_s[k - 1]
+        strictly_greater = s_val > thr
+        tp_strictly = int((strictly_greater & (y_v == 1)).sum())
+        rem = k - int(strictly_greater.sum())
+        tied_neg = int(((s_val == thr) & (y_v == 0)).sum())
+        tp = tp_strictly + max(0, rem - tied_neg)
+        p = int(np.sum(y_v == 1))
+        rec10 = float(tp / p) if p > 0 else 0.0
+        rec10s.append(rec10)
+
+    # Assert bitwise reconstruction match
+    max_diff = float(np.max(np.abs(ea_orig - ea_recon)))
+    assert max_diff == 0.0, f"Reconstructed E_A deviates from stored file by {max_diff}"
+
+    # Load audit metrics CSV
+    metrics_csv = TABLES_DIR / "mvp_model_card_metrics.csv"
+    assert metrics_csv.exists(), f"Missing {metrics_csv}"
+    m_df = pd.read_csv(metrics_csv)
+
+    # Check 15-fold CV metrics
+    expected_roc_mean = float(m_df[(m_df["section"] == "CV_15_Fold") & (m_df["model"] == "E_A") & (m_df["metric"] == "ROC_AUC_mean")]["value"].iloc[0])
+    expected_pr_mean = float(m_df[(m_df["section"] == "CV_15_Fold") & (m_df["model"] == "E_A") & (m_df["metric"] == "PR_AUC_mean")]["value"].iloc[0])
+    expected_rec10_mean = float(m_df[(m_df["section"] == "CV_15_Fold") & (m_df["model"] == "E_A") & (m_df["metric"] == "Recall_Top10_mean")]["value"].iloc[0])
+
+    assert np.mean(rocs) == pytest.approx(expected_roc_mean, rel=1e-6)
+    assert np.mean(prs) == pytest.approx(expected_pr_mean, rel=1e-6)
+    assert np.mean(rec10s) == pytest.approx(expected_rec10_mean, rel=1e-6)

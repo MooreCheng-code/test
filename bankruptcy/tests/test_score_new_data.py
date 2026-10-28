@@ -7,6 +7,12 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+FINAL_DIR = PROJECT_ROOT / "outputs" / "models" / "final"
 
 import numpy as np
 import pandas as pd
@@ -42,7 +48,7 @@ def test_score_new_data_exact_match_EA(train_sample_data, tmp_path: Path):
     )
 
     # Run direct scoring for reference
-    components = load_final_components("outputs/models/final")
+    components = load_final_components(FINAL_DIR)
     pure_features = train_sample_data.drop(columns=["company_id", "extra_metadata_col"])
     direct_df = score_dataset(pure_features, components)
 
@@ -100,7 +106,7 @@ def test_score_new_data_exact_match_M3(train_sample_data, tmp_path: Path):
         model="M3",
     )
 
-    components = load_final_components("outputs/models/final")
+    components = load_final_components(FINAL_DIR)
     pure_features = train_sample_data.drop(columns=["company_id", "extra_metadata_col"])
     direct_df = score_dataset(pure_features, components)
 
@@ -206,7 +212,7 @@ def test_score_new_data_cli_single_nan_succeeds_and_missing_col_raises(tmp_path:
     golden_in = fixture_dir / "golden_input_sample.csv"
     df = pd.read_csv(golden_in)
     # Inject a single-cell NaN
-    df.loc[0, "Operating Gross Margin"] = np.nan
+    df.loc[0, "Borrowing dependency"] = np.nan
     in_nan = tmp_path / "in_nan.csv"
     df.to_csv(in_nan, index=False)
 
@@ -222,11 +228,11 @@ def test_score_new_data_cli_single_nan_succeeds_and_missing_col_raises(tmp_path:
     assert not np.isnan(res_nan.loc[0, "risk_percentile_score"])
 
     # Whole column missing under allow_missing=False: raises exact b3ecc2c error
-    df_missing_col = pd.read_csv(golden_in).drop(columns=["Operating Gross Margin"])
+    df_missing_col = pd.read_csv(golden_in).drop(columns=["Borrowing dependency"])
     in_missing = tmp_path / "in_missing.csv"
     df_missing_col.to_csv(in_missing, index=False)
 
-    with pytest.raises(ValueError, match=r"Input data is missing 1 required feature\(s\) for scoring:.*Operating Gross Margin"):
+    with pytest.raises(ValueError, match=r"Input data is missing 1 required feature\(s\) for scoring:.*Borrowing dependency"):
         score_csv(
             input_path=in_missing,
             output_path=tmp_path / "err.csv",
@@ -291,12 +297,12 @@ def test_score_new_data_column_normalization(tmp_path: Path):
 
     # 4b. Add duplicate column name with CONFLICTING values (raises ValueError)
     df_conflict = pd.read_csv(golden_in)
-    differing_vals = df_conflict["Operating Gross Margin"].values + 999.0
-    df_conflict.insert(0, "Operating Gross Margin", differing_vals, allow_duplicates=True)
+    differing_vals = df_conflict["Borrowing dependency"].values + 999.0
+    df_conflict.insert(0, "Borrowing dependency", differing_vals, allow_duplicates=True)
     in_conflict = tmp_path / "in_conflict.csv"
     df_conflict.to_csv(in_conflict, index=False)
 
-    with pytest.raises(ValueError, match=r"Input data contains conflicting duplicate column\(s\) with differing values:.*Operating Gross Margin"):
+    with pytest.raises(ValueError, match=r"Input data contains conflicting duplicate column\(s\) with differing values:.*Borrowing dependency"):
         score_csv(
             input_path=in_conflict,
             output_path=tmp_path / "err_conflict.csv",
@@ -305,12 +311,12 @@ def test_score_new_data_column_normalization(tmp_path: Path):
         )
 
     # 5. Whole column missing
-    df_missing_col = pd.read_csv(golden_in).drop(columns=["Operating Gross Margin"])
+    df_missing_col = pd.read_csv(golden_in).drop(columns=["Borrowing dependency"])
     in_missing_col = tmp_path / "in_missing_col.csv"
     df_missing_col.to_csv(in_missing_col, index=False)
 
     # Under allow_missing=False: raises exact b3ecc2c error format
-    with pytest.raises(ValueError, match=r"Input data is missing \d+ required feature\(s\) for scoring:.*Operating Gross Margin"):
+    with pytest.raises(ValueError, match=r"Input data is missing \d+ required feature\(s\) for scoring:.*Borrowing dependency"):
         score_csv(
             input_path=in_missing_col,
             output_path=tmp_path / "err.csv",
@@ -345,7 +351,7 @@ def test_score_new_data_cli_single_nan_behavior_across_models(tmp_path: Path, ca
     fixture_dir = Path(__file__).resolve().parent / "fixtures"
     golden_in = fixture_dir / "golden_input_sample.csv"
     df = pd.read_csv(golden_in)
-    feat = "Operating Gross Margin"
+    feat = "Borrowing dependency"
     df_nan = df.copy()
     df_nan.loc[0, feat] = np.nan
     in_nan = tmp_path / "single_nan_input.csv"
@@ -366,14 +372,13 @@ def test_score_new_data_cli_single_nan_behavior_across_models(tmp_path: Path, ca
     assert any("未啟用 --allow-missing，結果未補值" in r.message for r in caplog.records)
 
     # 2. E_A median-imputed scoring
+    import json
     project_root = Path(__file__).resolve().parent.parent
-    imputer = TrainingMedianImputer(project_root / "outputs" / "models" / "mvp_extras" / "train_medians_95.json")
-    meta_cols = [c for c in df_nan.columns if c not in imputer.medians_]
-    feat_df = df_nan.drop(columns=meta_cols)
-    imputed_feat = imputer.transform(feat_df)
+    with open(project_root / "outputs" / "models" / "mvp_extras" / "feature_manifest.json", "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+    train_medians = manifest["train_medians_95"]
     df_imp = df_nan.copy()
-    for c in imputed_feat.columns:
-        df_imp[c] = imputed_feat[c]
+    df_imp.loc[0, feat] = train_medians[feat]
     in_imp = tmp_path / "single_nan_imputed.csv"
     df_imp.to_csv(in_imp, index=False)
 
@@ -389,6 +394,7 @@ def test_score_new_data_cli_single_nan_behavior_across_models(tmp_path: Path, ca
     print(f"\n[E_A Single NaN Comparison]")
     print(f"E_A score on raw NaN:       {score_ea_raw:.10f}")
     print(f"E_A score after median imp: {score_ea_imp:.10f}")
+    assert score_ea_raw != score_ea_imp, "Expected score difference between raw NaN and median-imputed value"
 
     # 3. M3 raw NaN scoring (succeeds via ExtraTrees native missing handling)
     res_m3_raw = score_csv(
@@ -403,7 +409,7 @@ def test_score_new_data_cli_single_nan_behavior_across_models(tmp_path: Path, ca
     print(f"M3 score on raw NaN:        {score_m3_raw:.10f}")
 
     # 4. M4 raw NaN scoring (raises ValueError via score_mvp_batch allow_missing=False)
-    with pytest.raises(ValueError, match=r"Input data is missing 1 required feature\(s\) for scoring:.*Operating Gross Margin"):
+    with pytest.raises(ValueError, match=r"Input data contains NaN/null values in 1 required feature\(s\) while allow_missing=False:.*Borrowing dependency"):
         score_csv(
             input_path=in_nan,
             output_path=tmp_path / "out_m4_err.csv",
@@ -413,7 +419,7 @@ def test_score_new_data_cli_single_nan_behavior_across_models(tmp_path: Path, ca
         )
 
     # 5. M1 raw NaN scoring (raises ValueError via score_mvp_batch allow_missing=False)
-    with pytest.raises(ValueError, match=r"Input data is missing 1 required feature\(s\) for scoring:.*Operating Gross Margin"):
+    with pytest.raises(ValueError, match=r"Input data contains NaN/null values in 1 required feature\(s\) while allow_missing=False:.*Borrowing dependency"):
         score_csv(
             input_path=in_nan,
             output_path=tmp_path / "out_m1_err.csv",

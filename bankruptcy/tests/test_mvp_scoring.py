@@ -112,9 +112,14 @@ def test_score_mvp_batch_with_missing_under_limit(train_sample_50):
     cols_to_nan = list(mvp_comp["raw_features_95"][:5])
     df_missing.loc[0, cols_to_nan] = np.nan
 
-    # When allow_missing=False (default), raises ValueError matching b3ecc2c format
-    with pytest.raises(ValueError, match=r"Input data is missing \d+ required feature\(s\) for scoring:"):
+    # When allow_missing=False (default), NaN in cells raises NaN/null error
+    with pytest.raises(ValueError, match=r"Input data contains NaN/null values in \d+ required feature\(s\) while allow_missing=False:"):
         score_mvp_batch(df_missing, model_name="E_A", allow_missing=False, components=mvp_comp)
+
+    # Missing whole column raises missing feature error
+    df_missing_col = df_missing.drop(columns=cols_to_nan)
+    with pytest.raises(ValueError, match=r"Input data is missing \d+ required feature\(s\) for scoring:"):
+        score_mvp_batch(df_missing_col, model_name="E_A", allow_missing=False, components=mvp_comp)
 
     # When allow_missing=True, imputes cleanly
     res = score_mvp_batch(df_missing, model_name="E_A", allow_missing=True, components=mvp_comp)
