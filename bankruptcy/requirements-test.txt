@@ -1,0 +1,3 @@
+# requirements-test.txt
+# Test runner and validation framework dependencies
+pytest==9.1.1

@@ -81,6 +81,59 @@ def wilson_score_interval(k: int, n: int, confidence: float = 0.95) -> tuple[flo
     return float(max(0.0, center - margin)), float(min(1.0, center + margin))
 
 
+def derive_operating_threshold(
+    scores_arr: np.ndarray,
+    y_arr: np.ndarray,
+    target_recall: float,
+    margin: float = 0.0,
+) -> dict[str, float]:
+    """
+    Derives threshold and operating metrics for a given target recall and safety margin.
+    Guarantees inner recall does not exceed 1.0.
+    """
+    scores_arr = np.asarray(scores_arr, dtype=float)
+    y_arr = np.asarray(y_arr, dtype=int)
+    pos_scores = scores_arr[y_arr == 1]
+    sorted_pos = np.sort(pos_scores)[::-1]
+    n_pos = len(pos_scores)
+    n_samples = len(scores_arr)
+
+    R_prime = min(1.0, float(target_recall) + float(margin))
+    k_req = max(1, int(np.ceil(R_prime * n_pos)))
+    t_val = float(sorted_pos[k_req - 1])
+
+    flags = scores_arr >= t_val
+    actual_rec = float(np.sum((y_arr == 1) & flags) / n_pos) if n_pos > 0 else 0.0
+    alert_cnt = int(np.sum(flags))
+    alert_rt = float(alert_cnt / n_pos) if n_pos > 0 else 0.0
+    alert_pr = float(alert_cnt / n_samples) if n_samples > 0 else 0.0
+    prec = float(np.sum((y_arr == 1) & flags) / alert_cnt) if alert_cnt > 0 else 0.0
+
+    return {
+        "target_recall": float(target_recall),
+        "recommended_margin": float(margin),
+        "inner_target_recall": R_prime,
+        "threshold": t_val,
+        "training_oof_actual_recall": actual_rec,
+        "training_oof_alert_ratio": alert_rt,
+        "training_oof_alert_proportion": alert_pr,
+        "training_oof_precision": prec,
+    }
+
+
+def fit_single_model_platt(
+    scores_arr: np.ndarray,
+    y_arr: np.ndarray,
+    seed: int = SEED,
+) -> LogisticRegression:
+    """
+    Fits a 1D Platt Scaling calibrator (LogisticRegression) on score array.
+    """
+    clf = LogisticRegression(solver="lbfgs", random_state=seed)
+    clf.fit(np.asarray(scores_arr, dtype=float).reshape(-1, 1), np.asarray(y_arr, dtype=int))
+    return clf
+
+
 # ==============================================================================
 # E4a: Threshold Cross-Fold Transfer Evaluation
 # ==============================================================================

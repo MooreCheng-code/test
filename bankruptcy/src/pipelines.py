@@ -40,6 +40,7 @@ from src.preprocessing import (
     FeatureSelector,
     LargeValueIndicator,
     QuantileScaler,
+    TrainingMedianImputer,
     Winsorizer,
 )
 
@@ -218,28 +219,35 @@ def build_pipeline(
     features: Union[Sequence[str], None] = None,
     model_params: Union[dict[str, Any], None] = None,
     seed: int = SEED,
+    use_imputer: bool = False,
 ) -> Pipeline:
     """
     Assemble the complete imblearn Pipeline.
 
     Execution order:
     1. FeatureSelector
-    2. DropConstantAndDuplicate
-    3. Winsorizer
-    4. LargeValueIndicator
-    5. QuantileScaler
-    6. CorrelationFilter
-    7. Resampler (S2 - S6; skipped for S0 and S1)
-    8. Classifier
+    2. Imputer (TrainingMedianImputer, if use_imputer=True)
+    3. DropConstantAndDuplicate
+    4. Winsorizer
+    5. LargeValueIndicator
+    6. QuantileScaler
+    7. CorrelationFilter
+    8. Resampler (S2 - S6; skipped for S0 and S1)
+    9. Classifier
     """
     steps = [
         ("feature_selector", FeatureSelector(features=features)),
+    ]
+    if use_imputer:
+        steps.append(("imputer", TrainingMedianImputer()))
+
+    steps.extend([
         ("drop_const_dup", DropConstantAndDuplicate()),
         ("winsorizer", Winsorizer(lower=0.01, upper=0.99, enabled=use_winsorizer)),
         ("large_value_indicator", LargeValueIndicator(enabled=use_large_indicator)),
         ("scaler", QuantileScaler(kind=scaler)),
         ("corr_filter", CorrelationFilter(threshold=0.95, enabled=use_corr_filter)),
-    ]
+    ])
 
     # Resampling step (only for S2 - S6)
     resampler = _get_resampler(imbalance, seed=seed)

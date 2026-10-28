@@ -32,3 +32,14 @@ TARGET_COL = "Bankrupt?"
 
 # Feature Selection (None indicates using all features; can be replaced by core feature list)
 FEATURES = None
+
+# MVP Evaluation & Operational Constants
+TOP_K_PERCENT = 0.10
+MIN_BATCH_SIZE_FOR_TOP_K = 25
+COST_FN = 20.0
+COST_FP = 1.0
+COST_FN_SENSITIVITY_LIST = [10.0, 20.0, 50.0]
+MAX_MISSING_FEATURE_RATIO = 0.20
+MVP_PASS_PR_AUC_MULTIPLIER = 3.0
+MVP_PASS_TOP10_RECALL = 0.50
+

@@ -26,13 +26,19 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.scoring import load_final_components, score_dataset
+from src.scoring import (
+    check_and_deduplicate_columns,
+    load_final_components,
+    load_mvp_components,
+    score_dataset,
+    score_mvp_batch,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("score_new_data")
 
 OPERATING_POINTS = ["R80", "R90", "R95", "R100"]
-MODELS = ["E_A", "M3"]
+MODELS = ["E_A", "M3", "M4", "M1"]
 
 
 def get_required_feature_names(components: dict[str, Any]) -> list[str]:
@@ -58,9 +64,13 @@ def score_csv(
     operating_point: str = "R90",
     model: str = "E_A",
     components_dir: str | Path | None = None,
+    allow_missing: bool = False,
+    sort_by_risk: bool = False,
+    high_risk_only: bool = False,
 ) -> pd.DataFrame:
     """
     Reads new input CSV, performs integrity checks, scores data, and writes output.
+    Supports --allow-missing (default False), --sort-by-risk, and --high-risk-only filtering.
     """
     in_path = Path(input_path)
     out_path = Path(output_path)
@@ -82,17 +92,28 @@ def score_csv(
 
     logger.info(f"Loading input data from {in_path} ...")
     df = pd.read_csv(in_path)
-    df.columns = df.columns.str.strip()
+    df = check_and_deduplicate_columns(df)
 
-    # Identify missing required features
-    missing_features = [f for f in expected_features if f not in df.columns]
-    if missing_features:
+    # Identify missing required features (columns not present in input, matching b3ecc2c behavior)
+    missing_cols = [f for f in expected_features if f not in df.columns]
+
+    if not allow_missing and missing_cols:
         err_msg = (
-            f"Input data is missing {len(missing_features)} required feature(s) for scoring: "
-            f"{missing_features}"
+            f"Input data is missing {len(missing_cols)} required feature(s) for scoring: "
+            f"{missing_cols}"
         )
         logger.error(err_msg)
         raise ValueError(err_msg)
+
+    # Warn via logger if NaNs exist while allow_missing is False (legacy un-imputed pass-through)
+    if not allow_missing:
+        present_features = [f for f in expected_features if f in df.columns]
+        if df[present_features].isna().any().any():
+            nan_count = int(df[present_features].isna().sum().sum())
+            logger.warning(
+                f"偵測到輸入資料包含 {nan_count} 格 NaN 缺失值且未啟用 --allow-missing，結果未補值。"
+                f"若欲依訓練集中位數自動補值，請指定 --allow-missing。"
+            )
 
     # Identify extra / identifier columns
     extra_cols = [c for c in df.columns if c not in expected_features and c != "Bankrupt?"]
@@ -101,23 +122,33 @@ def score_csv(
             f"Found {len(extra_cols)} extra / non-feature column(s) which will be preserved as identifiers: {extra_cols}"
         )
 
-    # Score dataset using unified single-path inference
-    X_features = df[expected_features].copy()
-    logger.info(f"Scoring {len(X_features)} records using model '{model}' at operating point '{operating_point}' ...")
-    scored_df = score_dataset(X_features, components)
+    # Score dataset using unified inference
+    logger.info(f"Scoring {len(df)} records using model '{model}' at operating point '{operating_point}' ...")
 
-    # Extract model-specific metrics
-    threshold_info = components["thresholds"][model][operating_point]
-    threshold_val = float(threshold_info["threshold"])
+    if allow_missing or model in ["M4", "M1"]:
+        from src.scoring import load_mvp_components, score_mvp_batch
+        mvp_comp = load_mvp_components()
+        scored_mvp = score_mvp_batch(df, model_name=model, operating_point=operating_point, allow_missing=allow_missing, components=mvp_comp)
+        risk_score = scored_mvp["risk_score"].values
+        threshold_info = mvp_comp["thresholds"][model][operating_point]
+        threshold_val = float(threshold_info["threshold"])
+        alert_flag = scored_mvp["alert"].values
+        platt_prob = scored_mvp["calibrated_score"].values
+    else:
+        X_features = df[expected_features].copy()
+        scored_df = score_dataset(X_features, components)
 
-    if model == "E_A":
-        risk_score = scored_df["score_E_A"].values
-        alert_flag = scored_df[f"flag_{operating_point}"].values
-    else:  # M3
-        risk_score = scored_df["score_M3"].values
-        alert_flag = (risk_score >= threshold_val)
+        threshold_info = components["thresholds"][model][operating_point]
+        threshold_val = float(threshold_info["threshold"])
 
-    platt_prob = scored_df.get("calibrated_prob_platt", pd.Series(np.nan, index=df.index)).values
+        if model == "E_A":
+            risk_score = scored_df["score_E_A"].values
+            alert_flag = scored_df[f"flag_{operating_point}"].values
+        else:  # M3
+            risk_score = scored_df["score_M3"].values
+            alert_flag = (risk_score >= threshold_val)
+
+        platt_prob = scored_df.get("calibrated_prob_platt", pd.Series(np.nan, index=df.index)).values
 
     # Assemble output dataframe
     output_dict: dict[str, Any] = {}
@@ -130,6 +161,12 @@ def score_csv(
     output_dict["calibrated_probability_platt"] = platt_prob
 
     result_df = pd.DataFrame(output_dict, index=df.index)
+
+    # Optional post-processing: high-risk filtering and risk sorting
+    if high_risk_only:
+        result_df = result_df[result_df["alert"] == True]
+    if sort_by_risk:
+        result_df = result_df.sort_values(by="risk_percentile_score", ascending=False)
 
     # Save pure CSV output without comment header (first line must be column header)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -156,7 +193,7 @@ def score_csv(
 
     logger.info(f"Successfully generated predictions at {out_path}")
     logger.info(f"Generated methodological README at {readme_path}")
-    logger.info(f"Summary: {int(alert_flag.sum())} / {len(result_df)} records flagged as alert ({alert_flag.mean():.2%}).")
+    logger.info(f"Summary: {int(alert_flag.sum())} / {len(df)} records flagged as alert ({alert_flag.mean():.2%}).")
     return result_df
 
 
@@ -182,6 +219,24 @@ def main():
         type=str,
         help="Directory containing frozen model components (default: outputs/models/final).",
     )
+    parser.add_argument(
+        "--allow-missing",
+        action="store_true",
+        default=False,
+        help="Allow missing features up to 20% by imputing with training medians (default: False).",
+    )
+    parser.add_argument(
+        "--sort-by-risk",
+        action="store_true",
+        default=False,
+        help="Sort output records by risk score in descending order.",
+    )
+    parser.add_argument(
+        "--high-risk-only",
+        action="store_true",
+        default=False,
+        help="Filter output to only records flagged as high risk (alert == True).",
+    )
     args = parser.parse_args()
 
     score_csv(
@@ -190,6 +245,9 @@ def main():
         operating_point=args.operating_point,
         model=args.model,
         components_dir=args.components_dir,
+        allow_missing=args.allow_missing,
+        sort_by_risk=args.sort_by_risk,
+        high_risk_only=args.high_risk_only,
     )
 
 

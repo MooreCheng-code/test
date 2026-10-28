@@ -1,2 +1,12 @@
-# Temporary verification backups created during the v4 refactor
+# Python / Cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Streamlit
+.streamlit/secrets.toml
+**/.streamlit/secrets.toml
+
+# Backups
+outputs_backup_v4/
 bankruptcy/outputs_backup_v4/
