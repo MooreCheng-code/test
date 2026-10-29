@@ -3,7 +3,7 @@ lab_01,決策樹與樹集成的 max_depth 掃描（訓練 vs 驗證差距）,max
 lab_02,隨機森林與極端隨機樹的 n_estimators、max_features、min_samples_leaf,n_estimators、max_features、min_samples_leaf、樹數量、特徵抽樣、葉約束、隨機森林、極端隨機樹,已完成
 lab_03,提升法與超參數：learning_rate×n_estimators、subsample×subsample_freq、num_leaves、葉約束、正則化（C、penalty、reg_alpha、reg_lambda）,learning_rate、n_estimators、subsample、subsample_freq、num_leaves、min_child_weight、min_child_samples、reg_alpha、reg_lambda、學習率、樹數量、樣本抽樣與頻率、葉數量、葉約束、正則化、正規化、C、penalty、羅吉斯迴歸、M1、提升法、XGBoost、LightGBM、集成、候選集成、Stacking、n_trials、試驗次數,已完成
 lab_04,不平衡策略 S0 vs S3（SMOTE 參數）、scale_pos_weight,不平衡、不平衡策略、S0～S6、SMOTE、sampling_strategy、k_neighbors、scale_pos_weight、類別權重,已完成
-lab_05,前處理消融：相關性過濾門檻與開關、截尾、分位數轉換,前處理、相關性過濾、截尾、Winsorizer、分位數轉換、QuantileScaler、補值、SimpleImputer、scaler,規劃中
-lab_06,門檻、校準與評估指標：目標召回率曲線、安全邊際 m、達標率門檻、成本敏感度、MVP 驗收,門檻、校準、評估指標、目標召回率、安全邊際、達標率、機率校準、Platt Scaling、Isotonic Regression、成本損失、COST_FN、COST_FP、AR@Recall、alert_ratio、盛行率、MVP 商業驗收、MVP、決策門檻、E3 決策規則、TUNE_LOSS_RECALLS,規劃中
-lab_07,CV 折數與重複次數、樣本量與正樣本數的影響（僅在訓練集內）,交叉驗證、外層 CV、內層 CV、CV 折數、CV 重複次數、折數與重複次數、測試集比例、TEST_SIZE、樣本量,規劃中
-lab_08,種子穩定性與多種子驗證,隨機種子、SEED、TUNE_SEED、random_state、多種子、種子穩定性,規劃中
+lab_05,前處理消融：相關性過濾門檻與開關、截尾、分位數轉換,前處理、相關性過濾、截尾、Winsorizer、分位數轉換、QuantileScaler、補值、SimpleImputer、scaler,已完成
+lab_06,門檻、校準與評估指標：目標召回率曲線、安全邊際 m、達標率門檻、成本敏感度、MVP 驗收,門檻、校準、評估指標、目標召回率、安全邊際、達標率、機率校準、Platt Scaling、Isotonic Regression、成本損失、COST_FN、COST_FP、AR@Recall、alert_ratio、盛行率、MVP 商業驗收、MVP、決策門檻、E3 決策規則、TUNE_LOSS_RECALLS,已完成
+lab_07,CV 折數與重複次數、樣本量與正樣本數的影響（僅在訓練集內）,交叉驗證、外層 CV、內層 CV、CV 折數、CV 重複次數、折數與重複次數、測試集比例、TEST_SIZE、樣本量,已完成
+lab_08,種子穩定性與多種子驗證,隨機種子、SEED、TUNE_SEED、random_state、多種子、種子穩定性,已完成
