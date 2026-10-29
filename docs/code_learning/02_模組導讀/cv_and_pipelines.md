@@ -160,7 +160,7 @@
 | 決策項目 | 候選方案 | 專案選擇 | 理由 | 證據 |
 |---|---|---|---|---|
 | **測試集隔離策略** | A. 信任團隊自律<br>B. 物理搬離硬碟<br>C. 權限鎖與 SHA-256 驗證 | **方案 C（程式碼權限鎖）** | `get_test_data()` 預設直接拋出 `PermissionError`，除非傳入 `i_know_this_is_final_evaluation=True`，否則無法讀取測試集，杜絕開發期無意窺視。 | `bankruptcy/src/cv.py:220-234`；`bankruptcy/tests/test_lock.py` |
-| **採樣策略抉擇** | A. 全面啟用 SMOTE (S2~S6)<br>B. 類別加權 S1<br>C. 維持原始分佈 S0 | **方案 C（全體維持 S0）** | E1 實驗證實 SMOTE 人工合成樣本破壞了真實財務空間的高維流形，使 Brier 分數大幅惡化（機率嚴重失真），且 AR@0.95 未顯著提升；自然分佈搭配排序集成表現最穩定。 | `outputs/tables/e1_imbalance_comparison.csv`；E3 最終集成配置 |
+| **採樣策略抉擇** | A. 基準推薦 S0，E2 聯合搜尋 S0/S3<br>B. 類別加權 S1<br>C. 全面強制 SMOTE (S2~S6) | **方案 A（E1 推薦 S0，E2 調參納入 S0/S3）** | E1a 對照實驗顯示 S1～S6 之 95% Nadeau-Bengio CI 全數包含 0，依簡約原則推薦基準管線採 S0；E2 調參進一步將 S0/S3 納入 Optuna 搜尋，最終 M1/M3/M4 選定 S0，M2/M5 選定 S3（SMOTE 0.3）。主力集成 $E_A$ 中僅 M5 包含 SMOTE，專案未對 M5 S3 進行單變量對照。 | `bankruptcy/src/run_imbalance.py:560`；`bankruptcy/src/tune.py:123`；`bankruptcy/outputs/models/best_params/M5.json` |
 
 ---
 

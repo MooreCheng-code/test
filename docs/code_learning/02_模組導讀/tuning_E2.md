@@ -110,11 +110,32 @@ if remaining_trials > 0:
 - **現象說明**：
   在 `sample_hyperparameters()` 中，當抽樣出 `subsample` 時，程式動態注入了 `"subsample_freq": 1 if subsample < 1.0 else 0`（`bankruptcy/src/tune.py:169`）。
   然而，Optuna 的 `study.best_trial.params` 只保存透過 `suggest_*` 註冊的原生參數，因此儲存至 `best_params/M5.json` 時缺少了 `"subsample_freq": 1`。
-- **各階段 M5 參數狀態對照清單**：
-  1. **含 `subsample_freq=1`**：E2a 內層 3 折尋優（`tune.py:169`）、E2a 外層單折重擬合（`tune.py:335-336`）、E2b 內層尋優（`tune.py:169`）、E3 參考分佈生成（`ensemble.py:414`）。
-  2. **缺 `subsample_freq`（退回預設值 0）**：`M5.json` 序列化檔案（`tune.py:945`）、E4c 最終模型固化（`thresholding.py:610`）、E5 特徵解釋與精簡集（`explain.py:462`）、E7b 種子穩定性（`seed_stability.py:63`）、正式推論（`scoring.py`、`score_new_data.py`）。
-- **LightGBM 行為說明（一般經驗，未經本專案重跑驗證）**：
-  依據 LightGBM 官方規範，`subsample`（列抽樣比例）必須在 `subsample_freq > 0` 時才會生效；若 `subsample_freq == 0`，LightGBM 每輪將使用 100% 樣本擬合。專案固化模型 `model_M5.joblib` 實體參數確為 `subsample_freq=0`。後續將在 `labs/lab_03_boosting_lr_trees.py` 中安排一組 `subsample_freq=0 vs 1` 的消融對照供學習者驗證。
+
+#### M5 跨階段配置狀態完整對照表
+| 階段 | M5 是否含 `subsample_freq=1` | 是否含重抽樣 | 證據（檔案:行號） |
+|---|---|---|---|
+| E2a 內層搜尋 | 是 (`subsample_freq=1`) | 是（依 trial 動態抽樣 S0 或 S3） | `bankruptcy/src/tune.py:123, 169` |
+| E2a 外層重擬合 | 是 (`subsample_freq=1`) | 是（依該折最佳參數，5 折選中 S3 含 SMOTE 0.3） | `bankruptcy/src/tune.py:335-336`, `bankruptcy/src/cv.py:270-285` |
+| E2b 搜尋 | 是 (`subsample_freq=1`) | 是（全訓練集 60 trials 尋優選定 S3 含 SMOTE 0.3） | `bankruptcy/src/tune.py:169, 894-905` |
+| E3 評估（讀 E2a 快取） | 是 (`subsample_freq=1`) | 是（同 E2a 外層，5 折含 S3 SMOTE，10 折為 S0） | `bankruptcy/src/ensemble.py:406-425` |
+| E4c OOF 參考分布與門檻 | 否 (`subsample_freq=0`) | 是（固化載入 `imbalance="S3"`，包含 SMOTE 0.3） | `bankruptcy/src/thresholding.py:610-615, 774-784`, `bankruptcy/outputs/models/best_params/M5.json` |
+| E5 | 否 (`subsample_freq=0`) | 是（依各折最佳參數執行，部分折含 S3 SMOTE） | `bankruptcy/src/explain.py:462, 670-681` |
+| E6（已部署固化元件） | 否 (`subsample_freq=0`) | 是（`model_M5.joblib` 包含 SMOTE 0.3 訓練步驟，推論時自動略過） | `bankruptcy/outputs/models/final/model_M5.joblib`, `bankruptcy/src/final_eval.py:110-145` |
+| E7b | 否 (`subsample_freq=0`) | 是（固定 `imbalance="S3"`，測試 5 組隨機種子對 SMOTE 與 LightGBM 擾動） | `bankruptcy/src/seed_stability.py:63, 107-113` |
+| score_new_data／App | 否 (`subsample_freq=0`) | 是（模型物件內含 SMOTE 步驟，推論 `predict_proba` 自動略過） | `bankruptcy/src/scoring.py:277-330`, `bankruptcy/score_new_data.py:80-120`, `bankruptcy/app/app.py:760-800` |
+
+#### 關鍵說明與工程洞察
+1. **對外引用數字之配置對應**：
+   - **E3 引用數字**（$E_A$ 的 AR@0.95 = 8.06 倍、折間標準差 2.12 倍）：對應 **含 `subsample_freq=1` 之配置**（因 E3 直接取用 E2a 外層驗證折快取分數）。
+   - **E4a 安全邊際**（$E_A$ 建議邊際 0.04）：基於 E2a/E3 外層 15 次評估分布，對應 **含 `subsample_freq=1` 之配置**。
+   - **E6 獨立測試集盲測結果**（AR@0.95 = 5.25x [95% CI: 4.09, 8.18]、PR-AUC = 0.5676 [0.3807, 0.7301]）：對應 **`subsample_freq=0` 之配置**（因 E6 評估的是已固化於 `outputs/models/final/model_M5.joblib` 之正式部署元件）。
+2. **E6 評估之有效性**：
+   - **E6 評估的就是已部署配置**。E6 程式碼（`final_eval.py:110-145`）透過 `load_final_components()` 直接載入磁碟上的固化模型，該模型實體參數即為 `subsample_freq=0`。因此，**E6 的盲測效能對已部署模型 100% 真實有效，絕無評估脫節**。
+3. **F-02 嚴重度評級為中（Medium）**：
+   - 雖然已部署模型之 E6 評估無偏且可信，但「選模與調參證據（E2a/E3，啟用列抽樣 bagging）」與「部署版本（`subsample_freq=0`，停用列抽樣 bagging）」的 M5 超參數存在配置差異。這屬於機器學習工程中典型的訓練／部署一致性（Train-Serve Consistency）瑕疵，在面試與程式審計中應如實揭露。
+4. **處置原則**：
+   - **不修復、不重跑任何固化流程**。把「選模與調參證據和部署版 M5 配置不完全相同」寫成專案已知限制。
+   - 在 `labs/lab_03_boosting_lr_trees.py` 規劃中，把「`subsample_freq` 0 vs 1 對照（只用訓練資料）」標為第一優先實驗項目。
 
 ---
 

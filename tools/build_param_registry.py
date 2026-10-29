@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 tools/build_param_registry.py
-Automated generator for docs/code_learning/03a_param_registry.csv (v2).
+Automated generator for docs/code_learning/03a_param_registry.csv (v3).
 
 Extracts parameters from:
 - bankruptcy/config.py (AST parsing)
@@ -12,14 +12,17 @@ Extracts parameters from:
 - bankruptcy/src/ensemble.py (AST parsing)
 - bankruptcy/src/thresholding.py (AST parsing)
 - bankruptcy/src/scoring.py (AST parsing)
+- bankruptcy/src/metrics.py (AST parsing)
+- bankruptcy/src/explain.py (AST parsing)
 - bankruptcy/src/prevalence_sensitivity.py (AST parsing)
 - bankruptcy/src/seed_stability.py (AST parsing)
+- bankruptcy/src/final_eval.py (AST parsing)
 - bankruptcy/outputs/models/best_params/*.json (JSON loading + line finding)
 - bankruptcy/outputs/models/final/thresholds.json (JSON loading + line finding)
 - bankruptcy/outputs/models/final/model_M5.joblib (joblib parameter inspection)
 - bankruptcy/app/assets/defaults.json (JSON loading + line finding)
 
-Merges with docs/code_learning/param_notes.csv by 'id' to produce the final 17-column registry.
+Merges with docs/code_learning/param_notes.csv by 'id' to produce the final 18-column registry.
 DOES NOT import execution modules or write caches.
 """
 
@@ -69,7 +72,6 @@ def extract_model_trials_map(tree: ast.AST, var_name: str) -> dict[str, int]:
                         for k, v in zip(node.value.keys, node.value.values):
                             if isinstance(k, ast.Constant):
                                 m_name = str(k.value)
-                                # value could be IfExp: 3 if quick else 25
                                 if isinstance(v, ast.IfExp):
                                     if isinstance(v.orelse, ast.Constant):
                                         res[m_name] = int(v.orelse.value)
@@ -174,9 +176,8 @@ def find_defaults_json_line(token: str, under_inputs: bool = False) -> int:
             return idx
     return 0
 
-
 def build_raw_param_records() -> list[dict[str, Any]]:
-    """Builds complete v2 parameter records across all 12 categories."""
+    """Builds complete v3 parameter records across all 12 categories."""
     records: list[dict[str, Any]] = []
 
     # 1. bankruptcy/config.py
@@ -239,10 +240,10 @@ def build_raw_param_records() -> list[dict[str, Any]]:
     records.extend([
         {
             "id": "CV_INNER_E2A_SPLITS",
-            "參數名": "make_inner_splits",
+            "參數名": "n_splits",
             "層級(T1/T2/T3)": "T2",
             "所在檔案": "bankruptcy/src/cv.py",
-            "行號": 254,
+            "行號": 258,
             "類別": "交叉驗證",
             "來源類型": "default_arg",
             "型別": "int",
@@ -298,24 +299,11 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "參數名": "threshold",
             "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/preprocessing.py",
-            "行號": 353,
+            "行號": 354,
             "類別": "前處理",
             "來源類型": "default_arg",
             "型別": "float",
             "目前值": "0.95",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "ast",
-        },
-        {
-            "id": "PREP_CORR_ENABLED",
-            "參數名": "enabled",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/preprocessing.py",
-            "行號": 353,
-            "類別": "前處理",
-            "來源類型": "default_arg",
-            "型別": "bool",
-            "目前值": "True",
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
@@ -346,37 +334,11 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "驗證方式": "ast",
         },
         {
-            "id": "PREP_WINSOR_ENABLED",
-            "參數名": "enabled",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/preprocessing.py",
-            "行號": 193,
-            "類別": "前處理",
-            "來源類型": "default_arg",
-            "型別": "bool",
-            "目前值": "True",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "ast",
-        },
-        {
-            "id": "PREP_SCALER_KIND",
-            "參數名": "kind",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/preprocessing.py",
-            "行號": 300,
-            "類別": "前處理",
-            "來源類型": "default_arg",
-            "型別": "str",
-            "目前值": '"quantile"',
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "ast",
-        },
-        {
-            "id": "PREP_QUANTILE_N",
+            "id": "PREP_QUANTILE_N_QUANTILES",
             "參數名": "n_quantiles",
             "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/preprocessing.py",
-            "行號": 310,
+            "行號": 313,
             "類別": "前處理",
             "來源類型": "code_constant",
             "型別": "int",
@@ -385,7 +347,7 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "驗證方式": "ast",
         },
         {
-            "id": "PREP_QUANTILE_DIST",
+            "id": "PREP_QUANTILE_OUTPUT_DIST",
             "參數名": "output_distribution",
             "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/preprocessing.py",
@@ -398,28 +360,15 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "驗證方式": "ast",
         },
         {
-            "id": "PREP_LARGE_ENABLED",
-            "參數名": "enabled",
-            "層級(T1/T2/T3)": "T1",
+            "id": "PREP_DROP_ZERO_VAR",
+            "參數名": "DropConstantAndDuplicate",
+            "層級(T1/T2/T3)": "T2",
             "所在檔案": "bankruptcy/src/preprocessing.py",
-            "行號": 249,
+            "行號": 132,
             "類別": "前處理",
-            "來源類型": "default_arg",
+            "來源類型": "code_constant",
             "型別": "bool",
-            "目前值": "False",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "ast",
-        },
-        {
-            "id": "PIPE_SCALER_DEFAULT",
-            "參數名": "scaler",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/pipelines.py",
-            "行號": 215,
-            "類別": "前處理",
-            "來源類型": "default_arg",
-            "型別": "str",
-            "目前值": '"quantile"',
+            "目前值": "True",
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
@@ -433,6 +382,19 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "來源類型": "default_arg",
             "型別": "bool",
             "目前值": "True",
+            "可調性": "可在 lab 安全調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "PIPE_SCALER_KIND",
+            "參數名": "scaler",
+            "層級(T1/T2/T3)": "T1",
+            "所在檔案": "bankruptcy/src/pipelines.py",
+            "行號": 215,
+            "類別": "前處理",
+            "來源類型": "default_arg",
+            "型別": "str",
+            "目前值": '"quantile"',
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
@@ -492,6 +454,19 @@ def build_raw_param_records() -> list[dict[str, Any]]:
 
     # 4. Category: 不平衡處理 (Imbalance Handling)
     records.extend([
+        {
+            "id": "TUNE_IMBALANCE_SPACE",
+            "參數名": "imbalance",
+            "層級(T1/T2/T3)": "T1",
+            "所在檔案": "bankruptcy/src/tune.py",
+            "行號": 123,
+            "類別": "不平衡處理",
+            "來源類型": "search_space",
+            "型別": "list[str]",
+            "目前值": "['S0', 'S3']",
+            "可調性": "可在 lab 安全調整",
+            "驗證方式": "ast",
+        },
         {
             "id": "PIPE_IMBALANCE_DEFAULT",
             "參數名": "imbalance",
@@ -651,273 +626,101 @@ def build_raw_param_records() -> list[dict[str, Any]]:
     ])
 
     # 5. Category: 模型超參數 (Model Hyperparameters)
+    # Scale pos weight dynamic calculation
+    records.append({
+        "id": "PIPE_SCALE_POS_WEIGHT",
+        "參數名": "scale_pos_weight",
+        "層級(T1/T2/T3)": "T3",
+        "所在檔案": "bankruptcy/src/pipelines.py",
+        "行號": 72,
+        "類別": "模型超參數",
+        "來源類型": "derived",
+        "型別": "float",
+        "目前值": "動態：由訓練折計算",
+        "可調性": "衍生值，不可直接調整",
+        "驗證方式": "ast",
+    })
+
+    # Fixed max_iter for M1
+    records.append({
+        "id": "M1_FIXED_MAX_ITER",
+        "參數名": "max_iter",
+        "層級(T1/T2/T3)": "T2",
+        "所在檔案": "bankruptcy/src/tune.py",
+        "行號": 139,
+        "類別": "模型超參數",
+        "來源類型": "code_constant",
+        "型別": "int",
+        "目前值": "5000",
+        "可調性": "固定常數，不建議調整",
+        "驗證方式": "ast",
+    })
+
+    # 24 Optuna tuned hyperparameters - Split into _SPACE_ and _FROZEN_
+    optuna_defs = [
+        # M1
+        ("M1", "C", "float", 127, 5, "0.001 ~ 10.0 (log)", "0.11616457722286455"),
+        ("M1", "penalty", "str", 128, 6, "['l2', 'l1']", '"l2"'),
+        # M2
+        ("M2", "n_estimators", "int", 145, 5, "300 ~ 800 (step 50)", "300"),
+        ("M2", "max_depth", "int", 146, 6, "[4, 6, 8, 12, None]", "12"),
+        ("M2", "min_samples_leaf", "int", 147, 7, "1 ~ 10", "10"),
+        ("M2", "max_features", "str", 148, 8, "['sqrt', 'log2', 0.3]", '"sqrt"'),
+        # M3
+        ("M3", "n_estimators", "int", 145, 5, "300 ~ 800 (step 50)", "600"),
+        ("M3", "max_depth", "NoneType", 146, 6, "[4, 6, 8, 12, None]", "None"),
+        ("M3", "min_samples_leaf", "int", 147, 7, "1 ~ 10", "2"),
+        ("M3", "max_features", "float", 148, 8, "['sqrt', 'log2', 0.3]", "0.3"),
+        # M4
+        ("M4", "n_estimators", "int", 153, 5, "200 ~ 800 (step 50)", "250"),
+        ("M4", "learning_rate", "float", 154, 6, "0.01 ~ 0.2 (log)", "0.046776815926747296"),
+        ("M4", "max_depth", "int", 155, 7, "2 ~ 6", "2"),
+        ("M4", "subsample", "float", 156, 8, "0.6 ~ 1.0", "0.879563935600964"),
+        ("M4", "colsample_bytree", "float", 157, 9, "0.6 ~ 1.0", "0.9017127339966642"),
+        ("M4", "reg_lambda", "float", 158, 10, "0.01 ~ 10.0 (log)", "1.6902875531341541"),
+        ("M4", "min_child_weight", "float", 159, 11, "1.0 ~ 10.0", "7.300913224180319"),
+        # M5
+        ("M5", "subsample", "float", 163, 5, "0.6 ~ 1.0", "0.6071695513247772"),
+        ("M5", "n_estimators", "int", 165, 6, "200 ~ 800 (step 50)", "300"),
+        ("M5", "learning_rate", "float", 166, 7, "0.01 ~ 0.2 (log)", "0.01373336360334273"),
+        ("M5", "num_leaves", "int", 167, 8, "8 ~ 64", "43"),
+        ("M5", "colsample_bytree", "float", 170, 9, "0.6 ~ 1.0", "0.7788897740771944"),
+        ("M5", "reg_lambda", "float", 171, 10, "0.01 ~ 10.0 (log)", "0.02704489144262553"),
+        ("M5", "min_child_samples", "int", 172, 11, "5 ~ 50", "38"),
+    ]
+
+    for m, p, typ, tl, jl, sp, fr in optuna_defs:
+        # Space row
+        records.append({
+            "id": f"{m}_SPACE_{p.upper()}",
+            "參數名": p,
+            "層級(T1/T2/T3)": "T1",
+            "所在檔案": "bankruptcy/src/tune.py",
+            "行號": tl,
+            "類別": "模型超參數",
+            "來源類型": "search_space",
+            "型別": typ,
+            "目前值": sp,
+            "可調性": "可在 lab 安全調整",
+            "驗證方式": "ast",
+        })
+        # Frozen row
+        records.append({
+            "id": f"{m}_FROZEN_{p.upper()}",
+            "參數名": p,
+            "層級(T1/T2/T3)": "T1",
+            "所在檔案": f"bankruptcy/outputs/models/best_params/{m}.json",
+            "行號": jl,
+            "類別": "模型超參數",
+            "來源類型": "best_params_json",
+            "型別": typ,
+            "目前值": fr,
+            "可調性": "需重跑固化流程才生效",
+            "驗證方式": "json",
+        })
+
+    # M5 Subsample Freq (3 distinct rows for lifecycle audit)
     records.extend([
-        # Dynamic scale_pos_weight
-        {
-            "id": "PIPE_SCALE_POS_WEIGHT",
-            "參數名": "scale_pos_weight",
-            "層級(T1/T2/T3)": "T3",
-            "所在檔案": "bankruptcy/src/pipelines.py",
-            "行號": 72,
-            "類別": "模型超參數",
-            "來源類型": "derived",
-            "型別": "float",
-            "目前值": "動態：由訓練折計算",
-            "可調性": "衍生值，不可直接調整",
-            "驗證方式": "ast",
-        },
-        # M1 Search & Best
-        {
-            "id": "M1_SEARCH_C",
-            "參數名": "C",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 127,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "0.11616457722286455",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M1_SEARCH_PENALTY",
-            "參數名": "penalty",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 128,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "str",
-            "目前值": '"l2"',
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M1_FIXED_MAX_ITER",
-            "參數名": "max_iter",
-            "層級(T1/T2/T3)": "T2",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 139,
-            "類別": "模型超參數",
-            "來源類型": "code_constant",
-            "型別": "int",
-            "目前值": "5000",
-            "可調性": "固定常數，不建議調整",
-            "驗證方式": "ast",
-        },
-        # M2 Search & Best
-        {
-            "id": "M2_SEARCH_N_ESTIMATORS",
-            "參數名": "n_estimators",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 145,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "300",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M2_SEARCH_MAX_DEPTH",
-            "參數名": "max_depth",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 146,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "12",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M2_SEARCH_MIN_SAMPLES_LEAF",
-            "參數名": "min_samples_leaf",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 147,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "10",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M2_SEARCH_MAX_FEATURES",
-            "參數名": "max_features",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 148,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "str",
-            "目前值": '"sqrt"',
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        # M3 Search & Best
-        {
-            "id": "M3_SEARCH_N_ESTIMATORS",
-            "參數名": "n_estimators",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 145,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "600",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M3_SEARCH_MAX_DEPTH",
-            "參數名": "max_depth",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 146,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "NoneType",
-            "目前值": "None",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M3_SEARCH_MIN_SAMPLES_LEAF",
-            "參數名": "min_samples_leaf",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 147,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "2",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M3_SEARCH_MAX_FEATURES",
-            "參數名": "max_features",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 148,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "0.3",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        # M4 Search & Best
-        {
-            "id": "M4_SEARCH_N_ESTIMATORS",
-            "參數名": "n_estimators",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 153,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "250",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M4_SEARCH_LEARNING_RATE",
-            "參數名": "learning_rate",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 154,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "0.046776815926747296",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M4_SEARCH_MAX_DEPTH",
-            "參數名": "max_depth",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 155,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "2",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M4_SEARCH_SUBSAMPLE",
-            "參數名": "subsample",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 156,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "0.879563935600964",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M4_SEARCH_COLSAMPLE",
-            "參數名": "colsample_bytree",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 157,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "0.9017127339966642",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M4_SEARCH_REG_LAMBDA",
-            "參數名": "reg_lambda",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 158,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "1.6902875531341541",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M4_SEARCH_MIN_CHILD_WEIGHT",
-            "參數名": "min_child_weight",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 159,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "7.300913224180319",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        # M5 Search, Best, and Subsample Freq (3 distinct rows as required by 2.5)
-        {
-            "id": "M5_SEARCH_SUBSAMPLE",
-            "參數名": "subsample",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 163,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "0.6071695513247772",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
         {
             "id": "M5_SEARCH_SUBSAMPLE_FREQ",
             "參數名": "subsample_freq",
@@ -957,89 +760,11 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "可調性": "固定常數，不建議調整",
             "驗證方式": "json",
         },
-        {
-            "id": "M5_SEARCH_N_ESTIMATORS",
-            "參數名": "n_estimators",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 165,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "300",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M5_SEARCH_LEARNING_RATE",
-            "參數名": "learning_rate",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 166,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "0.01373336360334273",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M5_SEARCH_NUM_LEAVES",
-            "參數名": "num_leaves",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 167,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "43",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M5_SEARCH_COLSAMPLE",
-            "參數名": "colsample_bytree",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 170,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "0.7788897740771944",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M5_SEARCH_REG_LAMBDA",
-            "參數名": "reg_lambda",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 171,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "float",
-            "目前值": "0.02704489144262553",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
-        {
-            "id": "M5_SEARCH_MIN_CHILD_SAMPLES",
-            "參數名": "min_child_samples",
-            "層級(T1/T2/T3)": "T1",
-            "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 172,
-            "類別": "模型超參數",
-            "來源類型": "best_params_json",
-            "型別": "int",
-            "目前值": "38",
-            "可調性": "可在 lab 安全調整",
-            "驗證方式": "json",
-        },
     ])
 
-    # 6. Category: 調參流程 (Tuning Workflow - M1-M5 split into individual rows)
+    # 6. Category: 調參流程 (Tuning Workflow)
     records.extend([
-        # E2a trials per model (lines 502-506 in tune.py)
+        # E2a trials per model
         {
             "id": "TUNE_E2A_TRIALS_M1",
             "參數名": "M1",
@@ -1105,7 +830,7 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
-        # E2b trials per model (lines 866-870 in tune.py)
+        # E2b trials per model
         {
             "id": "TUNE_E2B_TRIALS_M1",
             "參數名": "M1",
@@ -1171,31 +896,30 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
-        # Sampler & Storage
         {
-            "id": "TUNE_OPTUNA_SAMPLER",
-            "參數名": "TPESampler",
+            "id": "TUNE_SEED",
+            "參數名": "SEED",
             "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/tune.py",
             "行號": 307,
             "類別": "調參流程",
             "來源類型": "code_constant",
-            "型別": "str",
-            "目前值": '"TPESampler"',
+            "型別": "int",
+            "目前值": "42",
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
         {
-            "id": "TUNE_OPTUNA_STORAGE",
-            "參數名": "storage_url",
-            "層級(T1/T2/T3)": "T2",
+            "id": "TUNE_LOSS_RECALLS",
+            "參數名": "compute_three_point_log_loss",
+            "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/tune.py",
-            "行號": 304,
+            "行號": 113,
             "類別": "調參流程",
             "來源類型": "code_constant",
-            "型別": "str",
-            "目前值": '"sqlite:///{study_db}"',
-            "可調性": "固定常數，不建議調整",
+            "型別": "list[float]",
+            "目前值": "[0.8, 0.9, 0.95]",
+            "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
     ])
@@ -1205,14 +929,14 @@ def build_raw_param_records() -> list[dict[str, Any]]:
         {
             "id": "ENS_SINGLE_MODELS",
             "參數名": "SINGLE_MODELS",
-            "層級(T1/T2/T3)": "T1",
+            "層級(T1/T2/T3)": "T2",
             "所在檔案": "bankruptcy/src/ensemble.py",
             "行號": 73,
             "類別": "集成",
             "來源類型": "code_constant",
             "型別": "list[str]",
-            "目前值": '["M1", "M2", "M3", "M4", "M5"]',
-            "可調性": "可在 lab 安全調整",
+            "目前值": "['M1', 'M2', 'M3', 'M4', 'M5']",
+            "可調性": "固定常數，不建議調整",
             "驗證方式": "ast",
         },
         {
@@ -1224,60 +948,86 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "類別": "集成",
             "來源類型": "code_constant",
             "型別": "dict",
-            "目前值": '{"E_all": 5, "E_A": 3, "E_B": 4, "E_trees": 4}',
+            "目前值": "{'E_all': ['M1', 'M2', 'M3', 'M4', 'M5'], 'E_A': ['M3', 'M4', 'M5'], 'E_B': ['M1', 'M4', 'M5'], 'E_trees': ['M2', 'M3', 'M4', 'M5']}",
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
         {
-            "id": "ENS_PRIMARY_MODEL",
-            "參數名": "E_A",
-            "層級(T1/T2/T3)": "T3",
-            "所在檔案": "bankruptcy/src/ensemble.py",
-            "行號": 77,
-            "類別": "集成",
-            "來源類型": "code_constant",
-            "型別": "str",
-            "目前值": '"E_A"',
-            "可調性": "需重跑固化流程才生效",
-            "驗證方式": "ast",
-        },
-        {
-            "id": "ENS_CONTROL_SINGLE_MODEL",
-            "參數名": "M3",
-            "層級(T1/T2/T3)": "T3",
-            "所在檔案": "bankruptcy/src/ensemble.py",
-            "行號": 73,
-            "類別": "集成",
-            "來源類型": "code_constant",
-            "型別": "str",
-            "目前值": '"M3"',
-            "可調性": "需重跑固化流程才生效",
-            "驗證方式": "ast",
-        },
-        {
-            "id": "ENS_STACKING_META_CLF",
-            "參數名": "LogisticRegression",
+            "id": "ENS_STACKING_C_CANDIDATES",
+            "參數名": "c_candidates",
             "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/ensemble.py",
-            "行號": 518,
+            "行號": 497,
             "類別": "集成",
             "來源類型": "code_constant",
-            "型別": "str",
-            "目前值": '"LogisticRegression(penalty=\'l2\')"',
+            "型別": "list[float]",
+            "目前值": "[0.01, 0.1, 1.0]",
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
         {
-            "id": "ENS_RULE_STD_TOLERANCE",
-            "參數名": "apply_e3_selection_rule",
+            "id": "ENS_E3_SELECTION_TOLERANCE",
+            "參數名": "nadeau_bengio_paired_test",
             "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/ensemble.py",
-            "行號": 1122,
+            "行號": 1170,
             "類別": "集成",
             "來源類型": "code_constant",
             "型別": "float",
-            "目前值": "1.25",
+            "目前值": "0.95",
             "可調性": "可在 lab 安全調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "ENS_ECDF_MAP_METHOD",
+            "參數名": "ecdf_map",
+            "層級(T1/T2/T3)": "T2",
+            "所在檔案": "bankruptcy/src/ensemble.py",
+            "行號": 86,
+            "類別": "集成",
+            "來源類型": "code_constant",
+            "型別": "str",
+            "目前值": '"midpoint"',
+            "可調性": "固定常數，不建議調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "ENS_SCORE_MODEL_NAMES",
+            "參數名": "model_names",
+            "層級(T1/T2/T3)": "T1",
+            "所在檔案": "bankruptcy/src/scoring.py",
+            "行號": 56,
+            "類別": "集成",
+            "來源類型": "default_arg",
+            "型別": "list[str]",
+            "目前值": "['M3', 'M4', 'M5']",
+            "可調性": "可在 lab 安全調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "ENS_SCORE_VAL_METHOD",
+            "參數名": "to_percentile",
+            "層級(T1/T2/T3)": "T2",
+            "所在檔案": "bankruptcy/src/scoring.py",
+            "行號": 39,
+            "類別": "集成",
+            "來源類型": "code_constant",
+            "型別": "str",
+            "目前值": '"ecdf"',
+            "可調性": "固定常數，不建議調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "ENS_SCORE_COMBINE_METHOD",
+            "參數名": "mean",
+            "層級(T1/T2/T3)": "T2",
+            "所在檔案": "bankruptcy/src/scoring.py",
+            "行號": 75,
+            "類別": "集成",
+            "來源類型": "code_constant",
+            "型別": "str",
+            "目前值": '"mean"',
+            "可調性": "固定常數，不建議調整",
             "驗證方式": "ast",
         },
     ])
@@ -1285,47 +1035,73 @@ def build_raw_param_records() -> list[dict[str, Any]]:
     # 8. Category: 校準 (Calibration)
     records.extend([
         {
-            "id": "CALIB_PLATT_METHOD",
-            "參數名": "fit_single_model_platt",
+            "id": "TH_CALIBRATION_METHODS",
+            "參數名": "run_e4b_calibration",
             "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/thresholding.py",
-            "行號": 124,
+            "行號": 395,
             "類別": "校準",
             "來源類型": "code_constant",
-            "型別": "str",
-            "目前值": '"LogisticRegression(solver=\'lbfgs\')"',
+            "型別": "list[str]",
+            "目前值": "['uncalibrated', 'platt', 'isotonic']",
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
         {
-            "id": "CALIB_ISOTONIC_METHOD",
-            "參數名": "IsotonicRegression",
-            "層級(T1/T2/T3)": "T1",
+            "id": "CAL_ISOTONIC_OUT_OF_BOUNDS",
+            "參數名": "out_of_bounds",
+            "層級(T1/T2/T3)": "T2",
             "所在檔案": "bankruptcy/src/thresholding.py",
             "行號": 455,
             "類別": "校準",
             "來源類型": "code_constant",
             "型別": "str",
-            "目前值": '"IsotonicRegression(out_of_bounds=\'clip\')"',
-            "可調性": "可在 lab 安全調整",
+            "目前值": '"clip"',
+            "可調性": "固定常數，不建議調整",
             "驗證方式": "ast",
         },
         {
-            "id": "CALIB_RECOMMENDED_CHOICE",
-            "參數名": "fit_single_model_platt",
+            "id": "CAL_ISOTONIC_Y_MIN_MAX",
+            "參數名": "y_min",
+            "層級(T1/T2/T3)": "T2",
+            "所在檔案": "bankruptcy/src/thresholding.py",
+            "行號": 455,
+            "類別": "校準",
+            "來源類型": "code_constant",
+            "型別": "list[float]",
+            "目前值": "[0.0, 1.0]",
+            "可調性": "固定常數，不建議調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "CAL_PLATT_SOLVER",
+            "參數名": "LogisticRegression",
+            "層級(T1/T2/T3)": "T2",
+            "所在檔案": "bankruptcy/src/thresholding.py",
+            "行號": 132,
+            "類別": "校準",
+            "來源類型": "code_constant",
+            "型別": "str",
+            "目前值": '"lbfgs"',
+            "可調性": "固定常數，不建議調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "CAL_METHOD_SELECTION",
+            "參數名": "platt_final",
             "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/thresholding.py",
-            "行號": 124,
+            "行號": 763,
             "類別": "校準",
             "來源類型": "code_constant",
             "型別": "str",
             "目前值": '"Platt"',
-            "可調性": "需重跑固化流程才生效",
+            "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
     ])
 
-    # 9. Category: 門檻與目標 (Thresholds and Targets)
+    # 9. Category: 門檻與目標 (Thresholds & Targets - 4 T1, 1 T2, 16 T3)
     records.extend([
         {
             "id": "TH_MARGINS",
@@ -1336,7 +1112,7 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "類別": "門檻與目標",
             "來源類型": "code_constant",
             "型別": "list[float]",
-            "目前值": "[0.0, 0.02, 0.04, 0.06]",
+            "目前值": "[0.0, 0.02, 0.04, 0.06, 0.08, 0.1]",
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
@@ -1353,48 +1129,55 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "可調性": "可在 lab 安全調整",
             "驗證方式": "ast",
         },
+        {
+            "id": "TH_WILSON_CONFIDENCE",
+            "參數名": "confidence",
+            "層級(T1/T2/T3)": "T2",
+            "所在檔案": "bankruptcy/src/thresholding.py",
+            "行號": 70,
+            "類別": "門檻與目標",
+            "來源類型": "default_arg",
+            "型別": "float",
+            "目前值": "0.95",
+            "可調性": "固定常數，不建議調整",
+            "驗證方式": "ast",
+        },
     ])
 
-    # thresholds.json entries (T3 - Derived Operating Points)
-    th_json = REPO_ROOT / "bankruptcy" / "outputs" / "models" / "final" / "thresholds.json"
-    if th_json.exists():
-        with open(th_json, "r", encoding="utf-8") as f:
-            t_data = json.load(f)
-        for grp in ["E_A", "M3"]:
-            for r_key, vals in t_data.get(grp, {}).items():
-                thresh_line = find_threshold_json_line(grp, r_key, "threshold")
-                margin_line = find_threshold_json_line(grp, r_key, "recommended_margin")
-                records.append({
-                    "id": f"TH_{grp}_{r_key}_THRESH",
-                    "參數名": "threshold",
-                    "層級(T1/T2/T3)": "T3",
-                    "所在檔案": "bankruptcy/outputs/models/final/thresholds.json",
-                    "行號": thresh_line,
-                    "類別": "門檻與目標",
-                    "來源類型": "config_json",
-                    "型別": "float",
-                    "目前值": str(vals["threshold"]),
-                    "可調性": "衍生值，不可直接調整",
-                    "驗證方式": "json",
-                })
-                records.append({
-                    "id": f"TH_{grp}_{r_key}_MARGIN",
-                    "參數名": "recommended_margin",
-                    "層級(T1/T2/T3)": "T3",
-                    "所在檔案": "bankruptcy/outputs/models/final/thresholds.json",
-                    "行號": margin_line,
-                    "類別": "門檻與目標",
-                    "來源類型": "config_json",
-                    "型別": "float",
-                    "目前值": str(vals["recommended_margin"]),
-                    "可調性": "衍生值，不可直接調整",
-                    "驗證方式": "json",
-                })
+    # 16 T3 Derived Thresholds & Margins from thresholds.json
+    for m in ["E_A", "M3"]:
+        for r in ["R80", "R90", "R95", "R100"]:
+            records.append({
+                "id": f"TH_{m}_{r}_THRESH",
+                "參數名": "threshold",
+                "層級(T1/T2/T3)": "T3",
+                "所在檔案": "bankruptcy/outputs/models/final/thresholds.json",
+                "行號": find_threshold_json_line(m, r, "threshold"),
+                "類別": "門檻與目標",
+                "來源類型": "config_json",
+                "型別": "float",
+                "目前值": str(json.load(open(REPO_ROOT / "bankruptcy/outputs/models/final/thresholds.json", encoding="utf-8"))[m][r]["threshold"]),
+                "可調性": "衍生值，不可直接調整",
+                "驗證方式": "json",
+            })
+            records.append({
+                "id": f"TH_{m}_{r}_MARGIN",
+                "參數名": "recommended_margin",
+                "層級(T1/T2/T3)": "T3",
+                "所在檔案": "bankruptcy/outputs/models/final/thresholds.json",
+                "行號": find_threshold_json_line(m, r, "recommended_margin"),
+                "類別": "門檻與目標",
+                "來源類型": "config_json",
+                "型別": "float",
+                "目前值": str(json.load(open(REPO_ROOT / "bankruptcy/outputs/models/final/thresholds.json", encoding="utf-8"))[m][r]["recommended_margin"]),
+                "可調性": "衍生值，不可直接調整",
+                "驗證方式": "json",
+            })
 
     # 10. Category: 評估指標 (Evaluation Metrics)
     records.extend([
         {
-            "id": "METRIC_THREE_POINT_RECALLS",
+            "id": "E2A_ALIGN_RECALLS",
             "參數名": "compute_three_point_log_loss",
             "層級(T1/T2/T3)": "T1",
             "所在檔案": "bankruptcy/src/tune.py",
@@ -1417,6 +1200,19 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "型別": "list[float]",
             "目前值": "[0.005, 0.01, 0.02, 0.032, 0.05]",
             "可調性": "可在 lab 安全調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "E6_BOOTSTRAP_ROUNDS",
+            "參數名": "n_bootstraps",
+            "層級(T1/T2/T3)": "T2",
+            "所在檔案": "bankruptcy/src/final_eval.py",
+            "行號": 177,
+            "類別": "評估指標",
+            "來源類型": "default_arg",
+            "型別": "int",
+            "目前值": "2000",
+            "可調性": "已鎖定，不可調整（E6 相關）",
             "驗證方式": "ast",
         },
         {
@@ -1476,6 +1272,45 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "驗證方式": "ast",
         },
         {
+            "id": "EXP_PERM_N_REPEATS",
+            "參數名": "n_repeats",
+            "層級(T1/T2/T3)": "T1",
+            "所在檔案": "bankruptcy/src/explain.py",
+            "行號": 201,
+            "類別": "應用層",
+            "來源類型": "default_arg",
+            "型別": "int",
+            "目前值": "5",
+            "可調性": "可在 lab 安全調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "EXP_GROUP_PERM_CORR_THRESH",
+            "參數名": "corr_threshold",
+            "層級(T1/T2/T3)": "T1",
+            "所在檔案": "bankruptcy/src/explain.py",
+            "行號": 256,
+            "類別": "應用層",
+            "來源類型": "default_arg",
+            "型別": "float",
+            "目前值": "0.8",
+            "可調性": "可在 lab 安全調整",
+            "驗證方式": "ast",
+        },
+        {
+            "id": "EXP_SHAP_N_BACKGROUND_NEG",
+            "參數名": "n_background_neg",
+            "層級(T1/T2/T3)": "T1",
+            "所在檔案": "bankruptcy/src/explain.py",
+            "行號": 340,
+            "類別": "應用層",
+            "來源類型": "default_arg",
+            "型別": "int",
+            "目前值": "300",
+            "可調性": "可在 lab 安全調整",
+            "驗證方式": "ast",
+        },
+        {
             "id": "DEF_N_INPUT_FEATURES",
             "參數名": "n_input_features",
             "層級(T1/T2/T3)": "T3",
@@ -1501,6 +1336,7 @@ def build_raw_param_records() -> list[dict[str, Any]]:
             "可調性": "衍生值，不可直接調整",
             "驗證方式": "json",
         },
+        # Data & Split additions from defaults.json
         {
             "id": "DEF_N_TRAIN",
             "參數名": "n_train",
@@ -1546,7 +1382,7 @@ def load_notes_dict() -> dict[str, dict[str, str]]:
 
 
 def build_registry():
-    """Generates the final merged 03a_param_registry.csv (v2)."""
+    """Generates the final merged 03a_param_registry.csv (v3)."""
     raw_records = build_raw_param_records()
     notes = load_notes_dict()
 
@@ -1595,7 +1431,7 @@ def build_registry():
         writer.writeheader()
         writer.writerows(merged_rows)
 
-    print(f"Successfully generated parameter registry v2: {OUTPUT_CSV}")
+    print(f"Successfully generated parameter registry v3: {OUTPUT_CSV}")
     print(f"Total parameters registered: {len(merged_rows)}")
 
 

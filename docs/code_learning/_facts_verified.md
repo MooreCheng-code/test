@@ -67,15 +67,39 @@
 
 ## 5. 各實驗階段是否使用 SMOTE（S0～S6 策略逐階段查核）
 
-不平衡策略代碼定義於 `bankruptcy/src/pipelines.py:112-129`：
-- **S0**：不重抽樣、不加權（`None`）
-- **S1**：類別權重平衡（M1/M2/M3 設 `class_weight="balanced"`；M4/M5 透過 `AdaptiveScaleWeightClassifier` 在訓練折內動態計算 `scale_pos_weight = n_neg / n_pos`）
-- **S2**：`SMOTE(sampling_strategy=0.1, k_neighbors=5, random_state=seed)`
-- **S3**：`SMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=seed)`
-- **S4**：`SMOTE(sampling_strategy=0.5, k_neighbors=5, random_state=seed)`
-- **S5**：`BorderlineSMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=seed)`
-- **S6**：`SMOTETomek(smote=SMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=seed), random_state=seed)`
+### 5.1 不平衡策略代碼定義與程式依據（`bankruptcy/src/pipelines.py:112-129, 137-204`）
+- **S0**：無抽樣、無加權（`None`）。`_get_resampler()` 回傳 `None`；分類器 `class_weight=None`，`scale_pos_weight=1.0`（`pipelines.py:114-115, 151, 162, 173`）。
+- **S1**：類別權重平衡（Class Weight / scale_pos_weight），無重抽樣：
+  - M1, M2, M3: `class_weight="balanced"`（`pipelines.py:151, 162, 173`）。
+  - M4 (XGBoost): `scale_pos_weight = float(neg_count) / float(pos_count)`（`pipelines.py:188-190`）。
+  - M5 (LightGBM): `scale_pos_weight = float(neg_count) / float(pos_count)`（`pipelines.py:202-204`）。
+- **S2**：`SMOTE(sampling_strategy=0.1, k_neighbors=5, random_state=seed)`（`pipelines.py:116-117`）。
+- **S3**：`SMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=seed)`（`pipelines.py:118-119`）。
+- **S4**：`SMOTE(sampling_strategy=0.5, k_neighbors=5, random_state=seed)`（`pipelines.py:120-121`）。
+- **S5**：`BorderlineSMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=seed)`（`pipelines.py:122-123`）。
+- **S6**：`SMOTETomek(smote=SMOTE(sampling_strategy=0.3, k_neighbors=5, random_state=seed), random_state=seed)`（`pipelines.py:124-126`）。
 
+### 5.2 M1～M5 最佳參數檔 `best_params/*.json` 之 `imbalance` 固化鍵值
+| 模型 | 不平衡策略鍵值 (`imbalance`) | 具體重抽樣步驟 | 來源證據檔案與行號 |
+|:---:|:---:|---|---|
+| **M1** | `"imbalance": "S0"` | 無重抽樣（自然分布訓練） | `bankruptcy/outputs/models/best_params/M1.json:3` |
+| **M2** | `"imbalance": "S3"` | 包含 `SMOTE(sampling_strategy=0.3, k_neighbors=5)` | `bankruptcy/outputs/models/best_params/M2.json:3` |
+| **M3** | `"imbalance": "S0"` | 無重抽樣（自然分布訓練） | `bankruptcy/outputs/models/best_params/M3.json:3` |
+| **M4** | `"imbalance": "S0"` | 無重抽樣（自然分布訓練） | `bankruptcy/outputs/models/best_params/M4.json:3` |
+| **M5** | `"imbalance": "S3"` | 包含 `SMOTE(sampling_strategy=0.3, k_neighbors=5)` | `bankruptcy/outputs/models/best_params/M5.json:3` |
+
+### 5.3 最終主力集成 $E_A$ 三成員之管線組成（`outputs/models/final/`）
+- **M3 (Extra Trees, 權重 0.35)**：採用 **S0**，管線無重抽樣步驟（`named_steps` 僅含 `selector`, `scaler`, `classifier`）。
+- **M4 (XGBoost, 權重 0.40)**：採用 **S0**，管線無重抽樣步驟（`named_steps` 僅含 `selector`, `scaler`, `classifier`）。
+- **M5 (LightGBM, 權重 0.25)**：採用 **S3**，訓練管線確實驗收包含重抽樣步驟！`outputs/models/final/model_M5.joblib` 實測 named_steps 包含 `('resampler', SMOTE(k_neighbors=5, random_state=42, sampling_strategy=0.3))`。
+- **推論行為說明**：`imblearn.pipeline.Pipeline` 之 `resampler` 僅在 `fit()` / `fit_resample()` 時進行合成抽樣；於 `predict_proba()` 時 imblearn 自動 pass-through（略過），推論期不生成任何合成資料。
+
+### 5.4 E1 結論與 E2 調參之邏輯銜接
+1. **E1 基準對照結論（`run_imbalance.py:526-566`）**：在各模型未調參之預設超參數管線下，S1～S6 之成對差異 95% Nadeau-Bengio 信賴區間全數包含 0（無任何策略在統計上顯著優於 S0）。依奧坎剃刀簡約原則（Rule 3, `run_imbalance.py:560`），推薦基準管線採用最簡潔之 `S0`。
+2. **E2 超參數聯合尋優（`tune.py:123`）**：在 Optuna 調參中，作者將 `imbalance` 設為類別型搜尋變數 `trial.suggest_categorical("imbalance", ["S0", "S3"])`，與樹深、學習率、正則化等參數同時聯合搜尋。尋優結果為 M1/M3/M4 選定 S0，M2/M5 選定 S3（`outputs/tables/e2b_final_params_summary.csv`）。
+3. **客觀事實標明**：專案在 E2 進行多維度聯合貝氏最佳化，**未對 M5 之 S3 vs S0 進行單變量受控對照實驗（標記為「未做對照」）**。文件僅客觀陳述 Optuna 選定 S3 之事實，不下「SMOTE 有效或無效」之主觀推論。
+
+### 5.5 各實驗階段是否使用 SMOTE 完整對照表
 | 實驗階段 | 是否使用 SMOTE 與具體設定 | 證據來源 |
 | :--- | :--- | :--- |
 | **E0（基準實驗）** | **否（僅測 S0 與 S1）**：Dummy (S0)、單特徵 LR (S0)、多元 LR (S0) 與多元 LR (S1 `class_weight="balanced"`) | `bankruptcy/src/run_baselines.py:140-215`、`bankruptcy/outputs/tables/e0_baselines_summary.csv` |

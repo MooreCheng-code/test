@@ -82,7 +82,7 @@ E0 建立三個基準層次（`bankruptcy/src/run_baselines.py:102-301`）：
 
 ### 4.1 核心實驗設計（E1a 與 E1b）
 - **E1a 析因實驗（7 種不平衡策略 $\times$ 5 種模型）**：
-  - S0（不處理）、S1（Random Under-sampling）、S2（Random Over-sampling）、S3（SMOTE）、S4（Borderline-SMOTE）、S5（ADASYN）、S6（SMOTE + Tomek Links）。
+  - S0（不處理）、S1（類別加權 `class_weight` / `scale_pos_weight`）、S2（`SMOTE(0.1)`）、S3（`SMOTE(0.3)`）、S4（`SMOTE(0.5)`）、S5（`BorderlineSMOTE(0.3)`）、S6（`SMOTETomek(0.3)`）。
   - 對比 15 次外層交叉驗證下的預警比率與 PR-AUC。
 - **E1b 前處理消融實驗（Ablation Study）**：
   - 檢驗 4 個前處理設定：預設管線（Quantile + CorrFilter + No Winsorizer）、關閉相關過濾（`corr_filter_off`）、開啟截尾（`winsorizer_off` 反向比較）、開啟大型異常值標記（`large_indicator_on`）。
@@ -99,6 +99,9 @@ E0 建立三個基準層次（`bankruptcy/src/run_baselines.py:102-301`）：
 | **M1 (Logistic Regression)** | **S0** | **quantile** | **Rule 3 (奧坎剃刀簡約原則)** | 任何過採樣技術（SMOTE 等）均未能在統計顯著性上勝過原始資料 S0；故選擇最簡單、運算最快之 S0。 |
 | **M2 (Random Forest)** | **S0** | **quantile** | **Rule 3 (奧坎剃刀簡約原則)** | S0 在 PR-AUC (0.4296) 與 AR@0.95 (11.84 倍) 均穩定，過採樣並無顯著增益。 |
 | **M4 (XGBoost)** | **S0** | **quantile** | **Rule 3 (奧坎剃刀簡約原則)** | 樹模型本身對不平衡具備適應力，S0 結構最精簡且能避免合成樣本帶來的邊界噪聲。 |
+
+> [!IMPORTANT]
+> **E1 結論與 E2 調參的關係**：E1 是在「固定預設超參數」下的無調參對照實驗，證實 S1～S6 之 95% Nadeau-Bengio CI 全數跨越 0，故依簡約原則推薦 S0。但在後續 E2 超參數調校中，`tune.py:123` 保留了 `["S0", "S3"]` 供 Optuna 聯合尋優，在與其他超參數共同尋優後，M2 與 M5 選定 S3（SMOTE 0.3），而 M1、M3、M4 選定 S0。專案未對 M5 S3 進行單變量對照（標記「未做對照」）。
 
 ### 4.3 前處理消融數據洞察 (`outputs/tables/e1b_ablation.csv`)
 1. **相關過濾器（Correlation Filter）的作用**：

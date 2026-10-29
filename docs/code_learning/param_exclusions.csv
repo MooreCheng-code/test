@@ -23,3 +23,109 @@ app/assets/defaults.json:top,unused_columns,未進入模型之 23 個特徵名�
 app/assets/defaults.json:top,medians,全特徵訓練集中位數查表字典（72 欄對應數值），非單一純量參數
 app/assets/defaults.json:top,presets,前端展示用預設公司數值情境字典，非系統超參數
 app/assets/defaults.json:inputs,other_17_features,"其餘 17 個輸入特徵之分位數統計網格（min, p01..p99），屬前端滑桿範圍查表資料，代表性特徵已以最強單變數 Persistent EPS 登錄"
+bankruptcy/src/ensemble.py,BASE_DIR,檔案系統路徑別名：指向 config.BASE_DIR，已於 CFG_BASE_DIR 登錄
+bankruptcy/src/ensemble.py,TABLES_DIR,檔案系統路徑別名：指向 config.TABLES_DIR，已於 CFG_TABLES_DIR 登錄
+bankruptcy/src/ensemble.py,FIGURES_DIR,檔案系統路徑別名：指向 config.FIGURES_DIR，已於 CFG_FIGURES_DIR 登錄
+bankruptcy/src/ensemble.py,MODELS_DIR,檔案系統路徑別名：指向 config.MODELS_DIR，已於 CFG_MODELS_DIR 登錄
+bankruptcy/src/ensemble.py,OOF_DIR,檔案系統路徑別名：指向 MODELS_DIR / 'oof'，已於系統路徑統一管理
+bankruptcy/src/ensemble.py,E2_CACHE_DIR,檔案系統路徑別名：指向 config.LOGS_DIR / 'e2_cache'，已於系統路徑統一管理
+bankruptcy/src/ensemble.py,SEED,全域隨機種子傳遞別名：指向 config.SEED，已於 CFG_SEED 完整登錄
+bankruptcy/src/ensemble.py,CV_FOLDS,交叉驗證折數別名：指向 config.CV_FOLDS，已於 CFG_CV_FOLDS 完整登錄
+bankruptcy/src/ensemble.py,CV_REPEATS,交叉驗證重複次數別名：指向 config.CV_REPEATS，已於 CFG_CV_REPEATS 完整登錄
+bankruptcy/src/ensemble.py,SINGLE_MODELS,模型代碼名冊清單：['M1'..'M5']，已於 ENS_SINGLE_MODELS 登錄
+bankruptcy/src/ensemble.py,ENSEMBLE_CANDIDATES,"候選集成組合字典：包含 E_all, E_A, E_B, E_trees，已於 ENS_CANDIDATES 登錄"
+ensemble.py:run_e3_pipeline,quick,CLI 測試執行旗標：非模型超參數
+ensemble.py:run_e3_pipeline,outer_repeats,"外層折範圍傳參：預設 [0, 1, 2] 對映 3 次重複，已於 CFG_CV_REPEATS 登錄"
+ensemble.py:run_e3b_and_e3c,quick,CLI 測試執行旗標：非模型超參數
+ensemble.py:run_e3d_diagnostics,quick,CLI 測試執行旗標：非模型超參數
+bankruptcy/src/thresholding.py,BASE_DIR,檔案系統路徑別名：指向 config.BASE_DIR，已於 CFG_BASE_DIR 登錄
+bankruptcy/src/thresholding.py,TABLES_DIR,檔案系統路徑別名：指向 config.TABLES_DIR，已於 CFG_TABLES_DIR 登錄
+bankruptcy/src/thresholding.py,FIGURES_DIR,檔案系統路徑別名：指向 config.FIGURES_DIR，已於 CFG_FIGURES_DIR 登錄
+bankruptcy/src/thresholding.py,MODELS_DIR,檔案系統路徑別名：指向 config.MODELS_DIR，已於 CFG_MODELS_DIR 登錄
+bankruptcy/src/thresholding.py,OOF_DIR,檔案系統路徑別名：指向 MODELS_DIR / 'oof'，已於系統路徑統一管理
+bankruptcy/src/thresholding.py,FINAL_DIR,檔案系統路徑別名：指向 MODELS_DIR / 'final'，已於系統路徑統一管理
+bankruptcy/src/thresholding.py,E2_CACHE_DIR,檔案系統路徑別名：指向 config.LOGS_DIR / 'e2_cache'，已於系統路徑統一管理
+bankruptcy/src/thresholding.py,BEST_PARAMS_DIR,檔案系統路徑別名：指向 MODELS_DIR / 'best_params'，已於系統路徑統一管理
+bankruptcy/src/thresholding.py,SEED,全域隨機種子傳遞別名：指向 config.SEED，已於 CFG_SEED 完整登錄
+bankruptcy/src/thresholding.py,TARGETS,"目標召回率列表別名：指向 [0.8, 0.9, 0.95, 1.0]，已於 CFG_TARGET_RECALLS 登錄"
+thresholding.py:run_e4a_threshold_transfer,quick,CLI 測試執行旗標：非模型超參數
+thresholding.py:run_e4a_threshold_transfer,outer_repeats,"外層折範圍傳參：預設 [0, 1, 2]，已於 CFG_CV_REPEATS 登錄"
+thresholding.py:run_e4b_calibration,quick,CLI 測試執行旗標：非模型超參數
+thresholding.py:run_e4b_calibration,outer_repeats,"外層折範圍傳參：預設 [0, 1, 2]，已於 CFG_CV_REPEATS 登錄"
+thresholding.py:freeze_final_components,quick,CLI 測試執行旗標：非模型超參數
+thresholding.py:run_e4_pipeline,quick,CLI 測試執行旗標：非模型超參數
+thresholding.py:run_e4_pipeline,outer_repeats,"外層折範圍傳參：預設 [0, 1, 2]，已於 CFG_CV_REPEATS 登錄"
+thresholding.py:derive_operating_threshold,margin,門檻計算引數：預設 0.0，已於 TH_MARGINS 登錄候選邊際集合
+thresholding.py:fit_single_model_platt,seed,隨機種子傳參：預設 SEED，已於 CFG_SEED 完整登錄
+scoring.py:ensemble_score,model_names,"動態傳參容器：指定參與集成分數計算之模型清單，預設 ['M3', 'M4', 'M5']，已登錄於 ENS_CANDIDATE_E_A"
+scoring.py:score_dataset,model_names,動態傳參容器：指定欲評分之模型清單
+scoring.py:score_dataset,include_threshold_flags,輸出格式控制旗標：是否於輸出 DataFrame 中附加門檻判定旗標
+scoring.py:load_mvp_components,final_dir,檔案載入目錄路徑傳參：預設 None 自動解析
+scoring.py:load_mvp_components,extras_dir,檔案載入目錄路徑傳參：預設 None 自動解析
+scoring.py:score_mvp_batch,components,已載入之元件字典容器傳參：預設 None 自動載入
+metrics.py:evaluate_scores,target_recalls,評估目標傳參：預設 None 自動讀取 config.TARGET_RECALLS，已於 CFG_TARGET_RECALLS 登錄
+metrics.py:evaluate_scores,alert_ratios,評估目標傳參：預設 None 自動讀取 config.ALERT_RATIOS，已於 CFG_ALERT_RATIOS 登錄
+metrics.py:compute_top_k_quota,method,數值捨入方法：固定為 'floor' 取整
+metrics.py:recall_at_top_k_percent,method,數值捨入方法：固定為 'floor' 取整
+metrics.py:confusion_and_cost_at_top_k_percent,method,數值捨入方法：固定為 'floor' 取整
+metrics.py:cost_sensitivity_table,method,數值捨入方法：固定為 'floor' 取整
+metrics.py:cost_sensitivity_table,threshold,敏感度分析輸入門檻容器：動態傳參
+metrics.py:cost_sensitivity_table,k_percent,敏感度分析輸入配額比例容器：動態傳參
+metrics.py:cost_sensitivity_table,sensitivity_list,敏感度分析成本網格容器：預設 None 自動讀取 config.COST_FN_SENSITIVITY_LIST
+metrics.py:cost_sensitivity_table,cost_fp,假警報成本傳參：預設 DEFAULT_COST_FP，已於 CFG_COST_FP 登錄
+metrics.py:compute_top_k_quota,k_percent,配額比例引數：預設 DEFAULT_TOP_K_PERCENT，已於 METRICS_DEFAULT_TOP_K_PERCENT 登錄
+metrics.py:recall_at_top_k_percent,k_percent,配額比例引數：預設 DEFAULT_TOP_K_PERCENT，已於 METRICS_DEFAULT_TOP_K_PERCENT 登錄
+metrics.py:confusion_and_cost_at_top_k_percent,k_percent,配額比例引數：預設 DEFAULT_TOP_K_PERCENT，已於 METRICS_DEFAULT_TOP_K_PERCENT 登錄
+metrics.py:misclassification_cost,cost_fn,漏報成本引數：預設 DEFAULT_COST_FN，已於 METRICS_DEFAULT_COST_FN 登錄
+metrics.py:misclassification_cost,cost_fp,誤報成本引數：預設 DEFAULT_COST_FP，已於 METRICS_DEFAULT_COST_FP 登錄
+metrics.py:evaluate_mvp_threshold_metrics,cost_fn,漏報成本引數：預設 DEFAULT_COST_FN，已於 METRICS_DEFAULT_COST_FN 登錄
+metrics.py:evaluate_mvp_threshold_metrics,cost_fp,誤報成本引數：預設 DEFAULT_COST_FP，已於 METRICS_DEFAULT_COST_FP 登錄
+metrics.py:confusion_and_cost_at_top_k_percent,cost_fn,漏報成本引數：預設 DEFAULT_COST_FN，已於 METRICS_DEFAULT_COST_FN 登錄
+metrics.py:confusion_and_cost_at_top_k_percent,cost_fp,誤報成本引數：預設 DEFAULT_COST_FP，已於 METRICS_DEFAULT_COST_FP 登錄
+bankruptcy/src/cv.py,SPLITS_PATH,檔案系統路徑常數：MODELS_DIR / 'splits.joblib'，已於系統路徑統一管理
+cv.py:make_cv_splits,train_orig_indices,原始列號索引容器：預設 None 自動映射
+cv.py:save_splits,splits_path,切分儲存路徑傳參：預設 SPLITS_PATH
+cv.py:save_splits,overwrite,檔案覆寫安全旗標：預設 False 避免意外覆寫
+cv.py:load_splits,df,資料集容器傳參：預設 None 自動載入
+cv.py:load_splits,splits_path,切分載入路徑傳參：預設 SPLITS_PATH
+cv.py:get_train_data,data_path,資料載入路徑傳參：預設 None 自動讀取 config.DATA_PATH
+cv.py:get_test_data,data_path,資料載入路徑傳參：預設 None 自動讀取 config.DATA_PATH
+cv.py:get_test_data,i_know_this_is_final_evaluation,E6 測試集物理權限解鎖旗標：預設 False 杜絕窺視，非超參數
+cv.py:cross_validate_pipeline,n_jobs,多行程平行運算工作行程數：非模型超參數
+bankruptcy/src/explain.py,BASE_DIR,檔案系統路徑別名：指向 config.BASE_DIR，已於 CFG_BASE_DIR 登錄
+bankruptcy/src/explain.py,TABLES_DIR,檔案系統路徑別名：指向 config.TABLES_DIR，已於 CFG_TABLES_DIR 登錄
+bankruptcy/src/explain.py,FIGURES_DIR,檔案系統路徑別名：指向 config.FIGURES_DIR，已於 CFG_FIGURES_DIR 登錄
+bankruptcy/src/explain.py,MODELS_DIR,檔案系統路徑別名：指向 config.MODELS_DIR，已於 CFG_MODELS_DIR 登錄
+bankruptcy/src/explain.py,E5_CACHE_DIR,檔案系統路徑別名：指向 MODELS_DIR / 'e5_cache'，已於系統路徑統一管理
+bankruptcy/src/explain.py,FINAL_DIR,檔案系統路徑別名：指向 MODELS_DIR / 'final'，已於系統路徑統一管理
+bankruptcy/src/explain.py,SEED,全域隨機種子傳遞別名：指向 config.SEED，已於 CFG_SEED 完整登錄
+bankruptcy/src/explain.py,MODELS,"特徵解釋主力模型清單：['M3', 'M4', 'M5']，已於 ENS_CANDIDATE_E_A 完整登錄"
+explain.py:compute_permutation_importance,seed,隨機種子傳參：預設 SEED，已於 CFG_SEED 完整登錄
+explain.py:compute_group_permutation_importance,seed,隨機種子傳參：預設 SEED，已於 CFG_SEED 完整登錄
+explain.py:compute_shap_importance,seed,隨機種子傳參：預設 SEED，已於 CFG_SEED 完整登錄
+explain.py:run_e5,outer_repeats,"外層折範圍傳參：預設 [0, 1, 2]，已於 CFG_CV_REPEATS 登錄"
+explain.py:run_e5,quick,CLI 測試執行旗標：非模型超參數
+explain.py:run_e5,force,強制重跑覆寫旗標：非模型超參數
+bankruptcy/src/local_explain.py,DEFAULT_DISCLAIMER,前端免責聲明文本：法律與業務展示用字串，非數值超參數
+local_explain.py:__init__,final_dir,檔案載入目錄路徑傳參：預設 None 自動解析
+local_explain.py:__init__,extras_dir,檔案載入目錄路徑傳參：預設 None 自動解析
+local_explain.py:get_pipeline,mode,模型載入模式字串：預設 'final'，非超參數
+local_explain.py:get_tree_explainer,mode,模型載入模式字串：預設 'final'，非超參數
+local_explain.py:explain_case,mode,模型載入模式字串：預設 'final'，非超參數
+local_explain.py:explain_case,explainer,自訂解釋器物件傳參：預設 None 自動構建
+bankruptcy/src/run_imbalance.py,CACHE_DIR,檔案系統快取目錄常數：指向 LOGS_DIR / 'e1_cache'
+bankruptcy/src/run_imbalance.py,OOF_DIR,檔案系統快取目錄常數：指向 MODELS_DIR / 'oof'
+run_imbalance.py:run_single_setting_cached,cache_dir,快取目錄路徑傳參：預設 CACHE_DIR
+run_imbalance.py:run_e1_experiments,quick,CLI 測試執行旗標：非模型超參數
+run_imbalance.py:make_ab_factory,model_name,消融實驗模型工廠動態傳參
+run_imbalance.py:make_ab_factory,cfg,消融實驗前處理組態容器傳參
+run_imbalance.py:make_factory,model_name,基準實驗工廠模型名稱傳參
+run_imbalance.py:make_factory,imbalance_strat,基準實驗工廠採樣策略代碼傳參
+run_imbalance.py:make_factory,scaler_kind,基準實驗工廠縮放器類別傳參
+bankruptcy/src/run_baselines.py,OOF_DIR,檔案系統快取目錄常數：指向 MODELS_DIR / 'oof'
+run_baselines.py:run_e0_baselines,quick,CLI 測試執行旗標：非模型超參數
+preprocessing.py:Winsorizer,enabled,內部傳參：由 pipelines.py 之 use_winsorizer 控制，已於 PIPE_USE_WINSORIZER 登錄
+preprocessing.py:LargeValueIndicator,enabled,內部傳參：由 pipelines.py 之 use_large_indicator 控制，已於 PIPE_USE_LARGE_INDICATOR 登錄
+preprocessing.py:QuantileScaler,kind,內部傳參：由 pipelines.py 之 scaler 控制，已於 PIPE_SCALER_KIND 登錄
+preprocessing.py:CorrelationFilter,enabled,內部傳參：由 pipelines.py 之 use_corr_filter 控制，已於 PIPE_USE_CORR_FILTER 登錄
+local_explain.py:explain_case,top_k,前端顯示筆數：單筆解釋展示之最大特徵貢獻數（預設 5），非模型超參數

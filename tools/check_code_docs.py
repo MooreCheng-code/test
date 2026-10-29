@@ -28,6 +28,8 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 DOCS_DIR = REPO_ROOT / "docs" / "code_learning"
 REGISTRY_CSV = DOCS_DIR / "03a_param_registry.csv"
 EXCLUSIONS_CSV = DOCS_DIR / "param_exclusions.csv"
@@ -416,7 +418,7 @@ def check_param_registry(registry_path: Path | None = None) -> tuple[int, int]:
                 print(f"[{param_id}] [ERROR] Derived parameter unexpected value: {curr_val}")
                 errors += 1
 
-        # 7. Note numbers sanity check (Rule 2.2)
+        # 7. Note numbers sanity check (Rule 2.2 / 2.5)
         clean_note = re.sub(r'\b\w+\.py:\d+(?:-\d+)?', '', note)
         clean_note = re.sub(r'\b[FSMRE]_\w+', '', clean_note)
         clean_note = re.sub(r'\b(?:M[0-5]|S[0-6]|R80|R90|R95|R100|F-02|Rule 2)\b', '', clean_note)
@@ -424,16 +426,20 @@ def check_param_registry(registry_path: Path | None = None) -> tuple[int, int]:
         for n in nums:
             raw_n = n.replace(',', '')
             found = False
-            for field in [curr_val, scope, desc, evid, note]:
+            for field in [curr_val, scope, desc, evid]:
                 if raw_n in field or n in field:
                     found = True
                     break
             if not found and n.endswith('%'):
-                pct_val = float(raw_n[:-1]) / 100.0
-                val_str = f"{pct_val:.1f}" if pct_val * 10 % 1 == 0 else f"{pct_val}"
-                if val_str in curr_val or val_str in scope or val_str in desc:
-                    found = True
+                try:
+                    pct_val = float(raw_n[:-1]) / 100.0
+                    val_str = f"{pct_val:.1f}" if pct_val * 10 % 1 == 0 else f"{pct_val}"
+                    if val_str in curr_val or val_str in scope or val_str in desc:
+                        found = True
+                except Exception:
+                    pass
             if not found:
+                print(f"[{param_id}] [WARNING] Unverified number '{n}' in note: not found in current_val, scope, desc, or evid")
                 warnings += 1
 
     # 8. Check param_notes.csv if exists
@@ -573,6 +579,159 @@ def check_param_registry(registry_path: Path | None = None) -> tuple[int, int]:
     print(f"Registry check completed: {errors} error(s), {warnings} warning(s).")
     print("=" * 50)
     return errors, warnings
+    print("\n" + "=" * 50)
+    print(f"Registry check completed: {errors} error(s), {warnings} warning(s).")
+    print("=" * 50)
+    return errors, warnings
+
+
+def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | None = None, allow_partial: bool = False) -> tuple[int, int]:
+    """
+    Validates parameter cards in docs/code_learning/03_參數手冊/:
+    1. Card template structure: ID line, evidence level, tuning impacts, risks, how to experiment, limitations.
+    2. Registry IDs: All cited IDs exist in 03a_param_registry.csv.
+    3. T1 Coverage: All T1 IDs in registry are covered by at least one card (unless allow_partial=True).
+    4. Auto-generated table consistency: Checks that <!-- registry:ids=... --> matches build_table_for_ids output.
+    5. Evidence tags: Ensures all bullet points under '調大／調小會怎樣：' have evidence tags.
+    6. General markdown compliance: Passes check_markdown_file (no absolute paths, file:///, forbidden words, citation symbols +-3 lines).
+    """
+    from tools.build_param_cards import build_table_for_ids
+
+    reg_file = registry_path or REGISTRY_CSV
+    if not reg_file.exists():
+        print(f"[ERROR] Registry file not found: {reg_file}")
+        return 1, 0
+
+    reg_map = {}
+    reg_rows = []
+    with open(reg_file, "r", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for r in reader:
+            reg_map[r["id"].strip()] = r
+            reg_rows.append(r)
+
+    t1_ids = {r["id"].strip() for r in reg_rows if r.get("層級(T1/T2/T3)", "").strip() == "T1"}
+    valid_ids = set(reg_map.keys())
+
+    target_dir = cards_dir or (DOCS_DIR / "03_參數手冊")
+    if not target_dir.exists():
+        print(f"[ERROR] Parameter cards directory not found: {target_dir}")
+        return 1, 0
+
+    if target_dir.is_file():
+        card_files = [target_dir]
+    else:
+        card_files = sorted(list(target_dir.glob("*.md")) + list(target_dir.glob("*/*.md")))
+
+    if not card_files:
+        print(f"[ERROR] No markdown files found in {target_dir}")
+        return 1, 0
+
+    try:
+        rel_target = target_dir.relative_to(REPO_ROOT)
+    except ValueError:
+        rel_target = target_dir
+
+    print(f"\nValidating Parameter Cards in: {rel_target} ({len(card_files)} file(s))...\n")
+
+    errors = 0
+    warnings = 0
+    referenced_ids = set()
+    total_cards = 0
+
+    valid_evidence_tags = [
+        "【本專案實測：對照實驗】",
+        "【專案設定（未做對照）】",
+        "【一般經驗，未經本專案驗證】",
+    ]
+
+    section_pat = re.compile(
+        r"(<!--\s*registry:ids=([A-Za-z0-9_,\s]+)\s*-->)(.*?)(<!--\s*/registry\s*-->)",
+        re.DOTALL
+    )
+
+    for md_file in card_files:
+        try:
+            rel_path = md_file.relative_to(REPO_ROOT)
+        except ValueError:
+            rel_path = md_file
+        file_errs, file_warns = check_markdown_file(md_file)
+        errors += file_errs
+        warnings += file_warns
+
+        content = md_file.read_text(encoding="utf-8")
+        lines = content.splitlines()
+
+        # Check table blocks
+        for m in section_pat.finditer(content):
+            raw_ids = m.group(2)
+            block_body = m.group(3).strip()
+            id_list = [i.strip() for i in raw_ids.split(",") if i.strip()]
+            for pid in id_list:
+                if pid not in valid_ids:
+                    print(f"[{rel_path}] [ERROR] Unknown registry ID '{pid}' in table marker")
+                    errors += 1
+            try:
+                expected_table = build_table_for_ids(id_list, reg_map).strip()
+                if block_body != expected_table:
+                    print(f"[{rel_path}] [ERROR] Auto-generated table out of date for ids: {id_list}")
+                    errors += 1
+            except Exception as ex:
+                print(f"[{rel_path}] [ERROR] Failed to build table for ids {id_list}: {ex}")
+                errors += 1
+
+        # Check card sections
+        in_tuning_impact = False
+        for idx, line in enumerate(lines, 1):
+            stripped = line.strip()
+            if stripped.startswith("### "):
+                total_cards += 1
+                in_tuning_impact = False
+                continue
+
+            id_match = re.match(r"^-\s*登錄表\s*ID[：:]\s*(.+)$", stripped)
+            if id_match:
+                raw_ids = [i.strip() for i in id_match.group(1).split(",") if i.strip()]
+                for pid in raw_ids:
+                    if pid not in valid_ids:
+                        print(f"[{rel_path}:{idx}] [ERROR] Unknown registry ID '{pid}' in card ID line")
+                        errors += 1
+                    else:
+                        referenced_ids.add(pid)
+                continue
+
+            if re.match(r"^-\s*調大／調小會怎樣[：:]", stripped):
+                in_tuning_impact = True
+                continue
+
+            if in_tuning_impact:
+                if stripped.startswith("- 風險與陷阱") or stripped.startswith("### ") or stripped.startswith("- 證據等級") or stripped.startswith("<!--"):
+                    in_tuning_impact = False
+                elif stripped.startswith("- ") or stripped.startswith("* "):
+                    # Check evidence tag
+                    has_tag = any(tag in stripped for tag in valid_evidence_tags)
+                    if not has_tag:
+                        print(f"[{rel_path}:{idx}] [ERROR] Missing evidence tag in '調大／調小' item: {stripped[:80]}")
+                        errors += 1
+
+    # Check T1 coverage
+    missing_t1 = t1_ids - referenced_ids
+    if missing_t1:
+        if allow_partial:
+            print(f"[INFO] Partial coverage allowed: {len(referenced_ids)}/{len(t1_ids)} T1 IDs covered ({len(missing_t1)} remaining).")
+        else:
+            print(f"[ERROR] Missing T1 coverage: {len(missing_t1)} T1 ID(s) not covered by any card:")
+            for pid in sorted(missing_t1):
+                print(f"  - {pid}")
+            errors += len(missing_t1)
+    else:
+        print(f"[OK] Full T1 coverage: All {len(t1_ids)} T1 parameters are covered by parameter cards.")
+
+    print("\n" + "=" * 50)
+    print(f"Parameter Cards check completed: {errors} error(s), {warnings} warning(s).")
+    print(f"Total cards: {total_cards}, Unique IDs referenced: {len(referenced_ids)}")
+    print("=" * 50)
+    return errors, warnings
 
 
 def main():
@@ -580,12 +739,21 @@ def main():
     parser.add_argument("path", nargs="?", default=None, help="Specific file or directory to check.")
     parser.add_argument("--registry", action="store_true", help="Run parameter registry check.")
     parser.add_argument("--registry-file", type=str, default=None, help="Custom registry CSV to check.")
+    parser.add_argument("--cards", action="store_true", help="Run parameter cards check.")
+    parser.add_argument("--cards-dir", type=str, default=None, help="Custom cards directory to check.")
+    parser.add_argument("--allow-partial", action="store_true", help="Allow partial T1 coverage (e.g. for batch commits).")
     args = parser.parse_args()
 
     total_err = 0
     total_warn = 0
 
-    if args.registry or args.registry_file:
+    if args.cards:
+        cards_path = Path(args.cards_dir) if args.cards_dir else None
+        reg_path = Path(args.registry_file) if args.registry_file else None
+        e, w = check_parameter_cards(cards_path, reg_path, allow_partial=args.allow_partial)
+        total_err += e
+        total_warn += w
+    elif args.registry or args.registry_file:
         reg_path = Path(args.registry_file) if args.registry_file else None
         e, w = check_param_registry(reg_path)
         total_err += e
