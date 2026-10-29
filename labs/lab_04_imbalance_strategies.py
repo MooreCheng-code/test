@@ -92,7 +92,7 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, Path, Path]:
 
         # 快速模式下適度縮減樹數加速
         if quick and m_code == "M3":
-            base_params["n_estimators"] = min(base_params.get("n_estimators", 300), 150)
+            base_params["n_estimators"] = min(base_params.get("n_estimators", 300), 80)
 
         print(f"\n--- 評估模型: {m_code} ({m_name}) ---")
 
@@ -174,6 +174,28 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, Path, Path]:
             right_on=["model", "strategy"],
             how="left",
         ).drop(columns=["model"], errors="ignore")
+
+        # 計算策略在 Lab 與正式 E1a 中的排名 (PR-AUC 越高越優、AR@0.95 越低越優)
+        df_results["lab_pr_rank"] = df_results.groupby("model_code")["pr_auc_mean"].rank(ascending=False).astype(int)
+        df_results["lab_ar95_rank"] = df_results.groupby("model_code")["ar95_mean"].rank(ascending=True).astype(int)
+        df_results["e1a_pr_rank"] = df_results.groupby("model_code")["e1a_formal_pr_auc"].rank(ascending=False).astype(int)
+        df_results["e1a_ar95_rank"] = df_results.groupby("model_code")["e1a_formal_ar95"].rank(ascending=True).astype(int)
+
+        print("\n" + "=" * 70)
+        print("Lab 與正式 E1a 策略排名對照 (口徑差異說明：Lab 為 5折x1次重複，E1a 為 5折x3次重複):")
+        print("=" * 70)
+        for m_code in model_list:
+            sub = df_results[df_results["model_code"] == m_code]
+            print(f"\n[{m_code}] 策略對照表:")
+            print(f"{'策略':<4} | {'Lab PR':<8} {'E1a PR':<8} {'PR秩差':<6} | {'Lab AR95':<10} {'E1a AR95':<10} {'AR秩差':<6} | {'機率偏移':<8}")
+            print("-" * 70)
+            for _, r in sub.iterrows():
+                pr_rank_diff = r["lab_pr_rank"] - r["e1a_pr_rank"]
+                ar_rank_diff = r["lab_ar95_rank"] - r["e1a_ar95_rank"]
+                print(
+                    f"{r['strategy']:<4} | {r['pr_auc_mean']:<8.4f} {r['e1a_formal_pr_auc']:<8.4f} {pr_rank_diff:+2d}     | "
+                    f"{r['ar95_mean']:<10.2f} {r['e1a_formal_ar95']:<10.2f} {ar_rank_diff:+2d}     | {r['proba_shift_ratio']:<8.1f}x"
+                )
 
     # 4. 輸出儲存
     out_dir = LABS_OUTPUTS_DIR / "lab_04"

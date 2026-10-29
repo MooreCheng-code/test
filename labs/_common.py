@@ -18,6 +18,9 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Ensure repository root is on sys.path
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -42,6 +45,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 LABS_DIR = REPO_ROOT / "labs"
 LABS_OUTPUTS_DIR = LABS_DIR / "outputs"
 LAB_SNAPSHOTS_DIR = REPO_ROOT / "docs" / "code_learning" / "lab_snapshots"
+SNAPSHOT_DIR = LAB_SNAPSHOTS_DIR
 BEST_PARAMS_DIR = REPO_ROOT / "bankruptcy" / "outputs" / "models" / "best_params"
 TABLES_DIR = REPO_ROOT / "bankruptcy" / "outputs" / "tables"
 
@@ -121,6 +125,7 @@ def evaluate_fold_predictions(
     eval_proba = proba_pred if proba_pred is not None else score_pred_arr
     mean_proba = float(np.mean(eval_proba))
     brier_score = float(brier(y_true_arr, eval_proba))
+    n_unique = int(len(np.unique(score_pred_arr)))
 
     return {
         "pr_auc": pr_auc,
@@ -132,6 +137,7 @@ def evaluate_fold_predictions(
         "recall_at_ar3.0": r_at_ar30,
         "mean_proba": mean_proba,
         "brier": brier_score,
+        "n_unique_scores": n_unique,
         "n_positives": int(np.sum(y_true_arr)),
         "n_samples": int(len(y_true_arr)),
     }
@@ -186,6 +192,21 @@ def get_git_head() -> str:
         return "unknown"
 
 
+def get_git_dirty(target_path: str = "labs") -> bool:
+    """Check if the specified path has uncommitted changes in Git."""
+    try:
+        res = subprocess.run(
+            ["git", "status", "--porcelain", target_path],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return bool(res.stdout.strip())
+    except Exception:
+        return False
+
+
 def save_manifest(
     output_dir: str | Path,
     lab_id: str,
@@ -219,6 +240,7 @@ def save_manifest(
     manifest = {
         "lab_id": lab_id,
         "git_head": get_git_head(),
+        "git_dirty": get_git_dirty("labs"),
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "elapsed_seconds": round(elapsed_seconds, 2),
         "seed": seed,

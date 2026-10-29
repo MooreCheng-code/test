@@ -117,10 +117,33 @@ class TestLabCommon(unittest.TestCase):
             self.assertEqual(content["lab_id"], "test_lab")
             self.assertEqual(content["seed"], 42)
             self.assertIn("git_head", content)
+            self.assertIn("git_dirty", content)
             self.assertIn("packages", content)
             self.assertEqual(content["params"], params)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_pessimistic_tie_breaking_toy_data(self) -> None:
+        """Verify that when all samples share identical scores, pessimistic AR equals N/P."""
+        from bankruptcy.src.metrics import alert_ratio_at_recall
+
+        # 20 samples: 2 positive, 18 negative (P=2, N=20). All have identical score 0.5
+        y_toy = np.array([1, 1] + [0] * 18)
+        scores_toy = np.array([0.5] * 20)
+
+        # To capture 95% of positives (needs 2/2), all 20 tied samples must be alerted
+        ar = alert_ratio_at_recall(y_toy, scores_toy, target_recall=0.95)
+        expected_ar = 20 / 2  # 10.0
+        self.assertAlmostEqual(ar, expected_ar, places=5)
+
+    def test_stratification_balance_max_diff(self) -> None:
+        """Verify that StratifiedKFold maintains positive balance across folds with max diff <= 1."""
+        from sklearn.model_selection import StratifiedKFold
+        y_dummy = np.array([1] * 35 + [0] * (1000 - 35))
+        for k in [3, 5, 10]:
+            skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
+            pos_counts = [int(y_dummy[val_idx].sum()) for _, val_idx in skf.split(np.zeros(len(y_dummy)), y_dummy)]
+            self.assertLessEqual(max(pos_counts) - min(pos_counts), 1)
 
 
 if __name__ == "__main__":

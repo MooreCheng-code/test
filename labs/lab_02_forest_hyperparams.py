@@ -43,13 +43,17 @@ from labs._common import (
 # 集中定義於檔頭，附中文說明與推薦範圍
 # ==============================================================================
 PARAMS: dict[str, Any] = {
-    # 掃描參數設定 (快速模式縮減以保證於 2 分鐘內完成)
-    "n_estimators_quick": [100, 200, 400],
+    # 掃描參數設定
+    "n_estimators_quick": [100, 250],
+    "n_estimators_standard": [100, 200, 400],
     "n_estimators_full": [100, 300, 500, 800],
-    "max_features_options": ["sqrt", "log2", 0.3],
-    "min_samples_leaf_options": [1, 2, 5, 10],
-    # 快速模式下進行單變量掃描時的基底樹數
-    "base_n_est_quick": 150,
+    "max_features_quick": ["sqrt", 0.3],
+    "max_features_standard": ["sqrt", "log2", 0.3],
+    "min_samples_leaf_quick": [2, 10],
+    "min_samples_leaf_standard": [1, 2, 5, 10],
+    # 單變量掃描時的基底樹數
+    "base_n_est_quick": 100,
+    "base_n_est_standard": 150,
     # 交叉驗證設定
     "cv_folds": 5,
     "cv_repeats_quick": 1,
@@ -58,19 +62,34 @@ PARAMS: dict[str, Any] = {
 }
 
 
-def run_lab(quick: bool = True) -> tuple[pd.DataFrame, Path, Path]:
+def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, Path, Path]:
     """Execute lab_02 forest hyperparameters scan."""
     start_time = time.time()
     setup_chinese_font()
 
-    n_repeats = PARAMS["cv_repeats_quick"] if quick else PARAMS["cv_repeats_full"]
-    n_est_list = PARAMS["n_estimators_quick"] if quick else PARAMS["n_estimators_full"]
-    max_features_list = PARAMS["max_features_options"]
-    min_leaf_list = PARAMS["min_samples_leaf_options"]
+    if mode == "quick":
+        n_repeats = PARAMS["cv_repeats_quick"]
+        n_est_list = PARAMS["n_estimators_quick"]
+        max_features_list = PARAMS["max_features_quick"]
+        min_leaf_list = PARAMS["min_samples_leaf_quick"]
+        base_scan_n_est = PARAMS["base_n_est_quick"]
+    elif mode == "standard":
+        n_repeats = PARAMS["cv_repeats_quick"]
+        n_est_list = PARAMS["n_estimators_standard"]
+        max_features_list = PARAMS["max_features_standard"]
+        min_leaf_list = PARAMS["min_samples_leaf_standard"]
+        base_scan_n_est = PARAMS["base_n_est_standard"]
+    else:  # full
+        n_repeats = PARAMS["cv_repeats_full"]
+        n_est_list = PARAMS["n_estimators_full"]
+        max_features_list = PARAMS["max_features_standard"]
+        min_leaf_list = PARAMS["min_samples_leaf_standard"]
+        base_scan_n_est = 300
+
     seed = PARAMS["seed"]
 
     print("=" * 70)
-    print(f"LAB_02: 森林超參數掃描實驗 ({'--quick 快速模式' if quick else '--full 完整模式'})")
+    print(f"LAB_02: 森林超參數掃描實驗 ({mode} 模式)")
     print(f"CV 設定: {PARAMS['cv_folds']} 折 x {n_repeats} 次重複 (種子={seed})")
     print("=" * 70)
 
@@ -171,10 +190,9 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, Path, Path]:
             cfg["n_estimators"] = n_est
             eval_config(m_code, m_name, "n_estimators", "n_estimators", n_est, cfg, imb)
 
-        # 快速模式下為保持在 2 分鐘內，單變量掃描時適度縮小樹數至 150
+        # 單變量掃描時適度縮小樹數以兼顧速度與代表性
         base_scan_cfg = base_params.copy()
-        if quick:
-            base_scan_cfg["n_estimators"] = min(base_scan_cfg.get("n_estimators", 300), PARAMS["base_n_est_quick"])
+        base_scan_cfg["n_estimators"] = min(base_scan_cfg.get("n_estimators", 300), base_scan_n_est)
 
         # 2.2 特徵抽樣 (max_features)
         print(f"\n[B] 掃描特徵抽樣 max_features...")
@@ -272,7 +290,7 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, Path, Path]:
         elapsed_seconds=elapsed,
         seed=seed,
         extra={
-            "quick_mode": quick,
+            "mode": mode,
             "m2_frozen_base": m2_base,
             "m3_frozen_base": m3_base,
         },
@@ -290,9 +308,16 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, Path, Path]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Lab 02: 森林超參數掃描實驗")
-    parser.add_argument("--full", action="store_true", help="執行完整模式")
-    parser.add_argument("--quick", action="store_true", default=True, help="執行快速模式 (預設)")
+    parser.add_argument("--full", action="store_true", help="執行完整模式 (15折)")
+    parser.add_argument("--standard", action="store_true", help="執行標準模式 (5折, 完整掃描清單)")
+    parser.add_argument("--quick", action="store_true", default=False, help="執行快速模式 (5折, 精簡清單, <=1.5分鐘, 預設)")
     args = parser.parse_args()
 
-    is_quick = not args.full
-    run_lab(quick=is_quick)
+    if args.full:
+        exec_mode = "full"
+    elif args.standard:
+        exec_mode = "standard"
+    else:
+        exec_mode = "quick"
+
+    run_lab(mode=exec_mode)

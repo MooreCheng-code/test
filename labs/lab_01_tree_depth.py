@@ -52,14 +52,19 @@ from labs._common import (
 # 集中定義於檔頭，附中文說明與推薦範圍
 # ==============================================================================
 PARAMS: dict[str, Any] = {
-    # 單棵決策樹掃描深度清單
-    "dt_depths": [1, 2, 3, 4, 6, 8, 12, None],
+    # 單棵決策樹掃描深度清單 (快速模式與標準模式)
+    "dt_depths_quick": [1, 2, 4, 8, None],
+    "dt_depths_standard": [1, 2, 3, 4, 6, 8, 12, None],
     # 集成模型比較清單與各自深度
-    "m2_depths": [4, 6, 8, 12, None],  # RandomForest
-    "m3_depths": [4, 6, 8, 12, None],  # ExtraTrees
-    "m4_depths": [2, 3, 4, 6],          # XGBoost
-    # 樹木數量 (快速模式 60 棵以保證在 2 分鐘內跑完，完整模式 300 棵)
-    "n_estimators_quick": 60,
+    "m2_depths_quick": [4, 8, 12, None],
+    "m2_depths_standard": [4, 6, 8, 12, None],
+    "m3_depths_quick": [4, 8, 12, None],
+    "m3_depths_standard": [4, 6, 8, 12, None],
+    "m4_depths_quick": [2, 4, 6],
+    "m4_depths_standard": [2, 3, 4, 6],
+    # 樹木數量 (快速模式 40 棵以保證在 1 分鐘內跑完，標準模式 80 棵，完整模式 300 棵)
+    "n_estimators_quick": 40,
+    "n_estimators_standard": 80,
     "n_estimators_full": 300,
     # 交叉驗證設定
     "cv_folds": 5,
@@ -84,18 +89,37 @@ def build_decision_tree_pipeline(max_depth: int | None, seed: int = 42) -> Pipel
     ])
 
 
-def run_lab(quick: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]:
+def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]:
     """Execute lab_01 tree depth scan."""
     start_time = time.time()
     setup_chinese_font()
 
-    n_repeats = PARAMS["cv_repeats_quick"] if quick else PARAMS["cv_repeats_full"]
-    n_estimators = PARAMS["n_estimators_quick"] if quick else PARAMS["n_estimators_full"]
-    dt_depths = PARAMS["dt_depths"]
+    if mode == "quick":
+        n_repeats = PARAMS["cv_repeats_quick"]
+        n_estimators = PARAMS["n_estimators_quick"]
+        dt_depths = PARAMS["dt_depths_quick"]
+        m2_depths = PARAMS["m2_depths_quick"]
+        m3_depths = PARAMS["m3_depths_quick"]
+        m4_depths = PARAMS["m4_depths_quick"]
+    elif mode == "standard":
+        n_repeats = PARAMS["cv_repeats_quick"]
+        n_estimators = PARAMS["n_estimators_standard"]
+        dt_depths = PARAMS["dt_depths_standard"]
+        m2_depths = PARAMS["m2_depths_standard"]
+        m3_depths = PARAMS["m3_depths_standard"]
+        m4_depths = PARAMS["m4_depths_standard"]
+    else:  # full
+        n_repeats = PARAMS["cv_repeats_full"]
+        n_estimators = PARAMS["n_estimators_full"]
+        dt_depths = PARAMS["dt_depths_standard"]
+        m2_depths = PARAMS["m2_depths_standard"]
+        m3_depths = PARAMS["m3_depths_standard"]
+        m4_depths = PARAMS["m4_depths_standard"]
+
     seed = PARAMS["seed"]
 
     print("=" * 70)
-    print(f"LAB_01: 樹深度掃描實驗 ({'--quick 快速模式' if quick else '--full 完整模式'})")
+    print(f"LAB_01: 樹深度掃描實驗 ({mode} 模式)")
     print(f"CV 設定: {PARAMS['cv_folds']} 折 x {n_repeats} 次重複 (種子={seed})")
     print("=" * 70)
 
@@ -112,6 +136,7 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]
         train_pr_aucs, val_pr_aucs = [], []
         train_ar95s, val_ar95s = [], []
         train_ar90s, val_ar90s = [], []
+        val_n_uniques = []
         fold_times = []
 
         for fold_idx, (tr_idx, val_idx) in enumerate(splitter.split(X_train, y_train)):
@@ -136,6 +161,7 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]
             val_ar95s.append(val_metrics["ar_95"])
             train_ar90s.append(tr_metrics["ar_90"])
             val_ar90s.append(val_metrics["ar_90"])
+            val_n_uniques.append(val_metrics["n_unique_scores"])
             fold_times.append(time.time() - t0)
 
         records.append({
@@ -153,26 +179,28 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]
             "val_ar95_std": np.std(val_ar95s),
             "ar95_gap": np.mean(train_ar95s) - np.mean(val_ar95s),
             "val_ar90_mean": np.mean(val_ar90s),
+            "n_unique_scores": float(np.mean(val_n_uniques)),
             "avg_fit_seconds": np.mean(fold_times),
         })
         print(
             f"  DT depth={depth_label:<14} | Val PR-AUC: {np.mean(val_pr_aucs):.4f} "
             f"(Train: {np.mean(train_pr_aucs):.4f}, Gap: {np.mean(train_pr_aucs)-np.mean(val_pr_aucs):+.4f}) | "
-            f"Val AR@0.95: {np.mean(val_ar95s):.2f}x"
+            f"Val AR@0.95: {np.mean(val_ar95s):.2f}x | 唯一分數數: {np.mean(val_n_uniques):.1f}"
         )
 
     # 3. 集成模型深度對照 (M2 RandomForest, M3 ExtraTrees, M4 XGBoost)
     print("\n[2/2] 執行樹集成模型 (M2, M3, M4) 深度掃描對照...")
     ensemble_configs = [
-        ("M2", "RandomForest", PARAMS["m2_depths"], "S3"),
-        ("M3", "ExtraTrees", PARAMS["m3_depths"], "S0"),
-        ("M4", "XGBoost", PARAMS["m4_depths"], "S0"),
+        ("M2", "RandomForest", m2_depths, "S3"),
+        ("M3", "ExtraTrees", m3_depths, "S0"),
+        ("M4", "XGBoost", m4_depths, "S0"),
     ]
 
     for m_code, m_name, depths, imb in ensemble_configs:
         for depth in depths:
             depth_label = "None (無限制)" if depth is None else str(depth)
             val_pr_aucs, val_ar95s = [], []
+            val_n_uniques = []
             fold_times = []
 
             for fold_idx, (tr_idx, val_idx) in enumerate(splitter.split(X_train, y_train)):
@@ -196,6 +224,7 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]
 
                 val_pr_aucs.append(val_metrics["pr_auc"])
                 val_ar95s.append(val_metrics["ar_95"])
+                val_n_uniques.append(val_metrics["n_unique_scores"])
                 fold_times.append(time.time() - t0)
 
             records.append({
@@ -208,6 +237,19 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]
                 "val_pr_auc_mean": np.mean(val_pr_aucs),
                 "val_pr_auc_std": np.std(val_pr_aucs),
                 "pr_auc_gap": np.nan,
+                "train_ar95_mean": np.nan,
+                "val_ar95_mean": np.mean(val_ar95s),
+                "val_ar95_std": np.std(val_ar95s),
+                "ar95_gap": np.nan,
+                "val_ar90_mean": np.nan,
+                "n_unique_scores": float(np.mean(val_n_uniques)),
+                "avg_fit_seconds": np.mean(fold_times),
+            })
+            print(
+                f"  {m_code} ({m_name:<12}) depth={depth_label:<14} | "
+                f"Val PR-AUC: {np.mean(val_pr_aucs):.4f} (+/- {np.std(val_pr_aucs):.4f}) | "
+                f"Val AR@0.95: {np.mean(val_ar95s):.2f}x | 唯一分數數: {np.mean(val_n_uniques):.1f}"
+            )
                 "train_ar95_mean": np.nan,
                 "val_ar95_mean": np.mean(val_ar95s),
                 "val_ar95_std": np.std(val_ar95s),
@@ -269,9 +311,12 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]
     ax2.plot(x_pos, dt_df["val_ar95_mean"], "D-", color="#2a9d8f", label="驗證折 AR@0.95 (越低越好)")
     ax2.set_xticks(x_pos)
     ax2.set_xticklabels(x_labels, rotation=30)
-    ax2.set_title("單棵決策樹 (DT): 深度 vs 驗證折 AR@0.95", fontsize=11, fontweight="bold")
+    ax2.set_title("單棵決策樹 (DT): 深度 vs 驗證折 AR@0.95\n(粗階梯同分導致失真至 N/P≈31.0x)", fontsize=11, fontweight="bold")
     ax2.set_xlabel("max_depth")
     ax2.set_ylabel("AR@0.95 (預警倍數)")
+    ax2.text(0.5, 0.40, "注意：單樹葉節點機率為粗階梯\n悲觀同分迫使門檻納入全折同分樣本\n導致 AR 退化至全樣本倍數 N/P≈31x",
+             transform=ax2.transAxes, fontsize=8, ha="center",
+             bbox=dict(boxstyle="round,pad=0.4", fc="#fff3cd", ec="#ffeeba", alpha=0.9))
     ax2.grid(True, linestyle="--", alpha=0.5)
     ax2.legend()
 
@@ -313,7 +358,7 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]
         elapsed_seconds=elapsed,
         seed=seed,
         extra={
-            "quick_mode": quick,
+            "mode": mode,
             "m2_frozen_depth": str(m2_best),
             "m3_frozen_depth": str(m3_best),
             "m4_frozen_depth": str(m4_best),
@@ -333,8 +378,15 @@ def run_lab(quick: bool = True) -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Lab 01: 樹深度掃描實驗")
     parser.add_argument("--full", action="store_true", help="執行完整模式 (5折x3重複, 300棵樹)")
-    parser.add_argument("--quick", action="store_true", default=True, help="執行快速模式 (5折x1重複, 100棵樹, 預設)")
+    parser.add_argument("--standard", action="store_true", help="執行標準模式 (5折x1重複, 80棵樹, 8個深度)")
+    parser.add_argument("--quick", action="store_true", default=False, help="執行快速模式 (5折x1重複, 40棵樹, 5個深度, 預設)")
     args = parser.parse_args()
 
-    is_quick = not args.full
-    run_lab(quick=is_quick)
+    if args.full:
+        exec_mode = "full"
+    elif args.standard:
+        exec_mode = "standard"
+    else:
+        exec_mode = "quick"
+
+    run_lab(mode=exec_mode)
