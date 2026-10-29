@@ -161,3 +161,53 @@
 
 1. **凍結模型目錄暫存檔命名遺留**：`bankruptcy/outputs/models/final/` 下存在 `_tmp_oof_r0_M3.npy` 等含有 `_tmp_` 前綴之檔案（由 `bankruptcy/src/thresholding.py:629-630, 668-669` 產生）。因回歸測試與雜湊驗證依賴此路徑，維持現狀不更名。
 2. **防禦性預設值**：`docs/KNOWN_ISSUES.md` 所列之 18 處離線實驗腳本 `.get(..., default)`、`getattr(..., default)` 與特徵重要性 `except Exception:` 容錯區塊，皆屬於非推論路徑之低風險防禦性寫法；推論路徑（`bankruptcy/src/scoring.py`、`bankruptcy/score_new_data.py`）則嚴格執行缺欄與異常顯式拋錯。
+
+---
+
+## 四、階段 3b-fix 卡片事實錯誤審計與成因分析（Stage 3b-fix Audit & Fact Corrections）
+
+### F-09：「相關性過濾門檻與開關」卡片數值與路徑錯誤成因分析（3b-fix 2.1 A）
+- **錯誤現象**：
+  1. 卡片散文先前寫「保留全部 95 個特徵…啟用過濾（0.95）可將特徵由 95 個精簡為 93 個（剔除 2 個冗餘特徵）」，與已驗證特徵漏斗嚴重矛盾。
+  2. 卡片寫「對各模型的 AR@0.95 影響極微（變異小於 0.05 倍）」，與 E1b 實際對照實驗數據完全不符。
+  3. 卡片引用路徑 `bankruptcy/outputs/e1b_correlation_filter_experiment.csv`。
+- **真實事實來源（唯讀產物）**：
+  1. **真實漏斗**：原始 95 特徵 $\to$ 刪除 1 常數欄位（`Net Income Flag`）與 2 實質重複欄位（`Current Liability to Liability`, `Current Liability to Equity`）剩 92 欄位 $\to$ 相關性過濾（門檻 0.95）在全訓練集精簡為 72 欄位（剔除 20 個高相關特徵）；在外層 15 次評估（5 折 × 3 次重複）訓練折內動態保留 70～73 欄位。先前卡片中的「剔除 2 個」實為前置重複欄位剔除，被筆誤混淆為相關性過濾之成果。
+  2. **真實數值（`bankruptcy/outputs/tables/e1b_ablation.csv` 與 `e1b_paired_vs_default.csv`）**：
+     - M1（Logistic Regression）：預設（72 欄位）AR@0.95 為 10.87 倍（PR-AUC 0.3808），關閉過濾（92 欄位）惡化至 12.00 倍（PR-AUC 0.3616），PR-AUC 顯著下降 0.0192（p=0.0020）。
+     - M2（Random Forest）：預設 AR@0.95 為 9.07 倍（PR-AUC 0.4223），關閉過濾微升至 9.18 倍（PR-AUC 0.4068），PR-AUC 下降 0.0155（p=0.0084）。
+     - M3（Extra Trees）：預設 AR@0.95 為 8.87 倍，關閉過濾為 8.88 倍。
+     - M4（XGBoost）：預設 AR@0.95 為 8.78 倍，關閉過濾為 8.79 倍。
+     - M5（LightGBM）：預設 AR@0.95 為 8.94 倍，關閉過濾為 8.94 倍。
+     - 關閉過濾對線性模型 M1 具有高度統計顯著惡化影響，對樹模型影響較輕，絕非「影響極微」。
+  3. **真實路徑**：真實檔案為 `bankruptcy/outputs/tables/e1b_ablation.csv` 與 `e1b_paired_vs_default.csv`（缺少 `tables/` 子目錄且檔名不同）。
+- **為何先前檢查器未能攔截（成因分析）**：
+  舊版 `check_code_docs.py` 僅聚焦於 Markdown 標題語法、程式碼符號引用（`file:line` 格式）與登錄表 ID 存在性，**並未對散文內出現的 CSV 檔案路徑進行磁碟存在性比對，亦未對散文陳述中的數字進行資料庫驗證**，導致散文文字與真實 CSV 脫節。
+- **補強措施**：
+  1. 引入 `FILE_PATH_PATTERN`：全面掃描文檔中所有以 `bankruptcy/` 開頭之路徑，強制要求必須在磁碟真實存在，否則報錯。
+  2. 引入結構化證據標籤（evidence tags）：以結構化標籤執行 pandas 精確查詢，並自動核驗陳述中的全部數字。
+
+### F-10：「安全邊際候選集與達標率門檻」卡片數值與候選數錯誤成因分析（3b-fix 2.1 B）
+- **錯誤現象**：
+  1. 卡片寫「候選集 18 組（6 個 margin × 3 個目標召回率）」，與登錄表 `MARGINS = [0.0, 0.02, 0.04, 0.06]`（4 個值）矛盾。
+  2. 卡片寫「$E_A$ 最終推薦安全邊際 $m=0.04$（在 R90 與 R95 達標率皆超過 80%）」，遺漏 R90 與 R95 之細部推薦差異。
+  3. 卡片引用路徑 `bankruptcy/outputs/e4a_threshold_margins.csv`（缺少 `tables/` 且檔名錯誤）。
+- **真實事實來源（唯讀產物）**：
+  1. **真實候選組數**：程式碼 `thresholding.py:67` 定義 `MARGINS = [0.0, 0.02, 0.04, 0.06]`（4 個值）。在 E4a 實驗中，R80/R90/R95 各評估 4 個邊際，R100 固定僅測 $m=0.0$，故實際評估點為 $3 \times 4 + 1 = 13$ 組（參見 `bankruptcy/outputs/tables/e4a_threshold_transfer_summary.csv` 剛好 13 組候選）。先前的「18 組（6 個 margin × 3 個召回率）」為舊版文檔草稿殘留之推測性數字（舊草稿曾假想 $m \in [0.0, 0.02, 0.04, 0.06, 0.08, 0.10]$）。
+  2. **真實推薦數值（`bankruptcy/outputs/tables/e4a_margin_recommendation.csv`）**：
+     - $E_A$ 於 **R90 推薦邊際 $m=0.06$**（外層 CV 達標率達 93.3%，14/15 次外層評估達標；而在 $m=0.04$ 時達標率僅 73.3%，未達 80% 門檻；未加邊際 $m=0.0$ 時僅 53.3%）。
+     - $E_A$ 於 **R95 推薦邊際 $m=0.04$**（外層 CV 達標率達 93.3%，14/15 次外層評估達標；在 $m=0.06$ 時達 100.0%，未加邊際 $m=0.0$ 時僅 53.3%）。
+  3. **真實路徑**：真實檔案為 `bankruptcy/outputs/tables/e4a_margin_recommendation.csv` 與 `e4a_threshold_transfer_summary.csv`。
+- **成因分析與補強**：
+  先前的 18 組與 6 個 margin 來自未經程式碼查證的早期文件臆測；透過強化 `check_code_docs.py` 之數值反查與路徑查核，卡片數據已 100% 對齊真實 CSV。
+
+### F-11：「SMOTE 系列重抽樣參數」卡片數值與口徑錯誤成因分析（3b-fix 2.1 C）
+- **錯誤現象**：
+  卡片散文先前引用 S4 與 S2 數值時出現口徑偏差（如 10.92 vs 10.98，PR-AUC 0.3541 vs 0.3774），且缺少真實路徑前綴。
+- **真實事實來源（唯讀產物）**：
+  讀取 `bankruptcy/outputs/tables/e1a_imbalance_comparison.csv`，在專案標準管線 `scaler=='quantile'` 下：
+  - M1 基準 S0（不重抽樣）：AR@0.95 = 10.3135 倍，PR-AUC = 0.3938。
+  - M1 S1（class_weight）：AR@0.95 = 10.9047 倍，PR-AUC = 0.3611。
+  - M1 S2（SMOTE 0.1）：AR@0.95 = 10.7353 倍，PR-AUC = 0.3855。
+  - M1 S4（SMOTE 0.5）：AR@0.95 = 10.9752 倍，PR-AUC = 0.3774。
+  先前卡片寫法疑似取自未標準化或其他 scaler（如 standard）之數值，造成跨行混用。現已統一對齊 `scaler=='quantile'` 並由結構化證據標籤（evidence tags）完成數值鎖定。

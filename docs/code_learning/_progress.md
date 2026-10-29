@@ -79,4 +79,13 @@
 - **已讀核心檔案**：`bankruptcy/config.py`, `bankruptcy/src/cv.py`, `bankruptcy/src/data_audit.py`, `bankruptcy/src/preprocessing.py`, `bankruptcy/src/pipelines.py`, `bankruptcy/src/run_imbalance.py`, `bankruptcy/src/tune.py`, `bankruptcy/src/ensemble.py`, `bankruptcy/src/thresholding.py`, `bankruptcy/src/explain.py`, `bankruptcy/src/lock_utils.py`, `bankruptcy/src/seed_stability.py`, `bankruptcy/tests/test_frozen_hashes.py`, `bankruptcy/tests/test_integrity_phase0.py`, `bankruptcy/tests/test_mvp_completeness.py`, `bankruptcy/tests/test_lock.py`，以及 `bankruptcy/outputs/tables/` 與 `bankruptcy/outputs/e6/` 內之 CSV/JSON 彙總檔。
 - **關鍵發現**：詳見同目錄下之 `_findings.md`（包含既有文件與實際程式碼在內層 CV 折數、外層評估正樣本數、相關性門檻上的差異，以及 `thresholding.py:634` 與 `tune.py:577, 945` 的疑似程式問題）。
 - **已驗證事實表**：詳見同目錄下之 `_facts_verified.md`（涵蓋資料切分、CV 各層正樣本數、特徵漏斗、M0～M5 與 $E_A$、SMOTE 使用情況、Optuna 設定、校準與門檻、190/193 項測試清單與 E6 結果）。
-- **下一步**：進入階段 3，撰寫 `docs/code_learning/03a_param_registry.csv` 與 `docs/code_learning/03_參數手冊.md`。
+- **已完成項目**：
+  - 階段 0：現況盤點與事實查證完成（`_facts_verified.md`、`_findings.md`）。
+  - 階段 1：導讀目錄、檢查工具與測試案例就緒（`00_導讀目錄.md`、`check_code_docs.py`）。
+  - 階段 2a：前處理、特徵、指標與 CV 導讀完成。
+  - 階段 2b：基準模型與調參流程導讀完成。
+  - 階段 2c：集成、門檻校準與評估驗證導讀完成。
+  - 階段 3a & 3a-fix：參數登錄表升級 v2，165 筆全量收錄（115 項 T1、38 項 T2、12 項 T3），分級與三層校驗通過。
+  - 階段 3b & 3b-fix：37 張參數卡片全部完成並通過全量審計，小表自動同步，結構化證據標籤全量驗證，8 大標準 lab 映射與路徑存在性校驗完成。
+- **當前項目**：階段 3c 速查表撰寫。
+- **下一步**：完成階段 3c 交付並停下回報審閱。

@@ -82,6 +82,168 @@ FORBIDDEN_WORDS = [
 MISNOMER_15FOLD = re.compile(r"(?<![35\d])15\s*折(?!次)")
 
 
+LAB_MAP_CSV = REPO_ROOT / "labs" / "lab_map.csv"
+
+FILE_PATH_PATTERN = re.compile(
+    r'(?:bankruptcy[/\][\w./\-]+\.(?:py|csv|json|md|joblib|png))'
+)
+
+EVIDENCE_TAG_PATTERN = re.compile(
+    r'<!--\s*evidence\s+(.+?)\s*-->'
+)
+
+
+def load_lab_map() -> dict[str, dict[str, str]]:
+    """Loads labs/lab_map.csv."""
+    if not LAB_MAP_CSV.exists():
+        return {}
+    res = {}
+    with open(LAB_MAP_CSV, "r", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for r in reader:
+            res[r["lab_id"].strip()] = r
+    return res
+
+
+def parse_tag_attrs(tag_str: str) -> dict[str, str]:
+    """Parses attributes from an evidence tag."""
+    pattern = re.compile(r'(\w+)=(?:"([^"]*)"|\'([^\']*)\'|([^\s]+))')
+    attrs = {}
+    for match in pattern.finditer(tag_str):
+        k = match.group(1)
+        v = match.group(2) if match.group(2) is not None else (match.group(3) if match.group(3) is not None else match.group(4))
+        attrs[k] = v
+    return attrs
+
+
+def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool, str, dict[str, Any]]:
+    """Verifies a single evidence tag against the target CSV file."""
+    attrs = parse_tag_attrs(tag_str)
+    file_rel = attrs.get("file")
+    if not file_rel:
+        return False, "Missing 'file' attribute in evidence tag", attrs
+    
+    csv_path = repo_root / file_rel
+    if not csv_path.exists():
+        return False, f"Evidence file does not exist: {file_rel}", attrs
+    
+    where_expr = attrs.get("where")
+    col_name = attrs.get("col")
+    expect_str = attrs.get("expect")
+    tol = float(attrs.get("tol", "0.001"))
+    
+    if not col_name or expect_str is None:
+        return False, "Missing 'col' or 'expect' attribute", attrs
+    
+    try:
+        expect_val = float(expect_str)
+    except ValueError:
+        return False, f"Invalid 'expect' value: {expect_str}", attrs
+        
+    try:
+        import pandas as pd
+        df = pd.read_csv(csv_path)
+    except Exception as e:
+        return False, f"Failed to read CSV {file_rel}: {e}", attrs
+        
+    if col_name not in df.columns:
+        return False, f"Column '{col_name}' not found in {file_rel}", attrs
+        
+    if where_expr:
+        try:
+            filtered = df.query(where_expr)
+        except Exception as e:
+            return False, f"Failed to evaluate where='{where_expr}': {e}", attrs
+    else:
+        filtered = df
+        
+    rows_req = attrs.get("rows")
+    agg_method = attrs.get("agg")
+    
+    if rows_req:
+        n_rows = int(rows_req)
+        if len(filtered) != n_rows:
+            return False, f"Query returned {len(filtered)} rows, expected {n_rows}", attrs
+        if agg_method == "mean":
+            actual_val = filtered[col_name].mean()
+        elif agg_method == "min":
+            actual_val = filtered[col_name].min()
+        elif agg_method == "max":
+            actual_val = filtered[col_name].max()
+        else:
+            return False, f"Unknown agg method '{agg_method}'", attrs
+    else:
+        if len(filtered) != 1:
+            return False, f"Query returned {len(filtered)} rows, expected exactly 1 (use rows=N and agg=... for multiple rows)", attrs
+        actual_val = filtered[col_name].iloc[0]
+        
+    try:
+        actual_float = float(actual_val)
+    except ValueError:
+        return False, f"Actual value '{actual_val}' cannot be converted to float", attrs
+        
+    diff = abs(actual_float - expect_val)
+    if diff > tol:
+        return False, f"Value mismatch: actual {actual_float} vs expect {expect_val} (diff {diff:.6f} > tol {tol})", attrs
+        
+    return True, f"Verified: {actual_float:.4f} ~ {expect_val} (tol={tol})", attrs
+
+
+def extract_numbers_from_text(text: str) -> list[tuple[str, float]]:
+    """Extracts numbers and percentages from text for verification."""
+    clean = re.sub(r'lab_\d+', '', text)
+    clean = re.sub(r'\[.*?\]\(.*?\)', '', clean)
+    clean = re.sub(r'<!--.*?-->', '', clean)
+    clean = re.sub(r'E\d+[a-z]?', '', clean)
+    clean = re.sub(r'R\d+', '', clean)
+    clean = re.sub(r'M\d+', '', clean)
+    clean = re.sub(r'S\d+', '', clean)
+    matches = re.finditer(r'(?<![A-Za-z0-9_])(\d+(?:\.\d+)?%?)(?![A-Za-z0-9_])', clean)
+    res = []
+    for m in matches:
+        s = m.group(1)
+        if s.endswith('%'):
+            val = float(s[:-1])
+            res.append((s, val))
+            res.append((s, val / 100.0))
+        else:
+            val = float(s)
+            res.append((s, val))
+            if val <= 1.0:
+                res.append((s, val * 100.0))
+    return res
+
+
+def check_statement_numbers(statement: str, expect: float, also_strs: list[str]) -> list[str]:
+    """Verifies that all numbers in an empirical statement are tied to evidence tags."""
+    valid_nums = [expect, expect * 100.0, round(expect, 2), round(expect * 100.0, 1), round(expect * 100.0, 2)]
+    for a in also_strs:
+        try:
+            v = float(a)
+            valid_nums.extend([v, v * 100.0, round(v, 2), round(v * 100.0, 1), round(v * 100.0, 2)])
+        except ValueError:
+            pass
+            
+    unverified = []
+    stmt_nums = extract_numbers_from_text(statement)
+    raw_candidates: dict[str, list[float]] = {}
+    for raw_s, n in stmt_nums:
+        raw_candidates.setdefault(raw_s, []).append(n)
+        
+    for raw_s, cands in raw_candidates.items():
+        matched = False
+        for n in cands:
+            for vn in valid_nums:
+                if abs(n - vn) < 0.005 or (abs(vn) > 0 and abs(n - vn) / abs(vn) < 0.01):
+                    matched = True
+                    break
+            if matched:
+                break
+        if not matched:
+            unverified.append(raw_s)
+    return list(dict.fromkeys(unverified))
+
+
 def verify_symbol_in_file(
     file_path: Path,
     symbol: str,
@@ -178,6 +340,19 @@ def check_markdown_file(md_path: Path) -> tuple[int, int]:
                     )
                     errors += 1
 
+            # 6. Full-text path existence check
+        for m in FILE_PATH_PATTERN.finditer(line):
+            raw_path = m.group(0).rstrip(":,.;)'\"")
+            norm_path = raw_path.replace("\\", "/")
+            target = REPO_ROOT / norm_path
+            if not target.exists():
+                if "<!-- planned:" in line or "planned:" in line:
+                    continue
+                if md_path.name in {"_findings.md", "_stale_claims.csv"} or "negative" in line.lower() or "不存在" in line:
+                    continue
+                print(f"[{rel_md}:{idx}] [ERROR] Cited path does not exist on filesystem: {norm_path}")
+                errors += 1
+
     return errors, warnings
 
 
@@ -241,6 +416,14 @@ def check_param_registry(registry_path: Path | None = None) -> tuple[int, int]:
                 errors += 1
 
         rows = list(reader)
+
+        # Check tunability enum
+        for r in rows:
+            pid = r.get("id", "")
+            tunability = r.get("可調性", "").strip()
+            if tunability not in VALID_TUNABILITIES:
+                print(f"[{pid}] [ERROR] Invalid 可調性 enum: '{tunability}' (expected one of {VALID_TUNABILITIES})")
+                errors += 1
 
     file_trees: dict[str, ast.AST] = {}
 
@@ -586,15 +769,7 @@ def check_param_registry(registry_path: Path | None = None) -> tuple[int, int]:
 
 
 def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | None = None, allow_partial: bool = False) -> tuple[int, int]:
-    """
-    Validates parameter cards in docs/code_learning/03_參數手冊/:
-    1. Card template structure: ID line, evidence level, tuning impacts, risks, how to experiment, limitations.
-    2. Registry IDs: All cited IDs exist in 03a_param_registry.csv.
-    3. T1 Coverage: All T1 IDs in registry are covered by at least one card (unless allow_partial=True).
-    4. Auto-generated table consistency: Checks that <!-- registry:ids=... --> matches build_table_for_ids output.
-    5. Evidence tags: Ensures all bullet points under '調大／調小會怎樣：' have evidence tags.
-    6. General markdown compliance: Passes check_markdown_file (no absolute paths, file:///, forbidden words, citation symbols +-3 lines).
-    """
+    """Validates parameter cards in docs/code_learning/03_參數手冊/."""
     from tools.build_param_cards import build_table_for_ids
 
     reg_file = registry_path or REGISTRY_CSV
@@ -612,6 +787,7 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
 
     t1_ids = {r["id"].strip() for r in reg_rows if r.get("層級(T1/T2/T3)", "").strip() == "T1"}
     valid_ids = set(reg_map.keys())
+    lab_map = load_lab_map()
 
     target_dir = cards_dir or (DOCS_DIR / "03_參數手冊")
     if not target_dir.exists():
@@ -682,12 +858,39 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
 
         # Check card sections
         in_tuning_impact = False
+        current_card_title = ""
+        current_claim_line = ""
+
         for idx, line in enumerate(lines, 1):
             stripped = line.strip()
             if stripped.startswith("### "):
                 total_cards += 1
+                current_card_title = stripped[4:].strip()
+                current_card_ids = []
                 in_tuning_impact = False
+                current_claim_line = ""
                 continue
+
+            # Check lab references in line
+            for lab_match in re.finditer(r'\b(lab_\d+)\b', stripped):
+                lab_id = lab_match.group(1)
+                if lab_id not in lab_map:
+                    print(f"[{rel_path}:{idx}] [ERROR] Unknown lab ID '{lab_id}' (not in labs/lab_map.csv)")
+                    errors += 1
+                else:
+                    lab_info = lab_map[lab_id]
+                    concepts = [c.strip() for c in lab_info["涵蓋的參數概念"].split("、")]
+                    topic = lab_info["主題"]
+                    matches_concept = (
+                        any(c.lower() in current_card_title.lower() for c in concepts) or
+                        any(c.lower() in md_file.stem.lower() for c in concepts) or
+                        any(any(c.lower() in pid.lower() for c in concepts) for pid in current_card_ids) or
+                        any(c.lower() in stripped.lower() for c in concepts) or
+                        any(w.lower() in current_card_title.lower() for w in topic.split())
+                    )
+                    if not matches_concept:
+                        print(f"[{rel_path}:{idx}] [ERROR] Lab mismatch: card '{current_card_title}' cites '{lab_id}' ({topic}), concept not covered")
+                        errors += 1
 
             id_match = re.match(r"^-\s*登錄表\s*ID[：:]\s*(.+)$", stripped)
             if id_match:
@@ -698,21 +901,47 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
                         errors += 1
                     else:
                         referenced_ids.add(pid)
+                current_card_ids = raw_ids
                 continue
 
             if re.match(r"^-\s*調大／調小會怎樣[：:]", stripped):
                 in_tuning_impact = True
                 continue
 
+            # Check evidence tags
+            if stripped.startswith("<!-- evidence"):
+                ev_match = EVIDENCE_TAG_PATTERN.search(stripped)
+                if ev_match:
+                    ok, msg, attrs = verify_evidence_tag(ev_match.group(1), REPO_ROOT)
+                    if not ok:
+                        print(f"[{rel_path}:{idx}] [ERROR] Evidence verification failed: {msg}")
+                        errors += 1
+                    else:
+                        # Check unverified numbers in current_claim_line
+                        if current_claim_line:
+                            expect_val = float(attrs.get("expect", "0"))
+                            also_raw = attrs.get("also", "")
+                            where_raw = attrs.get("where", "")
+                            where_nums = [str(n) for _, n in extract_numbers_from_text(where_raw)]
+                            also_list = [a.strip() for a in also_raw.split(",") if a.strip()] + where_nums
+                            unv = check_statement_numbers(current_claim_line, expect_val, also_list)
+                            if unv:
+                                print(f"[{rel_path}:{idx}] [WARNING] Unverified number(s) in empirical claim: {unv}")
+                                warnings += 1
+                current_claim_line = ""
+                continue
+
             if in_tuning_impact:
-                if stripped.startswith("- 風險與陷阱") or stripped.startswith("### ") or stripped.startswith("- 證據等級") or stripped.startswith("<!--"):
+                if stripped.startswith("- 風險與陷阱") or stripped.startswith("### ") or stripped.startswith("- 證據等級") or stripped.startswith("<!-- registry"):
                     in_tuning_impact = False
+                    current_claim_line = ""
                 elif stripped.startswith("- ") or stripped.startswith("* "):
-                    # Check evidence tag
                     has_tag = any(tag in stripped for tag in valid_evidence_tags)
                     if not has_tag:
                         print(f"[{rel_path}:{idx}] [ERROR] Missing evidence tag in '調大／調小' item: {stripped[:80]}")
                         errors += 1
+                    if "【本專案實測：對照實驗】" in stripped:
+                        current_claim_line = stripped
 
     # Check T1 coverage
     missing_t1 = t1_ids - referenced_ids
@@ -734,20 +963,71 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
     return errors, warnings
 
 
+def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
+    """Scans markdown files and strictly validates every <!-- evidence ... --> tag."""
+    check_dir = target_dir or DOCS_DIR
+    if check_dir.is_file():
+        md_files = [check_dir]
+    else:
+        md_files = sorted(check_dir.rglob("*.md"))
+
+    print(f"\nValidating evidence tags in {len(md_files)} file(s)...\n")
+    errors = 0
+    warnings = 0
+    total_tags = 0
+
+    for md_file in md_files:
+        try:
+            rel_file = md_file.relative_to(REPO_ROOT)
+        except ValueError:
+            rel_file = md_file
+        content = md_file.read_text(encoding="utf-8")
+        lines = content.splitlines()
+        for idx, line in enumerate(lines, 1):
+            for m in EVIDENCE_TAG_PATTERN.finditer(line):
+                total_tags += 1
+                tag_body = m.group(1)
+                ok, msg, attrs = verify_evidence_tag(tag_body, REPO_ROOT)
+                if not ok:
+                    print(f"[{rel_file}:{idx}] [ERROR] Evidence verification failed: {msg}")
+                    errors += 1
+                else:
+                    prev_line = lines[idx - 2].strip() if idx >= 2 else ""
+                    if "【本專案實測：對照實驗】" in prev_line:
+                        expect_val = float(attrs.get("expect", "0"))
+                        also_raw = attrs.get("also", "")
+                        also_list = [a.strip() for a in also_raw.split(",") if a.strip()]
+                        unv = check_statement_numbers(prev_line, expect_val, also_list)
+                        if unv:
+                            print(f"[{rel_file}:{idx}] [WARNING] Unverified number(s) in claim: {unv}")
+                            warnings += 1
+
+    print("\n" + "=" * 50)
+    print(f"Evidence tags check completed: {errors} error(s), {warnings} warning(s). Total tags verified: {total_tags}")
+    print("=" * 50)
+    return errors, warnings
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Consistency and compliance checker.")
+    parser = argparse.ArgumentParser(description="Consistency, evidence, and compliance checker.")
     parser.add_argument("path", nargs="?", default=None, help="Specific file or directory to check.")
     parser.add_argument("--registry", action="store_true", help="Run parameter registry check.")
     parser.add_argument("--registry-file", type=str, default=None, help="Custom registry CSV to check.")
     parser.add_argument("--cards", action="store_true", help="Run parameter cards check.")
     parser.add_argument("--cards-dir", type=str, default=None, help="Custom cards directory to check.")
-    parser.add_argument("--allow-partial", action="store_true", help="Allow partial T1 coverage (e.g. for batch commits).")
+    parser.add_argument("--allow-partial", action="store_true", help="Allow partial T1 coverage.")
+    parser.add_argument("--evidence", action="store_true", help="Run evidence tags check.")
     args = parser.parse_args()
 
     total_err = 0
     total_warn = 0
 
-    if args.cards:
+    if args.evidence:
+        target = Path(args.path) if args.path else None
+        e, w = check_evidence_tags_all(target)
+        total_err += e
+        total_warn += w
+    elif args.cards:
         cards_path = Path(args.cards_dir) if args.cards_dir else None
         reg_path = Path(args.registry_file) if args.registry_file else None
         e, w = check_parameter_cards(cards_path, reg_path, allow_partial=args.allow_partial)

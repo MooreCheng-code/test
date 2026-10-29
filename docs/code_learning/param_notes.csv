@@ -149,7 +149,7 @@ TH_M3_R90_MARGIN,M3 在 R90 工作點選定之安全邊際 m（跨折達標率�
 TH_M3_R90_THRESH,M3 在 R90 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
 TH_M3_R95_MARGIN,M3 在 R95 工作點選定之安全邊際 m（跨折達標率需大於等於 0.8 / 80%）,門檻設定,E4a/E4b,outputs/models/final/thresholds.json,,0.0 ~ 0.06,專案搜尋空間,E4a 跨折轉移選定邊際（要求達標率大於等於 0.8 / 80% 之最小邊際）
 TH_M3_R95_THRESH,M3 在 R95 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
-TH_MARGINS,安全邊際候選數值清單（0.0 至 0.1，步長 0.02，目標召回率最高 1.0）,門檻設定,E4a,bankruptcy/src/thresholding.py:67,,"[0.0, 0.02, 0.04, 0.06]",專案搜尋空間,"評估候選邊際包含 [0.0, 0.02, 0.04, 0.06, 0.08, 0.1]，目標召回率最高至 1.0"
+TH_MARGINS,安全邊際候選數值清單（0.0 至 0.06，步長 0.02，目標召回率最高 1.0）,門檻設定,E4a,bankruptcy/src/thresholding.py:67,,"[0.0, 0.02, 0.04, 0.06]",專案搜尋空間,"評估候選邊際包含 [0.0, 0.02, 0.04, 0.06]，目標召回率最高至 1.0"
 TH_WILSON_CONFIDENCE,Wilson Score 區間之雙尾常態分位數信賴水準,門檻轉移,E4a,bankruptcy/src/thresholding.py:70,固定常數，不建議調整,0.90 ~ 0.99,統計慣例,設定為 0.95（對應 95% 信賴水準計算二項比例區間）
 TUNE_E2A_TRIALS_M1,E2a 巢狀調參 M1 於外層每折之 Optuna 試驗次數（外層共 3 次重複）,調參流程,E2a,bankruptcy/src/tune.py:502,,10 ~ 100,專案搜尋空間,外層每折固定執行 10 ~ 100 trials，外層共 3 次重複（專案未記載選擇理由）
 TUNE_E2A_TRIALS_M2,E2a 巢狀調參 M2 於外層每折之 Optuna 試驗次數（外層共 3 次重複）,調參流程,E2a,bankruptcy/src/tune.py:503,,10 ~ 100,專案搜尋空間,外層每折固定執行 10 ~ 100 trials，外層共 3 次重複（專案未記載選擇理由）
