@@ -1507,6 +1507,162 @@ def check_commands_in_docs(target_path: Path | None = None) -> tuple[int, int]:
     return errors, warnings
 
 
+
+# ==============================================================================
+# Modification Recipes Checker (--recipes)
+# ==============================================================================
+
+REQUIRED_RECIPE_SECTIONS = [
+    "目標",
+    "前置知識",
+    "風險等級",
+    "需要修改的位置",
+    "步驟",
+    "必補的單元測試",
+    "防洩漏檢查",
+    "驗證方式",
+    "常見的坑",
+    "如何復原",
+    "這個修改會讓哪些固化產物失效或需要重建",
+]
+
+
+def check_recipes(target_path: Optional[Path] = None) -> tuple[int, int]:
+    """
+    Validates modification recipes according to Stage 6 requirements:
+    1. Recipe files must contain all 11 required template headers.
+    2. Every file:line in '需要修改的位置' must pass symbol and line bounds verification (±3 lines).
+    3. High-risk [高] recipes must include non-empty invalidation/rebuild details.
+    """
+    errors = 0
+    warnings = 0
+    total_recipes = 0
+
+    if target_path:
+        if target_path.is_file():
+            md_files = [target_path]
+        elif target_path.is_dir():
+            md_files = sorted(target_path.glob("*.md"))
+        else:
+            print(f"Error: Target path {target_path} not found.")
+            return 1, 0
+    else:
+        # Default: docs/code_learning/05_動手改程式配方.md or 05_動手改程式配方/*.md
+        default_file = DOCS_DIR / "05_動手改程式配方.md"
+        default_dir = DOCS_DIR / "05_動手改程式配方"
+        md_files = []
+        if default_file.exists():
+            md_files.append(default_file)
+        if default_dir.exists() and default_dir.is_dir():
+            md_files.extend(sorted(default_dir.glob("*.md")))
+        if not md_files:
+            print(f"Error: No recipe documents found in {DOCS_DIR}.")
+            return 1, 0
+
+    print(f"\nValidating modification recipes in {len(md_files)} file(s)...")
+
+    for md_file in md_files:
+        try:
+            rel_file = md_file.relative_to(REPO_ROOT)
+        except ValueError:
+            rel_file = md_file
+        try:
+            file_content = md_file.read_text(encoding="utf-8")
+        except Exception as e:
+            print(f"[{rel_file}] [ERROR] Cannot read file: {e}")
+            errors += 1
+            continue
+
+        # Split into recipes by '## 配方 <N>'
+        recipe_blocks = re.split(r"\n(?=##\s+配方\s+\d+)", file_content)
+        file_recipe_count = 0
+
+        for block in recipe_blocks:
+            header_m = re.match(r"##\s+配方\s+(\d+)[：:]\s*(.*)", block.strip())
+            if not header_m:
+                continue
+
+            file_recipe_count += 1
+            total_recipes += 1
+            recipe_num = header_m.group(1)
+            recipe_title = header_m.group(2).strip()
+
+            # Find line number of recipe header
+            recipe_start_line = file_content[:file_content.find(block.strip()[:40])].count("\n") + 1
+
+            # 1. Validate all 11 required section headers
+            for sec in REQUIRED_RECIPE_SECTIONS:
+                sec_pat = re.compile(r"-\s*" + re.escape(sec) + r"[：:]")
+                if not sec_pat.search(block):
+                    print(f"[{rel_file}:{recipe_start_line}] [ERROR] Recipe {recipe_num} ('{recipe_title}') missing required section header: '- {sec}：'")
+                    errors += 1
+
+            # 2. High-risk [高] recipes must include non-empty invalidation details
+            risk_m = re.search(r"-\s*風險等級[：:](.*?)(?=\n-\s*|\Z)", block, re.DOTALL)
+            is_high_risk = False
+            if risk_m:
+                risk_text = risk_m.group(1).strip()
+                if "【高】" in risk_text or "[高]" in risk_text or "高" in risk_text:
+                    is_high_risk = True
+
+            if is_high_risk:
+                inv_m = re.search(r"-\s*這個修改會讓哪些固化產物失效或需要重建[：:](.*?)(?=\n-\s*|\n##|\Z)", block, re.DOTALL)
+                if not inv_m:
+                    print(f"[{rel_file}:{recipe_start_line}] [ERROR] High-risk Recipe {recipe_num} ('{recipe_title}') missing invalidation section.")
+                    errors += 1
+                else:
+                    inv_text = inv_m.group(1).strip()
+                    clean_inv = re.sub(r"[\s\-\*`_#:]", "", inv_text)
+                    if not clean_inv or clean_inv in ["無", "不適用", "none", "n/a", "無效", "無影響"]:
+                        print(f"[{rel_file}:{recipe_start_line}] [ERROR] High-risk Recipe {recipe_num} ('{recipe_title}') invalidation section must specify actual artifacts (got '{inv_text[:40]}').")
+                        errors += 1
+
+            # 3. Location and symbol verification
+            loc_m = re.search(r"-\s*需要修改的位置[：:](.*?)(?=\n-\s*步驟[：:]|\n-\s*|\n##|\Z)", block, re.DOTALL)
+            if loc_m:
+                loc_text = loc_m.group(1)
+                for line in loc_text.splitlines():
+                    line_str = line.strip()
+                    if not line_str or line_str.startswith("#"):
+                        continue
+                    fl_m = re.search(r"([a-zA-Z0-9_\-/\\]+\.[a-zA-Z0-9_]+):(\d+)(?:-(\d+))?", line_str)
+                    if fl_m:
+                        f_path_str = fl_m.group(1).replace("\\", "/")
+                        s_line = int(fl_m.group(2))
+                        e_line = int(fl_m.group(3)) if fl_m.group(3) else s_line
+
+                        rem = line_str[fl_m.end():]
+                        sym_m = re.search(r"\(\s*[`]?([a-zA-Z0-9_]+)[`]?\s*\)|[`]([a-zA-Z0-9_]+)[`]", rem)
+                        symbol = (sym_m.group(1) or sym_m.group(2)) if sym_m else None
+
+                        abs_path = REPO_ROOT / f_path_str
+                        if not abs_path.exists():
+                            print(f"[{rel_file}:{recipe_start_line}] [ERROR] File not found: '{f_path_str}' in Recipe {recipe_num}")
+                            errors += 1
+                            continue
+
+                        file_lines = abs_path.read_text(encoding="utf-8").splitlines()
+                        n_file_lines = len(file_lines)
+                        if s_line < 1 or s_line > n_file_lines:
+                            print(f"[{rel_file}:{recipe_start_line}] [ERROR] Line {s_line} out of bounds in '{f_path_str}' ({n_file_lines} lines) in Recipe {recipe_num}")
+                            errors += 1
+                            continue
+
+                        if symbol:
+                            if not verify_symbol_in_file(abs_path, symbol, s_line, e_line, slack=3):
+                                print(f"[{rel_file}:{recipe_start_line}] [ERROR] Symbol '{symbol}' not found in {f_path_str}:{s_line}{f'-{e_line}' if e_line != s_line else ''} (within ±3 lines) in Recipe {recipe_num}")
+                                errors += 1
+
+        if file_recipe_count == 0 and "05_動手改程式配方" in md_file.name:
+            print(f"[{rel_file}] [ERROR] No recipe blocks (## 配方 <N>) found in file.")
+            errors += 1
+
+    print("\n" + "=" * 50)
+    print(f"Recipes check completed: {errors} error(s), {warnings} warning(s). Total recipes verified: {total_recipes}")
+    print("=" * 50)
+    return errors, warnings
+
+
 def main():
     parser = argparse.ArgumentParser(description="Consistency, evidence, and compliance checker.")
     parser.add_argument("path", nargs="?", default=None, help="Specific file or directory to check.")
@@ -1517,12 +1673,18 @@ def main():
     parser.add_argument("--allow-partial", action="store_true", help="Allow partial T1 coverage.")
     parser.add_argument("--evidence", action="store_true", help="Run evidence tags check.")
     parser.add_argument("--commands", action="store_true", help="Run command syntax and argument AST validation on markdown files.")
+    parser.add_argument("--recipes", action="store_true", help="Run modification recipes check.")
     args = parser.parse_args()
 
     total_err = 0
     total_warn = 0
 
-    if args.commands:
+    if args.recipes:
+        target = Path(args.path) if args.path else None
+        e, w = check_recipes(target)
+        total_err += e
+        total_warn += w
+    elif args.commands:
         target = Path(args.path) if args.path else None
         e, w = check_commands_in_docs(target)
         total_err += e

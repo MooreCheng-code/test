@@ -448,7 +448,7 @@
 
 ### I7. 證據標籤掃描範圍擴展與實測約束
 1. `--evidence` 掃描範圍擴展至包含 `labs/README.md`，驗證標籤數由 98 擴充至 **141 個**，0 errors。
-2. 檢查器新增硬性約束：文件中每個【本專案實測】陳述均必須包含對應之結構化標籤，否則報錯阻擋。
+2. 檢查器新增硬性約束：文件中每個「本專案實測」陳述均必須包含對應之結構化標籤，否則報錯阻擋。
 
 ### I8. 受保護檔案雜湊、行數與 13 階段安全重跑總表
 1. **受保護檔案雜湊與行數**：
@@ -457,3 +457,37 @@
    - 總計：`2 files changed, 23 insertions(+), 8 deletions(-)`。
 2. `04_實驗操作指南.md` 增設 13 階段安全重跑判定總表。
 3. `--commands` 32 條指令清單全體驗證通過，標註 E6 與覆寫 output 者。
+
+
+## 階段 6 發現：動手改程式配方之架構查核、沙盒驗證與檢查器實施
+
+### J1. 配方 1（新增模型 M6）之全域同步節點
+1. **涉及模組與精確行號**：
+   - `bankruptcy/src/pipelines.py:131-209` (`_get_classifier`)：新增分類器工廠分支。
+   - `bankruptcy/src/pipelines.py:264-280` (`get_score`)：確認分類器提供 `predict_proba` 以支援連續機率分數擷取。
+   - `bankruptcy/src/tune.py:121-178` (`sample_hyperparameters`)：定義 Optuna 隨機搜尋空間。
+   - `bankruptcy/src/tune.py:501, 865` (`n_trials_map`)：分別於 E2a 巢狀 CV 與 E2b 最佳參數固化字典新增配額。
+   - `bankruptcy/src/ensemble.py:73, 75` (`SINGLE_MODELS` 與 `ENSEMBLE_CANDIDATES`)：登錄單模型名單與集成組合。
+2. **沙盒驗證成果**：在 `scratch/recipes/` 副本上實作 `HistGradientBoostingClassifier`，以 100 筆合成資料擬合，分數輸出介面與形狀均 100% 符合管線契約。
+3. **方法論邊界硬性約束**：已固化之 E6 測試集結果與新模型不可直接比較；嚴禁在現有專案中重新解封測試集。
+
+### J2. 配方 2（新增前處理 transformer）之行獨立性與防洩漏檢測
+1. **防洩漏規範**：依循 `preprocessing.py:27` 繼承 `BaseEstimator, TransformerMixin`，`fit` 僅校驗特徵數量，`transform` 執行純逐列運算。
+2. **沙盒行獨立性檢測（Row-Independence Leakage Detector）**：
+   - 乾淨轉換器 `RatioFeatureAdder`：單一樣本 $A$ 獨立 transform 與混入批次 $[A, B, C]$ transform 結果完全一致（`assert_allclose`，差異 0.0）。
+   - 錯誤示範 `LeakyMeanScaler`：在 `transform` 內部使用整批均值，造成樣本 $A$ 的輸出受到同批次其他樣本干擾，產生最大 154.67 數值偏移，成功被洩漏檢測器攔截。
+
+### J3. 配方 4（新增評估指標）之悲觀同分一致性
+1. **同分處置機制**：實作 `precision_at_top_k`，完全套用專案既有悲觀同分規則（`recall_at_top_k_percent` 相同邏輯，負樣本優先佔用配額）。
+2. **20 筆玩具資料手算驗證**：
+   - 排序完美區隔時：預算 $k=2$，2 筆正樣本全中，精確率為 $1.0$。
+   - 門檻存在平手時：預算 $k=2$，門檻處 1 筆正樣本與 1 筆負樣本平手且僅剩 1 個配額，悲觀規則假設負樣本優先被挑選，精確率精確等於 $0.50$，避免隨機打散帶來的數值浮動。
+
+### J4. 配方 6（換成真實世界資料重做）之 9 大檢查清單與核心限制
+1. **本專案核心架構限制**：本資料集因去識別化缺乏公司 ID 與財報年度，故專案目前採用 `StratifiedKFold`。若遷移至真實資料，**必須強制採用 `GroupKFold(groups=company_id)` 或滾動時間序切分（Rolling Window Split）**，以杜絕嚴重的跨時間資料洩漏。
+2. **盛行率貝氏敏感度**：真實市場破產率（如 0.5%）遠低於本專案之 3.23%。依 E7a 貝氏推演，相同模型在 0.5% 盛行率下精確率將下降約 6 倍，預警倍數將顯著放大。
+3. **外部驗證嚴正聲明**：外部驗證尚未做，目前所有結果只代表這一份資料，不能代表真實世界的表現。
+
+### J5. `--recipes` 檢查器與單元測試
+1. `tools/check_code_docs.py` 擴充 `--recipes` 模式，自動檢查 11 項固定模板標題、`檔案:行號` 之 ±3 行符號檢查、以及高風險配方之失效產物說明。
+2. `tools/test_recipes_checker.py` 通過 4 項單元測試，包含 3 項負向測試（缺標題、符號/邊界錯誤、高風險缺失效說明）。
