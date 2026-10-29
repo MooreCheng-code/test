@@ -2,7 +2,7 @@
 
 - **所依據的程式碼版本（Base Commit）**：`c35f833`（`c35f83371712aa59b7284c0e99944b47b2801a7a`，分支 `docs/code-learning`）
 - **Python 與測試環境**：Python 3.14.4，`bankruptcy/tests/` 內已提交之 24 個測試檔共 190 項測試（若含工作區未追蹤之 `test_model_score_report.py` 則為 25 個檔案、193 項測試）。
-- **最後更新階段**：階段 2c（模組導讀全數完成：全 14 份導讀涵蓋專案 22 個模組；最小版檢查器 `tools/check_code_docs.py` 完成）
+- **最後更新階段**：階段 3a-fix（參數登錄表 v2 完成：134 筆參數、12 大類別、T1/T2/T3 分層；完整性檢查 0 未對應；抽取器單元測試通過；強化版檢查器完成）
 
 ---
 
@@ -13,10 +13,10 @@
 | **階段 0** | 專案唯讀盤點、`_progress.md`、`_findings.md` | ✅ 已完成 | `9576888` (`docs(code-learning): stage 0 - inventory and initial findings`) |
 | **階段 1** | `01_專案地圖與資料流.md`、`_facts_verified.md` | ✅ 已完成 | `ef8ac14` (`docs(code-learning): stage 1 - project map and data flow`) |
 | **階段 2a** | `02_模組導讀/`：`config.md`, `data_audit.md`, `metrics.md`, `preprocessing.md`；`_stale_claims.csv` | ✅ 已完成 | `9978104` (`docs(code-learning): stage 2a - module guides part 1`) |
-| **階段 2b** | `02_模組導讀/`：`cv_and_pipelines.md`, `tuning_E2.md`, `ensemble_E3.md`, `calibration_and_threshold.md` | ✅ 已完成 | `c291360` (Part 1) + 本次提交 (Part 2) |
-| **階段 2c** | `02_模組導讀/`：`explain_E5.md`, `e6_lock_and_final_eval.md`, `e7_sensitivity.md`, `experiments_E0_E7.md`, `score_new_data.md`, `app_streamlit.md`；最小版檢查器 `tools/check_code_docs.py` | ✅ 已完成 | `55c4191` (Part 1) + 本次提交 (Part 2) |
-| **階段 3a** | `03a_param_registry.csv`（機器可讀參數登錄表，共 96 筆參數，T1 82 筆、T2 14 筆；17 欄位全數具備）、`tools/build_param_registry.py`、`tools/check_code_docs.py --registry` | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 3a - parameter registry, 2c follow-ups, stronger checker`) |
-| **階段 3b/c** | `03_參數手冊.md`（T1 參數卡、調參方向速查表、參數交互作用表） | ⏳ 待放行 | 待審核 3a 後執行 |
+| **階段 2b** | `02_模組導讀/`：`cv_and_pipelines.md`, `tuning_E2.md`, `ensemble_E3.md`, `calibration_and_threshold.md` | ✅ 已完成 | `c291360` (Part 1) + `3ad26f3` (Part 2) |
+| **階段 2c** | `02_模組導讀/`：`explain_E5.md`, `e6_lock_and_final_eval.md`, `e7_sensitivity.md`, `experiments_E0_E7.md`, `score_new_data.md`, `app_streamlit.md`；最小版檢查器 `tools/check_code_docs.py` | ✅ 已完成 | `55c4191` (Part 1) + `3ad26f3` (Part 2) |
+| **階段 3a-fix** | `03a_param_registry.csv` v2（134 筆，T1 84 筆、T2 26 筆、T3 24 筆；12 大類別）、`param_notes.csv`、`param_exclusions.csv`（24 項排除）、`tools/build_param_registry.py`、`tools/check_code_docs.py --registry`（完整性檢查 0 未對應）、`tools/test_registry_extractor.py`（單元測試通過） | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 3a-fix - registry v2, completeness check, independent verification`) |
+| **階段 3b/c** | `03_參數手冊.md`（按參數概念合併之 T1 參數卡約 30～45 張、調參方向速查表、參數交互作用表） | ⏳ 待放行 | 待審核 3a-fix 後放行 |
 | **階段 4** | `labs/README.md`、`labs/lab_01_*.py` ～ `labs/lab_08_*.py`、`labs/.gitignore`、`docs/code_learning/lab_snapshots/` | ⏸️ 待執行 | — |
 | **階段 5** | `04_實驗操作指南.md` | ⏸️ 待執行 | — |
 | **階段 6** | `05_動手改程式配方.md` | ⏸️ 待執行 | — |

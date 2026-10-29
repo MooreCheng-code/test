@@ -125,6 +125,27 @@
 - **現象與規範**：
   `AdaptiveScaleWeightClassifier` 在訓練時動態計算 `scale_pos_weight = n_neg / max(1, n_pos)`，嚴格依賴當前訓練折 `y`，故在參數登錄表中將其來源類型標定為 `derived`，目前值標定為「動態：由訓練折計算」，避免初學者誤以為其為 Optuna 靜態搜尋之固定數值。
 
+### F-07：`n_trials_map` 數值串接成因與字典多列分拆（3a-fix 2.1）
+- **位置**：`bankruptcy/src/tune.py:501-507`（E2a `n_trials_map_e2a`）與 `bankruptcy/src/tune.py:865-871`（E2b `n_trials_map_e2b`）
+- **嚴重度評級**：**低（報告文字呈現錯誤，原始碼無誤）**
+- **成因分析**：
+  在階段 3a 初期文字報告中，曾出現「外層折 2540 trials、全集 3860 trials」之字串，實為報告將非快速模式（M1=25, M2~M5=40）與（M1=38, M2~M5=60）之多模型字典數值在文字總結時產生串接。在 `tune.py` 原始碼中，兩者皆為結構清楚的 Python 字典：
+  - `n_trials_map_e2a`: `{"M1": 3 if quick else 25, "M2": 3 if quick else 40, ...}`
+  - `n_trials_map_e2b`: `{"M1": 5 if quick else 38, "M2": 5 if quick else 60, ...}`
+- **修正措施**：
+  在登錄表 v2 中，將調參試驗數改為「每個模型一列」（M1～M5 各自獨立 10 列），`目前值` 嚴格填入單一整數（E2a: 25, 40, 40, 40, 40; E2b: 38, 60, 60, 60, 60）。並建立獨立單元測試 `tools/test_registry_extractor.py`（測試通過 Ran 3 tests, OK），確保抽取器絕不對字典數值進行字串拼接。
+
+### F-08：人工備註數值與推測性描述之全面審計與清理（3a-fix 2.2）
+- **位置**：`docs/code_learning/param_notes.csv` 與 `docs/code_learning/03a_param_registry.csv`
+- **嚴重度評級**：**低（文件筆誤修正與客觀化規範）**
+- **審計與修訂清單**：
+  1. `CFG_MVP_PASS_TOP10_RECALL`：原始值為 0.5（50%），備註筆誤寫為「至少抓出 80% 破產公司」，已對照 `config.py:44` 註解修訂為 50%。
+  2. `CFG_COST_FN`：目前值為 20.0，修正先前「10:1」之非專案口徑筆誤，統一為「20:1 假陰性代價」。
+  3. `CFG_MVP_PASS_PR_AUC_MULTIPLIER`：目前值為 3.0，修正先前筆誤。
+  4. `CFG_DEFAULT_TARGET_RECALL`：目前值為 0.95，修正先前筆誤。
+  5. **主觀推測全面清除**：全表逐列檢查，凡未有專案文獻、Git Commit 或實驗輸出佐證之「選擇理由」，一律改寫為「（專案未記載選擇理由）」；一般經驗說法統一補註「（一般經驗，未經本專案驗證）」。
+  6. **檢查器防護機制**：於 `tools/check_code_docs.py --registry` 模式新增備註數字查核規則，掃描備註中所有數字與百分比，確保與同列數值及證據完全吻合。
+
 ---
 
 ## 三、既有已知議題對照（引自 `docs/KNOWN_ISSUES.md`）

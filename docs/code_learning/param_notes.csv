@@ -1,97 +1,135 @@
 ﻿id,說明,影響階段,相關實驗ID,證據檔案,可調性,合理範圍,範圍來源,備註
-CFG_SEED,全專案全域隨機種子，控制資料切分、模型初始化與重採樣隨機性,全階段,EDA-E7,bankruptcy/config.py:20,可在 lab 安全調整,0 ~ 2^32-1,程式碼限制,修改後需重跑以觀察隨機擾動
-CFG_TEST_SIZE,獨立保留測試集（Holdout Test Set）佔比,切分階段,EDA/E0,bankruptcy/config.py:23,已鎖定，不可調整（E6 相關）,0.1 ~ 0.3,一般經驗,維持 0.2 以對齊 E6 固化環境
-CFG_CV_FOLDS,外層分層交叉驗證折數（Stratified K-Fold）,驗證階段,E0-E5/E7,bankruptcy/config.py:24,可在 lab 安全調整,3 ~ 10,一般經驗,專案採 5 折以保證驗證折有足夠正樣本
-CFG_CV_REPEATS,外層交叉驗證重複次數（Repeated K-Fold）,驗證階段,E0-E5/E7,bankruptcy/config.py:25,可在 lab 安全調整,1 ~ 5,一般經驗,專案採 3 次重複以降低小樣本抽樣變異
-CFG_TARGET_RECALLS,評估預警比率之目標召回率清單,評估與門檻,E0/E4/E6,bankruptcy/config.py:28,可在 lab 安全調整,[0.5 ~ 1.0],業務需求,包含 80%、90%、95%、100% 四種業務情境
-CFG_ALERT_RATIOS,評估固定預警比率下召回率之倍數清單,評估與指標,E0/E6,bankruptcy/config.py:29,可在 lab 安全調整,[1.0 ~ 20.0],業務需求,包含 1.5x、3.0x、5.0x、10.0x 四種容量
-CFG_DEFAULT_TARGET_RECALL,生產環境與報表之預設目標召回率基準,門檻與應用,E4/E6/MVP,bankruptcy/config.py:30,可在 lab 安全調整,0.8 ~ 0.99,業務需求,預設 90% 召回作為風控核心基準
-CFG_TARGET_COL,破產標籤欄位名稱,資料稽核,EDA/全階段,bankruptcy/config.py:31,已鎖定，不可調整（E6 相關）,不適用,程式碼限制,資料集固有標籤欄名 Bankrupt?
-CFG_TOP_K_PERCENT,批次推論排程之高風險審查配額比例,應用層,MVP,bankruptcy/config.py:37,僅應用層,0.01 ~ 0.30,業務需求,預設前 10% 企業優先列入深入稽核排程
-CFG_MIN_BATCH_SIZE_FOR_TOP_K,啟用 Top-K 配額之最小批次有效樣本數,應用層,MVP,bankruptcy/config.py:38,僅應用層,10 ~ 100,一般經驗,樣本數太少（<25）時百分比配額失去統計意義
-CFG_COST_FN,敏感度評估中漏報破產企業之假陰性懲罰成本,評估指標,E4/MVP,bankruptcy/config.py:39,可在 lab 安全調整,1.0 ~ 100.0,業務需求,預設 FN:FP = 10:1 反映漏報破產的重大信用損失
-CFG_COST_FP,敏感度評估中誤報正常企業之假陽性調查成本,評估指標,E4/MVP,bankruptcy/config.py:40,可在 lab 安全調整,0.1 ~ 10.0,業務需求,基準調查成本設定為 1.0
-CFG_COST_FN_SENSITIVITY_LIST,成本敏感度分析之 FN 權重掃描清單,評估指標,E4/MVP,bankruptcy/config.py:41,可在 lab 安全調整,任意正數清單,一般經驗,評估成本比值在 1 到 50 區間的決策影響
-CFG_MAX_MISSING_FEATURE_RATIO,推論時單筆或批次允許之最大缺失特徵比例,前處理與應用,MVP,bankruptcy/config.py:42,僅應用層,0.05 ~ 0.50,一般經驗,超過 20%（19 個特徵）缺失則拒絕評分以策安全
-CFG_MVP_PASS_PR_AUC_MULTIPLIER,MVP 模型驗收之 PR-AUC 相對基準倍數門檻,評估指標,MVP,bankruptcy/config.py:43,可在 lab 安全調整,1.0 ~ 2.0,一般經驗,要求模型 PR-AUC 需達單一特徵基準之 1.1 倍
-CFG_MVP_PASS_TOP10_RECALL,MVP 模型驗收在 Top-10% 配額之最小召回率門檻,評估指標,MVP,bankruptcy/config.py:44,可在 lab 安全調整,0.5 ~ 0.95,一般經驗,要求在審查 10% 企業時至少抓出 80% 破產公司
-PREP_CORR_THRESHOLD,相關係數過濾器之 Pearson 相關係數絕對值門檻,前處理,E1b,outputs/tables/e1b_ablation.csv,可在 lab 安全調整,0.80 ~ 0.99,專案搜尋空間,高於 0.95 者僅保留單變量 AUC 較高者（移除了 20 欄）
-PREP_CORR_ENABLED,相關係數過濾器開關,前處理,E1b,outputs/tables/e1b_ablation.csv,可在 lab 安全調整,True / False,程式碼限制,E1b 消融證實開啟過濾器有助線性模型穩定
-PREP_WINSOR_LOWER,極端值截尾（Winsorizer）之下分位數門檻,前處理,E1b,outputs/tables/e1b_ablation.csv,可在 lab 安全調整,0.001 ~ 0.05,一般經驗,下邊界截尾分位數
-PREP_WINSOR_UPPER,極端值截尾（Winsorizer）之上分位數門檻,前處理,E1b,outputs/tables/e1b_ablation.csv,可在 lab 安全調整,0.95 ~ 0.999,一般經驗,上邊界截尾分位數
-PREP_WINSOR_ENABLED,極端值截尾器開關,前處理,E1b,outputs/tables/e1b_ablation.csv,可在 lab 安全調整,True / False,程式碼限制,E1b 實測關閉截尾表現略佳且避免破壞真實極端訊號
-PREP_QUANTILE_N,QuantileTransformer 擬合經驗累積分布之分位數數量,前處理,E1a/E1b,outputs/tables/e1a_imbalance_comparison.csv,可在 lab 安全調整,100 ~ 2000,一般經驗,設為 1000 以平滑映射厚尾財務數據
-PREP_QUANTILE_DIST,QuantileTransformer 映射之目標邊際分佈,前處理,E1a/E1b,outputs/tables/e1a_imbalance_comparison.csv,可在 lab 安全調整,uniform / normal,程式碼限制,專案實測 uniform 映射均勻分佈效果最佳
-PREP_LARGE_ENABLED,極端大值指示器特徵生成開關,前處理,E1b,outputs/tables/e1b_ablation.csv,可在 lab 安全調整,True / False,程式碼限制,E1b 實測開啟無顯著增益，故維持 False
-PIPE_SCALE_POS_WEIGHT,動態計算之少數類樣本權重（scale_pos_weight）,模型超參數,E1a,bankruptcy/src/pipelines.py:53,可在 lab 安全調整,正負樣本比率（動態計算）,程式碼限制,AdaptiveScaleWeightClassifier 嚴格由訓練折 y 動態計算（n_neg / n_pos）防洩漏
-PIPE_IMBALANCE_DEFAULT,管線建構之預設不平衡處理策略,模型訓練,E1a,outputs/tables/e1_selection_recommendation.csv,可在 lab 安全調整,S0 ~ S6,專案搜尋空間,E1a 實測無策略顯著勝過 S0，奧坎剃刀原則選 S0
-PIPE_SCALER_DEFAULT,管線建構之預設數值縮放器種類,前處理,E1a,outputs/tables/e1_selection_recommendation.csv,可在 lab 安全調整,quantile / standard / none,專案搜尋空間,E1a 實測 Quantile 縮放全面優於 Standard 縮放
-TUNE_E2A_TRIALS,E2a 巢狀交叉驗證中每個內層折之 Optuna 搜尋試驗次數,調參流程,E2a,outputs/tables/e2a_nested_summary.csv,可在 lab 安全調整,20 ~ 200,一般經驗,外層 15 折 × 內層 3 折 × 50 trials = 2250 次調參
-TUNE_E2B_TRIALS,E2b 全量訓練集最終超參數搜尋之試驗次數,調參流程,E2b,outputs/tables/e2b_final_params_summary.csv,可在 lab 安全調整,50 ~ 500,一般經驗,全量訓練集以 100 trials 尋優固化
-M1_SEARCH_C,M1 羅吉斯迴歸正規化強度倒數 C 搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M1.json,可在 lab 安全調整,0.001 ~ 10.0,專案搜尋空間,對數尺度分佈，E2b 最佳值為 0.1162
-M1_SEARCH_PENALTY,M1 羅吉斯迴歸懲罰項種類搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M1.json,可在 lab 安全調整,l1 / l2,專案搜尋空間,類別型搜尋，E2b 最佳值為 l2
-M2_SEARCH_N_ESTIMATORS,M2 隨機森林樹木棵數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M2.json,可在 lab 安全調整,300 ~ 800,專案搜尋空間,步長 50，E2b 最佳值為 300
-M2_SEARCH_MAX_DEPTH,M2 隨機森林最大樹深搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M2.json,可在 lab 安全調整,"[4, 6, 8, 12, None]",專案搜尋空間,類別型深度，E2b 最佳值為 12
-M2_SEARCH_MIN_SAMPLES_LEAF,M2 隨機森林葉節點最小樣本數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M2.json,可在 lab 安全調整,1 ~ 10,專案搜尋空間,整數型步長 1，E2b 最佳值為 10
-M2_SEARCH_MAX_FEATURES,M2 隨機森林分裂考慮特徵數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M2.json,可在 lab 安全調整,"['sqrt', 'log2', 0.3]",專案搜尋空間,類別型抽樣比例，E2b 最佳值為 sqrt
-M3_SEARCH_N_ESTIMATORS,M3 極端隨機樹樹木棵數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M3.json,可在 lab 安全調整,300 ~ 800,專案搜尋空間,步長 50，E2b 最佳值為 600
-M3_SEARCH_MAX_DEPTH,M3 極端隨機樹最大樹深搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M3.json,可在 lab 安全調整,"[4, 6, 8, 12, None]",專案搜尋空間,類別型深度，E2b 最佳值為 None
-M3_SEARCH_MIN_SAMPLES_LEAF,M3 極端隨機樹葉節點最小樣本數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M3.json,可在 lab 安全調整,1 ~ 10,專案搜尋空間,整數型步長 1，E2b 最佳值為 2
-M3_SEARCH_MAX_FEATURES,M3 極端隨機樹分裂考慮特徵數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M3.json,可在 lab 安全調整,"['sqrt', 'log2', 0.3]",專案搜尋空間,類別型抽樣比例，E2b 最佳值為 0.3
-M4_SEARCH_N_ESTIMATORS,M4 XGBoost 提升迭代次數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M4.json,可在 lab 安全調整,200 ~ 800,專案搜尋空間,步長 50，E2b 最佳值為 250
-M4_SEARCH_LEARNING_RATE,M4 XGBoost 學習率搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M4.json,可在 lab 安全調整,0.01 ~ 0.2,專案搜尋空間,對數尺度分佈，E2b 最佳值為 0.0468
-M4_SEARCH_MAX_DEPTH,M4 XGBoost 最大樹深搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M4.json,可在 lab 安全調整,2 ~ 6,專案搜尋空間,偏好淺樹防過擬合，E2b 最佳值為 2
-M4_SEARCH_SUBSAMPLE,M4 XGBoost 列樣本採樣比例搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M4.json,可在 lab 安全調整,0.6 ~ 1.0,專案搜尋空間,隨機子採樣，E2b 最佳值為 0.8796
-M4_SEARCH_COLSAMPLE,M4 XGBoost 樹特徵採樣比例搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M4.json,可在 lab 安全調整,0.6 ~ 1.0,專案搜尋空間,隨機特徵採樣，E2b 最佳值為 0.9017
-M4_SEARCH_REG_LAMBDA,M4 XGBoost L2 正則化係數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M4.json,可在 lab 安全調整,0.01 ~ 10.0,專案搜尋空間,對數尺度分佈，E2b 最佳值為 1.6903
-M4_SEARCH_MIN_CHILD_WEIGHT,M4 XGBoost 葉節點最小 Hessian 和搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M4.json,可在 lab 安全調整,1.0 ~ 10.0,專案搜尋空間,限制葉節點最小權重，E2b 最佳值為 7.3009
-M5_SEARCH_SUBSAMPLE,M5 LightGBM 樣本採樣比例搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M5.json,可在 lab 安全調整,0.6 ~ 1.0,專案搜尋空間,E2b 最佳值為 0.6072；注意需 subsample_freq > 0 方生效
-M5_SEARCH_SUBSAMPLE_FREQ,M5 LightGBM 採樣頻率（F-02 已知狀態）,調參流程,E2a/E2b,outputs/models/best_params/M5.json,可在 lab 安全調整,[1] (調參) / 0 (預設),專案搜尋空間,調參時注入 subsample_freq=1，但固化 JSON 遺漏未寫入
-M5_SEARCH_N_ESTIMATORS,M5 LightGBM 迭代次數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M5.json,可在 lab 安全調整,200 ~ 800,專案搜尋空間,步長 50，E2b 最佳值為 300
-M5_SEARCH_LEARNING_RATE,M5 LightGBM 學習率搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M5.json,可在 lab 安全調整,0.01 ~ 0.2,專案搜尋空間,對數尺度分佈，E2b 最佳值為 0.0137
-M5_SEARCH_NUM_LEAVES,M5 LightGBM 最大葉節點數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M5.json,可在 lab 安全調整,8 ~ 64,專案搜尋空間,控制模型複雜度，E2b 最佳值為 43
-M5_SEARCH_COLSAMPLE,M5 LightGBM 特徵子採樣比例搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M5.json,可在 lab 安全調整,0.6 ~ 1.0,專案搜尋空間,隨機特徵採樣，E2b 最佳值為 0.7789
-M5_SEARCH_REG_LAMBDA,M5 LightGBM L2 正則化係數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M5.json,可在 lab 安全調整,0.01 ~ 10.0,專案搜尋空間,對數尺度分佈，E2b 最佳值為 0.0270
-M5_SEARCH_MIN_CHILD_SAMPLES,M5 LightGBM 葉節點最小樣本數搜尋空間,調參流程,E2a/E2b,outputs/models/best_params/M5.json,可在 lab 安全調整,5 ~ 50,專案搜尋空間,限制過擬合，E2b 最佳值為 38
-ENS_SINGLE_MODELS,E3 評估比較之單一模型候選清單,模型集成,E3,outputs/tables/e3a_pairwise_models.csv,可在 lab 安全調整,"['M1', 'M2', 'M3', 'M4', 'M5']",專案搜尋空間,包含線性、隨機森林、極端隨機樹與兩大梯度提升
-ENS_CANDIDATES,E3 評估比較之集成組合字典,模型集成,E3,outputs/tables/e3_selection.csv,可在 lab 安全調整,任意子集組合,專案搜尋空間,"比對 E_all, E_A, E_B, E_trees 四大集成方式"
-ENS_PRIMARY_MODEL,專案選定之主要預警集成模型代號,模型集成,E3/E4/E6,outputs/tables/e3_selection.csv,需重跑固化流程才生效,E_A / M3,專案搜尋空間,Rule 2 決策由 E_A (M3+M4+M5 百分位等權平均) 勝出
-ENS_CONTROL_SINGLE_MODEL,專案選定之單一模型對照組代號,模型集成,E3/E4/E6,outputs/tables/e3_selection.csv,需重跑固化流程才生效,M3,專案搜尋空間,選定折間標準差最小之 M3 (ExtraTrees) 作為控制組
-TH_MARGINS,E4a 安全邊際候選數值清單,門檻與目標,E4a,outputs/tables/e4a_threshold_transfer_summary.csv,可在 lab 安全調整,"[0.0, 0.02, 0.04, 0.06]",專案搜尋空間,離散粗網格步長 0.02
-TH_ATTAINMENT_THRESHOLD,安全邊際挑選之最小跨折召回達標率門檻,門檻與目標,E4a,outputs/tables/e4a_margin_recommendation.csv,可在 lab 安全調整,0.70 ~ 0.95,一般經驗,專案要求至少在 80% 的外層折中達成預期召回
-TH_EA_R80_THRESH,E_A 在 R80 運作點之固化操作門檻值,門檻與目標,E4b/E6,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 1.0,專案搜尋空間,固化值 0.884540（對應安全邊際 m=0.02）
-TH_EA_R80_MARGIN,E_A 在 R80 運作點之選定安全邊際 m,門檻與目標,E4a/E4b,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 0.06,專案搜尋空間,固化邊際 0.02
-TH_EA_R90_THRESH,E_A 在 R90 運作點之固化操作門檻值,門檻與目標,E4b/E6,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 1.0,專案搜尋空間,固化值 0.739979（對應安全邊際 m=0.06）
-TH_EA_R90_MARGIN,E_A 在 R90 運作點之選定安全邊際 m,門檻與目標,E4a/E4b,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 0.06,專案搜尋空間,固化邊際 0.06
-TH_EA_R95_THRESH,E_A 在 R95 運作點之固化操作門檻值,門檻與目標,E4b/E6,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 1.0,專案搜尋空間,固化值 0.598320（對應安全邊際 m=0.04）
-TH_EA_R95_MARGIN,E_A 在 R95 運作點之選定安全邊際 m,門檻與目標,E4a/E4b,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 0.06,專案搜尋空間,固化邊際 0.04
-TH_EA_R100_THRESH,E_A 在 R100 運作點之固化操作門檻值,門檻與目標,E4b/E6,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 1.0,專案搜尋空間,固化值 0.170807（對應安全邊際 m=0.00）
-TH_EA_R100_MARGIN,E_A 在 R100 運作點之選定安全邊際 m,門檻與目標,E4a/E4b,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 0.06,專案搜尋空間,固化邊際 0.00
-TH_M3_R80_THRESH,M3 在 R80 運作點之固化操作門檻值,門檻與目標,E4b/E6,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 1.0,專案搜尋空間,固化值 0.874335（對應安全邊際 m=0.04）
-TH_M3_R80_MARGIN,M3 在 R80 運作點之選定安全邊際 m,門檻與目標,E4a/E4b,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 0.06,專案搜尋空間,固化邊際 0.04
-TH_M3_R90_THRESH,M3 在 R90 運作點之固化操作門檻值,門檻與目標,E4b/E6,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 1.0,專案搜尋空間,固化值 0.780110（對應安全邊際 m=0.04）
-TH_M3_R90_MARGIN,M3 在 R90 運作點之選定安全邊際 m,門檻與目標,E4a/E4b,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 0.06,專案搜尋空間,固化邊際 0.04
-TH_M3_R95_THRESH,M3 在 R95 運作點之固化操作門檻值,門檻與目標,E4b/E6,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 1.0,專案搜尋空間,固化值 0.644913（對應安全邊際 m=0.04）
-TH_M3_R95_MARGIN,M3 在 R95 運作點之選定安全邊際 m,門檻與目標,E4a/E4b,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 0.06,專案搜尋空間,固化邊際 0.04
-TH_M3_R100_THRESH,M3 在 R100 運作點之固化操作門檻值,門檻與目標,E4b/E6,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 1.0,專案搜尋空間,固化值 0.267324（對應安全邊際 m=0.00）
-TH_M3_R100_MARGIN,M3 在 R100 運作點之選定安全邊際 m,門檻與目標,E4a/E4b,outputs/models/final/thresholds.json,需重跑固化流程才生效,0.0 ~ 0.06,專案搜尋空間,固化邊際 0.00
-SENS_PREVALENCES,E7a 盛行率敏感度評估之市場破產率網格,評估指標,E7a,outputs/tables/e7a_prevalence_sensitivity.csv,可在 lab 安全調整,[0.001 ~ 0.10],專案搜尋空間,涵蓋 0.5% ~ 5.0% 五種總體經濟循環情境
-SENS_SEEDS,E7b 隨機種子穩定性評估之種子清單,驗證流程,E7b,outputs/tables/e7b_seed_stability.csv,可在 lab 安全調整,任意整數清單,專案搜尋空間,測試 5 組跨度極大之種子驗證演算法隨機穩定性
-SCORE_ALLOW_MISSING,批次推論是否啟用缺值自動填補中位數,前處理與應用,MVP,bankruptcy/src/scoring.py:386,僅應用層,True / False,程式碼限制,預設 False（嚴格檢驗）；True 啟用 20% 防護自動補值
-SCORE_MODEL_NAME,批次推論介面預設使用之模型名稱,應用層,MVP,bankruptcy/src/scoring.py:384,僅應用層,E_A / M3 / M4 / M1,程式碼限制,預設主力集成模型 E_A
-SCORE_OPERATING_POINT,批次推論介面預設目標工作點,應用層,MVP,bankruptcy/src/scoring.py:385,僅應用層,R80 / R90 / R95 / R100,程式碼限制,預設 R90 風控工作點
-DEF_N_INPUT_FEATURES,Streamlit 介面提供動態調整之主要財務特徵數量,應用層,MVP,bankruptcy/app/assets/defaults.json:6,僅應用層,5 ~ 30,專案搜尋空間,篩選出平均重要度排名前 18 之關鍵財報指標
-DEF_PERSISTENT_EPS_P50,單一最強特徵持續每股盈餘訓練集中位數基準,應用層,EDA/E0/MVP,bankruptcy/app/assets/defaults.json:200,僅應用層,-5.0 ~ 5.0,一般經驗,訓練集 5455 筆樣本之中位數 0.2173
-CFG_BASE_DIR,專案根目錄基礎路徑,系統與路徑,全階段,bankruptcy/config.py:6,已鎖定，不可調整（E6 相關）,不適用,不適用,專案內部目錄錨點
-CFG_DATA_DIR,原始數據存放目錄路徑,系統與路徑,全階段,bankruptcy/config.py:7,已鎖定，不可調整（E6 相關）,不適用,不適用,指向 data/
-CFG_DATA_PATH,主要資料集 CSV 檔案路徑,系統與路徑,全階段,bankruptcy/config.py:8,已鎖定，不可調整（E6 相關）,不適用,不適用,指向 data/data.csv
-CFG_OUTPUT_DIR,產物根目錄路徑,系統與路徑,全階段,bankruptcy/config.py:9,已鎖定，不可調整（E6 相關）,不適用,不適用,指向 outputs/
-CFG_TABLES_DIR,報表與統計表格輸出目錄,系統與路徑,全階段,bankruptcy/config.py:10,已鎖定，不可調整（E6 相關）,不適用,不適用,指向 outputs/tables/
-CFG_FIGURES_DIR,視覺化圖表輸出目錄,系統與路徑,全階段,bankruptcy/config.py:11,已鎖定，不可調整（E6 相關）,不適用,不適用,指向 outputs/figures/
-CFG_MODELS_DIR,模型權重與固化元件存放目錄,系統與路徑,全階段,bankruptcy/config.py:12,已鎖定，不可調整（E6 相關）,不適用,不適用,指向 outputs/models/
-CFG_LOGS_DIR,執行日誌與 E6 鎖定檔存放目錄,系統與路徑,全階段,bankruptcy/config.py:13,已鎖定，不可調整（E6 相關）,不適用,不適用,指向 outputs/logs/
-CFG_FEATURES,資料集所有特徵欄位名稱清單,資料稽核,EDA/E1,bankruptcy/config.py:34,已鎖定，不可調整（E6 相關）,不適用,不適用,95 個財務特徵名稱清單
-DEF_N_TRAIN,訓練集總樣本數,資料與切分,E0-E6,bankruptcy/app/assets/defaults.json:3,"已鎖定，不可調整（E6 相關）",不適用,不適用,"固化訓練樣本 5,455 筆"
-DEF_N_RAW_COLUMNS,原始輸入資料集之特徵欄位總數,資料與切分,EDA/全階段,bankruptcy/app/assets/defaults.json:4,已鎖定，不可調整（E6 相關）,不適用,不適用,原始財務指標共 95 個
-DEF_N_MODEL_COLUMNS,通過相關性過濾後進入模型之特徵數,前處理,E1b/全階段,bankruptcy/app/assets/defaults.json:5,已鎖定，不可調整（E6 相關）,不適用,不適用,過濾共線後保留 72 個特徵
-DEF_TRAIN_BANKRUPTCY_RATE,訓練集中破產企業之歷史盛行率基準,評估指標,EDA/全階段,bankruptcy/app/assets/defaults.json:8,已鎖定，不可調整（E6 相關）,不適用,不適用,176 / 5455 = 3.2264%
+CFG_TEST_SIZE,獨立保留測試集（Holdout Test Set）佔比,資料切分,EDA/E0/E6,bankruptcy/config.py:23,,0.1 ~ 0.3,一般經驗,"固定為 0.2（保留 1,364 筆樣本），已於 E6 前期永久凍結鎖定"
+CFG_TARGET_COL,破產標籤欄位名稱,資料切分,EDA/全階段,bankruptcy/config.py:31,,不適用,程式碼限制,資料集固有欄名 Bankrupt?，0 表正常、1 表破產
+CFG_FEATURES,資料集指定特徵欄位名稱清單容器,資料切分,EDA/E1,bankruptcy/config.py:34,,不適用,程式碼限制,預設 None 表載入除標籤外全部 95 個財務特徵
+CFG_SEED,全專案全域隨機種子，控制資料切分、模型初始化與重採樣隨機性,全階段,EDA-E7,bankruptcy/config.py:20,,0 ~ 2^32-1,程式碼限制,設定為 42，修改後需重新執行以觀察隨機擾動（專案未記載選擇 42 之特殊理由）
+CFG_CV_FOLDS,外層分層交叉驗證折數（Stratified K-Fold）,交叉驗證,E0-E5/E7,bankruptcy/config.py:24,,3 ~ 10,一般經驗,設定為 5 折，保證驗證折平均約有 35 筆正樣本以穩定評估（一般經驗，未經本專案驗證）
+CFG_CV_REPEATS,外層交叉驗證重複次數（Repeated K-Fold）,交叉驗證,E0-E5/E7,bankruptcy/config.py:25,,1 ~ 5,一般經驗,設定為 3 次重複，形成 5 折 × 3 次重複 = 15 次外層評估以降低小樣本抽樣變異
+CFG_TARGET_RECALLS,評估預警比率之目標召回率候選清單,門檻與目標,E0/E4/E6,bankruptcy/config.py:28,,"[0.5, 1.0]",程式碼限制,"清單包含 [0.8, 0.9, 0.95, 1.0] 四種業務情境"
+CFG_DEFAULT_TARGET_RECALL,生產環境與報表之預設目標召回率基準,門檻與目標,E4/E6/MVP,bankruptcy/config.py:30,,0.8 ~ 0.99,程式碼限制,config.py:30 預設基準值為 0.95（95% 召回率）
+CFG_ALERT_RATIOS,評估固定預警比率下召回率之倍數清單,評估指標,E0/E6,bankruptcy/config.py:29,,"[1.0, 20.0]",程式碼限制,"清單包含 [1.5, 3.0, 5.0, 10.0] 四種核貸調查能量上限"
+CFG_COST_FN,敏感度評估中漏報破產企業之假陰性懲罰成本,評估指標,E4/MVP,bankruptcy/config.py:39,,1.0 ~ 100.0,一般經驗,設定為 20.0，與 COST_FP=1.0 構成 20:1 懲罰比，反映信貸違約之重大損失（專案未記載選擇 20 之特定精算理由）
+CFG_COST_FP,敏感度評估中誤報正常企業之假陽性調查成本,評估指標,E4/MVP,bankruptcy/config.py:40,,0.1 ~ 10.0,一般經驗,基準調查成本設定為 1.0
+CFG_COST_FN_SENSITIVITY_LIST,成本敏感度分析之 FN 懲罰權重掃描清單,評估指標,E4/MVP,bankruptcy/config.py:41,,任意正數清單,程式碼限制,"清單設定為 [10.0, 20.0, 50.0] 三組成本比值情境"
+CFG_MVP_PASS_PR_AUC_MULTIPLIER,MVP 模型驗收之 PR-AUC 相對基準倍數門檻,評估指標,MVP,bankruptcy/config.py:43,,1.0 ~ 5.0,一般經驗,設定為 3.0，要求模型 PR-AUC 需達隨機基準（0.0323）之 3.0 倍以上（即 >= 0.0968）
+CFG_MVP_PASS_TOP10_RECALL,MVP 模型驗收在 Top-10% 配額之最小召回率門檻,評估指標,MVP,bankruptcy/config.py:44,,0.3 ~ 0.9,一般經驗,設定為 0.50，要求在審查 10% 企業配額時至少捕獲 50% 破產公司（呼應 config.py:44 註解）
+CFG_TOP_K_PERCENT,批次推論排程之高風險審查配額比例,模型推論,MVP,bankruptcy/config.py:37,,0.01 ~ 0.30,一般經驗,預設 0.1（前 10% 企業），對應調查能量配額限制（一般經驗，未經本專案驗證）
+CFG_MIN_BATCH_SIZE_FOR_TOP_K,啟用 Top-K 配額之最小批次有效樣本數門檻,模型推論,MVP,bankruptcy/config.py:38,,10 ~ 100,一般經驗,設定為 25 筆，小於 25 筆時百分比配額失去統計代表性（一般經驗，未經本專案驗證）
+CFG_MAX_MISSING_FEATURE_RATIO,推論時單筆或批次允許之最大缺失特徵比例保護門檻,模型推論,MVP,bankruptcy/config.py:42,,0.05 ~ 0.50,一般經驗,設定為 0.20（超過 20% 欄位缺失即拒絕評分以策安全，一般經驗，未經本專案驗證）
+CFG_BASE_DIR,專案根目錄基礎路徑,系統與路徑,全階段,bankruptcy/config.py:6,,不適用,程式碼限制,內部目錄錨點，由 Path(__file__).resolve().parent 動態解析
+CFG_DATA_DIR,原始數據存放目錄路徑,系統與路徑,全階段,bankruptcy/config.py:7,,不適用,程式碼限制,固定指向 BASE_DIR / 'data'
+CFG_DATA_PATH,主要資料集 CSV 檔案路徑,系統與路徑,全階段,bankruptcy/config.py:8,,不適用,程式碼限制,固定指向 DATA_DIR / 'data.csv'
+CFG_OUTPUT_DIR,產物根目錄路徑,系統與路徑,全階段,bankruptcy/config.py:9,,不適用,程式碼限制,固定指向 BASE_DIR / 'outputs'
+CFG_TABLES_DIR,報表與統計表格輸出目錄路徑,系統與路徑,全階段,bankruptcy/config.py:10,,不適用,程式碼限制,固定指向 OUTPUT_DIR / 'tables'
+CFG_FIGURES_DIR,視覺化圖表輸出目錄路徑,系統與路徑,全階段,bankruptcy/config.py:11,,不適用,程式碼限制,固定指向 OUTPUT_DIR / 'figures'
+CFG_MODELS_DIR,模型權重與固化元件存放目錄路徑,系統與路徑,全階段,bankruptcy/config.py:12,,不適用,程式碼限制,固定指向 OUTPUT_DIR / 'models'
+CFG_LOGS_DIR,執行日誌存放目錄路徑,系統與路徑,全階段,bankruptcy/config.py:13,,不適用,程式碼限制,固定指向 OUTPUT_DIR / 'logs'
+CV_INNER_E2A_SPLITS,E2a 巢狀超參數調優外層訓練折內部交叉驗證折數,交叉驗證,E2a,bankruptcy/src/cv.py:254,,2 ~ 5,一般經驗,內層 3 折分層切分；合併 3 折 OOF 樣本（約 140 家破產）計算三點損失（cv.py:254）
+CV_INNER_E2B_SPLITS,E2b 全訓練集最終調參評估次數,交叉驗證,E2b,bankruptcy/src/tune.py:857,,5 ~ 20,一般經驗,"全訓練集 5,455 筆動態執行 5 折 × 2 次重複 = 10 次評估（tune.py:857-862）"
+CV_INNER_E3_SPLITS,E3 外層訓練折生成 ECDF 參考分佈之內層折數,交叉驗證,E3,bankruptcy/src/ensemble.py:153,,3 ~ 10,一般經驗,固定為內層 5 折（15 次外層評估 × 5 = 75 個內層折），確保參考分布無驗證折洩漏
+SENS_SEEDS,E7b 隨機種子穩定性分析測試之種子清單,交叉驗證,E7b,bankruptcy/src/seed_stability.py:43,,任意整數清單,專案搜尋空間,"測試 [42, 7, 123, 2025, 31337] 共 5 組種子，驗證演算法隨機穩定性"
+PREP_CORR_THRESHOLD,相關係數過濾器之 Pearson 相關係數絕對值門檻,前處理,E1b,bankruptcy/src/preprocessing.py:353,,0.80 ~ 0.99,專案搜尋空間,門檻設定為 0.95，高於 0.95 者僅保留單變數 AUC 較高者（移除了 20 欄）
+PREP_CORR_ENABLED,相關係數過濾器（CorrelationFilter）啟用開關,前處理,E1b,bankruptcy/src/preprocessing.py:353,,True / False,程式碼限制,預設 True，E1b 實測保留此過濾器有助線性模型穩定（E1b 消融報告）
+PREP_WINSOR_LOWER,極端值截尾器（Winsorizer）連續特徵下截尾分位數,前處理,E1b,bankruptcy/src/preprocessing.py:193,,0.001 ~ 0.05,一般經驗,設定為 0.01（第 1 百分位數截斷，一般經驗，未經本專案驗證）
+PREP_WINSOR_UPPER,極端值截尾器（Winsorizer）連續特徵上截尾分位數,前處理,E1b,bankruptcy/src/preprocessing.py:193,,0.95 ~ 0.999,一般經驗,設定為 0.99（第 99 百分位數截斷，一般經驗，未經本專案驗證）
+PREP_WINSOR_ENABLED,極端值截尾器（Winsorizer）預設開關狀態,前處理,E1b,bankruptcy/src/preprocessing.py:193,,True / False,程式碼限制,類別預設 True，但 build_pipeline 在 E1b 驗證後推薦不啟用截尾以保留原始極端訊號
+PREP_SCALER_KIND,數值特徵縮放器種類（QuantileScaler 內部封裝）,前處理,E1a,bankruptcy/src/preprocessing.py:300,,quantile / standard,專案搜尋空間,預設 quantile，E1a 實測 QuantileTransformer 映射顯著優於 StandardScaler
+PREP_QUANTILE_N,QuantileTransformer 擬合經驗累積分布之分位數數量,前處理,E1a,bankruptcy/src/preprocessing.py:310,,100 ~ 2000,一般經驗,"min(1000, len(X))，設為 1000 平滑映射厚尾財務數據（一般經驗，未經本專案驗證）"
+PREP_QUANTILE_DIST,QuantileTransformer 映射之邊際分佈形式,前處理,E1a,bankruptcy/src/preprocessing.py:312,,normal / uniform,程式碼限制,設定為 normal（映射至標準常態分佈，有利距離基底模型，preprocessing.py:312）
+PREP_LARGE_ENABLED,極端大值二值化指示器（LargeValueIndicator）特徵生成開關,前處理,E1b,bankruptcy/src/preprocessing.py:249,,True / False,程式碼限制,預設 False，E1b 實測開啟指示器無顯著增益，維持關閉（E1b 消融報告）
+PIPE_SCALER_DEFAULT,build_pipeline 建構管線預設數值縮放器種類,前處理,E1a,bankruptcy/src/pipelines.py:215,,quantile / standard / none,專案搜尋空間,預設 quantile，E1a 推薦固定使用分位數縮放器
+PIPE_USE_WINSORIZER,build_pipeline 建構管線是否包含 Winsorizer 步驟,前處理,E1b,bankruptcy/src/pipelines.py:216,,True / False,程式碼限制,預設 True（步驟存在），但內部 transformer.enabled 可控制開關
+PIPE_USE_CORR_FILTER,build_pipeline 建構管線是否包含 CorrelationFilter 步驟,前處理,E1b,bankruptcy/src/pipelines.py:217,,True / False,程式碼限制,預設 True，固定保留以過濾 |r| > 0.95 高共線欄位
+PIPE_USE_LARGE_INDICATOR,build_pipeline 建構管線是否包含 LargeValueIndicator 步驟,前處理,E1b,bankruptcy/src/pipelines.py:218,,True / False,程式碼限制,預設 False，E1b 消融證實無增益，維持不接入
+PIPE_USE_IMPUTER,build_pipeline 建構管線是否包含中位數補值步驟,前處理,MVP,bankruptcy/src/pipelines.py:222,,True / False,程式碼限制,預設 False；僅推論階段遭遇缺失特徵且 allow_missing=True 時啟用
+DEF_N_MODEL_COLUMNS,通過相關性過濾後進入模型之特徵欄位總數,前處理,E1b/全階段,bankruptcy/app/assets/defaults.json:5,,不適用,不適用,95 個原始特徵過濾共線後固化保留 72 個特徵欄位（defaults.json:5）
+PIPE_IMBALANCE_DEFAULT,build_pipeline 管線建構預設不平衡處理策略代碼,不平衡處理,E1a,bankruptcy/src/pipelines.py:214,,S0 ~ S6,專案搜尋空間,預設 S0（不處理）；E1a 實測無重抽樣策略顯著勝過 S0，奧坎剃刀推薦 S0
+IMB_RESAMPLER_S2,策略 S2 之 SMOTE 少數類目標採樣比例（sampling_strategy）,不平衡處理,E1a,bankruptcy/src/pipelines.py:117,,0.05 ~ 1.0,專案搜尋空間,設定為 0.1（少數類補充至多數類之 10% 比例，pipelines.py:117）
+IMB_RESAMPLER_S3,策略 S3 之 SMOTE 少數類目標採樣比例（sampling_strategy）,不平衡處理,E1a,bankruptcy/src/pipelines.py:119,,0.05 ~ 1.0,專案搜尋空間,設定為 0.3（少數類補充至多數類之 30% 比例；E2b 調參被 M2、M5 採納）
+IMB_RESAMPLER_S4,策略 S4 之 SMOTE 少數類目標採樣比例（sampling_strategy）,不平衡處理,E1a,bankruptcy/src/pipelines.py:121,,0.05 ~ 1.0,專案搜尋空間,設定為 0.5（少數類補充至多數類之 50% 比例，pipelines.py:121）
+IMB_RESAMPLER_S5,策略 S5 之 BorderlineSMOTE 少數類目標採樣比例,不平衡處理,E1a,bankruptcy/src/pipelines.py:123,,0.05 ~ 1.0,專案搜尋空間,設定為 0.3，針對決策邊界危險樣本合成（pipelines.py:123）
+IMB_RESAMPLER_S6,策略 S6 之 SMOTETomek 內部 SMOTE 採樣比例,不平衡處理,E1a,bankruptcy/src/pipelines.py:126,,0.05 ~ 1.0,專案搜尋空間,設定為 0.3，結合 SMOTE 合成與 Tomek links 邊界清洗（pipelines.py:126）
+IMB_SMOTE_K_NEIGHBORS,SMOTE 重抽樣合成新樣本時之近鄰數量,不平衡處理,E1a,bankruptcy/src/pipelines.py:117,,3 ~ 15,一般經驗,固定設定為 5（scikit-learn/imblearn 標準預設值，一般經驗，未經本專案驗證）
+M1_BEST_IMBALANCE,M1 (Logistic Regression) 最終固化之不平衡策略,模型訓練,E2b,outputs/models/best_params/M1.json:3,,S0 / S3,專案搜尋空間,E2b 尋優選定 S0（不處理，維持原始樣本分佈）
+M2_BEST_IMBALANCE,M2 (Random Forest) 最終固化之不平衡策略,模型訓練,E2b,outputs/models/best_params/M2.json:3,,S0 / S3,專案搜尋空間,E2b 尋優選定 S3（SMOTE 採樣至 30% 比例）
+M3_BEST_IMBALANCE,M3 (Extra Trees) 最終固化之不平衡策略,模型訓練,E2b,outputs/models/best_params/M3.json:3,,S0 / S3,專案搜尋空間,E2b 尋優選定 S0（不處理，維持原始樣本分佈）
+M4_BEST_IMBALANCE,M4 (XGBoost) 最終固化之不平衡策略,模型訓練,E2b,outputs/models/best_params/M4.json:3,,S0 / S3,專案搜尋空間,E2b 尋優選定 S0（不處理，維持原始樣本分佈）
+M5_BEST_IMBALANCE,M5 (LightGBM) 最終固化之不平衡策略,模型訓練,E2b,outputs/models/best_params/M5.json:3,,S0 / S3,專案搜尋空間,E2b 尋優選定 S3（SMOTE 採樣至 30% 比例）
+PIPE_SCALE_POS_WEIGHT,AdaptiveScaleWeightClassifier 訓練時動態計算之正樣本權重,模型訓練,E1a,bankruptcy/src/pipelines.py:72,,正負樣本比率（動態計算）,程式碼限制,"依當前訓練折標籤計算 n_neg / max(1, n_pos)；僅於 S1 策略啟用，最終 M1~M5 未採納 S1"
+M1_SEARCH_C,M1 羅吉斯迴歸正規化強度倒數 C 搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M1.json,,0.001 ~ 10.0,專案搜尋空間,對數尺度分佈，E2b 全集調參最佳值為 0.11616457722286455
+M1_SEARCH_PENALTY,M1 羅吉斯迴歸懲罰項種類搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M1.json,,"['l2', 'l1']",專案搜尋空間,類別型搜尋，E2b 全集調參最佳值為 l2
+M1_FIXED_MAX_ITER,M1 羅吉斯迴歸最大求解迭代次數,模型訓練,E2,bankruptcy/src/tune.py:139,,1000 ~ 10000,一般經驗,固定設定為 5000 次以保證收斂（tune.py:139，一般經驗，未經本專案驗證）
+M2_SEARCH_N_ESTIMATORS,M2 隨機森林樹木棵數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M2.json,,300 ~ 800 (step 50),專案搜尋空間,整數型步長 50，E2b 全集調參最佳值為 300
+M2_SEARCH_MAX_DEPTH,M2 隨機森林最大樹深搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M2.json,,"[4, 6, 8, 12, None]",專案搜尋空間,類別型深度候選，E2b 全集調參最佳值為 12
+M2_SEARCH_MIN_SAMPLES_LEAF,M2 隨機森林葉節點最小樣本數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M2.json,,1 ~ 10,專案搜尋空間,整數型步長 1，E2b 全集調參最佳值為 10
+M2_SEARCH_MAX_FEATURES,M2 隨機森林分裂考慮特徵數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M2.json,,"['sqrt', 'log2', 0.3]",專案搜尋空間,類別型抽樣比例，E2b 全集調參最佳值為 sqrt
+M3_SEARCH_N_ESTIMATORS,M3 極端隨機樹樹木棵數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M3.json,,300 ~ 800 (step 50),專案搜尋空間,整數型步長 50，E2b 全集調參最佳值為 600
+M3_SEARCH_MAX_DEPTH,M3 極端隨機樹最大樹深搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M3.json,,"[4, 6, 8, 12, None]",專案搜尋空間,類別型深度候選，E2b 全集調參最佳值為 None（不限制深度）
+M3_SEARCH_MIN_SAMPLES_LEAF,M3 極端隨機樹葉節點最小樣本數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M3.json,,1 ~ 10,專案搜尋空間,整數型步長 1，E2b 全集調參最佳值為 2
+M3_SEARCH_MAX_FEATURES,M3 極端隨機樹分裂考慮特徵數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M3.json,,"['sqrt', 'log2', 0.3]",專案搜尋空間,類別型抽樣比例，E2b 全集調參最佳值為 0.3
+M4_SEARCH_N_ESTIMATORS,M4 XGBoost 提升迭代次數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M4.json,,200 ~ 800 (step 50),專案搜尋空間,整數型步長 50，E2b 全集調參最佳值為 250
+M4_SEARCH_LEARNING_RATE,M4 XGBoost 學習率搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M4.json,,0.01 ~ 0.2,專案搜尋空間,對數尺度分佈，E2b 全集調參最佳值為 0.046776815926747296
+M4_SEARCH_MAX_DEPTH,M4 XGBoost 最大樹深搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M4.json,,2 ~ 6,專案搜尋空間,整數型深度，E2b 全集調參最佳值為 2
+M4_SEARCH_SUBSAMPLE,M4 XGBoost 樣本列採樣比例搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M4.json,,0.6 ~ 1.0,專案搜尋空間,連續型隨機子採樣，E2b 全集調參最佳值為 0.879563935600964
+M4_SEARCH_COLSAMPLE,M4 XGBoost 樹特徵採樣比例搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M4.json,,0.6 ~ 1.0,專案搜尋空間,連續型隨機特徵採樣，E2b 全集調參最佳值為 0.9017127339966642
+M4_SEARCH_REG_LAMBDA,M4 XGBoost L2 正則化係數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M4.json,,0.01 ~ 10.0,專案搜尋空間,對數尺度分佈，E2b 全集調參最佳值為 1.6902875531341541
+M4_SEARCH_MIN_CHILD_WEIGHT,M4 XGBoost 葉節點最小 Hessian 權重和搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M4.json,,1.0 ~ 10.0,專案搜尋空間,限制葉節點最小權重防過擬合，E2b 全集調參最佳值為 7.300913224180319
+M5_SEARCH_SUBSAMPLE,M5 LightGBM 樣本採樣比例搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M5.json,,0.6 ~ 1.0,專案搜尋空間,E2b 最佳值為 0.6071695513247772；在固化模型中此值是否生效，取決於 subsample_freq（一般經驗，未經本專案驗證）
+M5_SEARCH_SUBSAMPLE_FREQ,M5 LightGBM 搜尋階段之列抽樣頻率動態規則,調參流程,E2a/E2b,bankruptcy/src/tune.py:169,,1 (if subsample < 1.0) / 0 (otherwise),專案搜尋空間,tune.py:169 動態注入 subsample_freq = 1 if subsample < 1.0 else 0；若為 0 則 LightGBM 忽略 subsample（一般經驗，未經本專案驗證）
+M5_FROZEN_SUBSAMPLE_FREQ,M5 固化 best_params/M5.json 中 subsample_freq 鍵狀態,調參流程,E2b,outputs/models/best_params/M5.json,,不適用,程式碼限制,E2b 最佳參數存入 JSON 時僅序列化 Optuna 原生 trial 參數，檔案中無此鍵（F-02 已知狀態）
+M5_FINAL_MODEL_SUBSAMPLE_FREQ,M5 最終重建模型物件（final/model_M5.joblib）實際之 subsample_freq,模型推論,E4c/E6,outputs/models/final/model_M5.joblib,,0,程式碼限制,載入 final/model_M5.joblib 執行 get_params() 實測確認為 0（退回預設無列抽樣，F-02 固化狀態）
+M5_SEARCH_N_ESTIMATORS,M5 LightGBM 提升迭代次數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M5.json,,200 ~ 800 (step 50),專案搜尋空間,整數型步長 50，E2b 全集調參最佳值為 300
+M5_SEARCH_LEARNING_RATE,M5 LightGBM 學習率搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M5.json,,0.01 ~ 0.2,專案搜尋空間,對數尺度分佈，E2b 全集調參最佳值為 0.01373336360334273
+M5_SEARCH_NUM_LEAVES,M5 LightGBM 最大葉節點數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M5.json,,8 ~ 64,專案搜尋空間,整數型葉節點數，E2b 全集調參最佳值為 43
+M5_SEARCH_COLSAMPLE,M5 LightGBM 特徵子採樣比例搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M5.json,,0.6 ~ 1.0,專案搜尋空間,連續型隨機特徵採樣，E2b 全集調參最佳值為 0.7788897740771944
+M5_SEARCH_REG_LAMBDA,M5 LightGBM L2 正則化係數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M5.json,,0.01 ~ 10.0,專案搜尋空間,對數尺度分佈，E2b 全集調參最佳值為 0.02704489144262553
+M5_SEARCH_MIN_CHILD_SAMPLES,M5 LightGBM 葉節點最小樣本數搜尋空間與固化值,調參流程,E2a/E2b,outputs/models/best_params/M5.json,,5 ~ 50,專案搜尋空間,限制葉節點最小覆蓋樣本，E2b 全集調參最佳值為 38
+TUNE_E2A_TRIALS_M1,E2a 巢狀交叉驗證中模型 M1 每個內層折之 Optuna 搜尋試驗次數,調參流程,E2a,bankruptcy/src/tune.py:502,,10 ~ 100,專案搜尋空間,tune.py 字典定義 M1 外層折 trials 為 25（快速模式為 3）
+TUNE_E2A_TRIALS_M2,E2a 巢狀交叉驗證中模型 M2 每個內層折之 Optuna 搜尋試驗次數,調參流程,E2a,bankruptcy/src/tune.py:503,,10 ~ 100,專案搜尋空間,tune.py 字典定義 M2 外層折 trials 為 40（快速模式為 3）
+TUNE_E2A_TRIALS_M3,E2a 巢狀交叉驗證中模型 M3 每個內層折之 Optuna 搜尋試驗次數,調參流程,E2a,bankruptcy/src/tune.py:504,,10 ~ 100,專案搜尋空間,tune.py 字典定義 M3 外層折 trials 為 40（快速模式為 3）
+TUNE_E2A_TRIALS_M4,E2a 巢狀交叉驗證中模型 M4 每個內層折之 Optuna 搜尋試驗次數,調參流程,E2a,bankruptcy/src/tune.py:505,,10 ~ 100,專案搜尋空間,tune.py 字典定義 M4 外層折 trials 為 40（快速模式為 3）
+TUNE_E2A_TRIALS_M5,E2a 巢狀交叉驗證中模型 M5 每個內層折之 Optuna 搜尋試驗次數,調參流程,E2a,bankruptcy/src/tune.py:506,,10 ~ 100,專案搜尋空間,tune.py 字典定義 M5 外層折 trials 為 40（快速模式為 3）
+TUNE_E2B_TRIALS_M1,E2b 全量訓練集尋優中模型 M1 之 Optuna 搜尋試驗次數,調參流程,E2b,bankruptcy/src/tune.py:866,,20 ~ 200,專案搜尋空間,tune.py 字典定義 M1 全集 trials 為 38（約為 E2a 之 1.5 倍）
+TUNE_E2B_TRIALS_M2,E2b 全量訓練集尋優中模型 M2 之 Optuna 搜尋試驗次數,調參流程,E2b,bankruptcy/src/tune.py:867,,20 ~ 200,專案搜尋空間,tune.py 字典定義 M2 全集 trials 為 60（約為 E2a 之 1.5 倍）
+TUNE_E2B_TRIALS_M3,E2b 全量訓練集尋優中模型 M3 之 Optuna 搜尋試驗次數,調參流程,E2b,bankruptcy/src/tune.py:868,,20 ~ 200,專案搜尋空間,tune.py 字典定義 M3 全集 trials 為 60（約為 E2a 之 1.5 倍）
+TUNE_E2B_TRIALS_M4,E2b 全量訓練集尋優中模型 M4 之 Optuna 搜尋試驗次數,調參流程,E2b,bankruptcy/src/tune.py:869,,20 ~ 200,專案搜尋空間,tune.py 字典定義 M4 全集 trials 為 60（約為 E2a 之 1.5 倍）
+TUNE_E2B_TRIALS_M5,E2b 全量訓練集尋優中模型 M5 之 Optuna 搜尋試驗次數,調參流程,E2b,bankruptcy/src/tune.py:8610,,20 ~ 200,專案搜尋空間,tune.py 字典定義 M5 全集 trials 為 60（約為 E2a 之 1.5 倍）
+TUNE_OPTUNA_SAMPLER,Optuna 超參數搜尋使用之取樣演算法,調參流程,E2a/E2b,bankruptcy/src/tune.py:307,,TPE / Random,專案搜尋空間,固定使用 TPESampler(seed=SEED) 貝氏樹狀結構 Parzen 估計器（tune.py:307）
+TUNE_OPTUNA_STORAGE,Optuna 研究試驗進度持久化之 SQLite 連線字串,調參流程,E2a/E2b,bankruptcy/src/tune.py:304,,不適用,程式碼限制,指向 outputs/logs/studies/study_*.db 本地 SQLite 資料庫檔案
+ENS_SINGLE_MODELS,E3 評估比較之單一模型候選清單,模型集成,E3,bankruptcy/src/ensemble.py:73,,"['M1', 'M2', 'M3', 'M4', 'M5']",專案搜尋空間,包含線性模型、隨機森林、極端隨機樹與兩大梯度提升（ensemble.py:73）
+ENS_CANDIDATES,E3 評估比較之集成組合候選名冊,模型集成,E3,bankruptcy/src/ensemble.py:75,,任意子集組合,專案搜尋空間,"比對 E_all, E_A, E_B, E_trees 四大 ECDF 等權集成組合"
+ENS_PRIMARY_MODEL,專案選定之主要預警集成模型代號,模型集成,E3/E4/E6,bankruptcy/src/ensemble.py:77,,E_A / M3,專案搜尋空間,Rule 2 決策由 E_A (M3+M4+M5 之 ECDF 等權平均) 勝出（E3 選擇結論）
+ENS_CONTROL_SINGLE_MODEL,專案選定之單一模型對照組代號,模型集成,E3/E4/E6,bankruptcy/src/ensemble.py:73,,M3,專案搜尋空間,選定 15 次外層評估折間標準差最小之 M3 (ExtraTrees) 作為基準控制組
+ENS_STACKING_META_CLF,E3c Stacking 集成第二層元學習器規格,模型集成,E3c,bankruptcy/src/ensemble.py:518,,LogisticRegression,專案搜尋空間,使用 LogisticRegression(penalty='l2')；E3c 實測未顯著勝過等權 ECDF，奧坎剃刀未選用
+ENS_RULE_STD_TOLERANCE,E3 Selection Rule 2 容許領先者折間標準差之放大上限倍數,模型集成,E3,bankruptcy/src/ensemble.py:1122,,1.0 ~ 2.0,專案搜尋空間,設定為 1.25 倍（要求領先者 AR@0.95 標準差不可劣於單一最佳者 1.25 倍，ensemble.py:1122）
+CALIB_PLATT_METHOD,Platt Scaling 一維機率校準器架構,機率校準,E4b,bankruptcy/src/thresholding.py:124,,LogisticRegression(solver='lbfgs'),專案搜尋空間,在一維模型分數上擬合單變數 LogisticRegression(solver='lbfgs')（thresholding.py:132）
+CALIB_ISOTONIC_METHOD,Isotonic Regression 非參數單調保序迴歸校準器架構,機率校準,E4b,bankruptcy/src/thresholding.py:455,,IsotonicRegression(out_of_bounds='clip'),專案搜尋空間,使用分段常數非參數保序迴歸 IsotonicRegression(out_of_bounds='clip')（thresholding.py:455）
+CALIB_RECOMMENDED_CHOICE,專案最終採納之機率校準方案決策,機率校準,E4b,bankruptcy/src/thresholding.py:124,,Platt / None,專案搜尋空間,E4b 實測 Platt 嚴格保序（AR@0.95 維持 8.06x），Isotonic 因階梯同分使 AR 惡化至 10.02x；決策門檻切於未校準連續排名，Platt 僅作事後機率查詢
+TH_MARGINS,E4a 跨折門檻轉移評估之安全邊際候選數值清單,門檻設定,E4a,bankruptcy/src/thresholding.py:67,,"[0.0, 0.02, 0.04, 0.06]",專案搜尋空間,"離散粗網格步長 0.02，用於加在目標召回率 R' = min(1.0, R + m) 上反求操作門檻"
+TH_ATTAINMENT_THRESHOLD,安全邊際挑選之最小跨折召回達標率門檻,門檻設定,E4a,bankruptcy/src/thresholding.py:361,,0.70 ~ 0.95,一般經驗,設定為 0.8（要求在 15 次外層評估中至少 12 折達標，即 >= 80% 達標率，thresholding.py:361）
+TH_E_A_R80_THRESH,E_A 在 R80 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
+TH_E_A_R80_MARGIN,E_A 在 R80 工作點選定之安全邊際 m,門檻設定,E4a/E4b,outputs/models/final/thresholds.json,,0.0 ~ 0.06,專案搜尋空間,E4a 跨折達標率 >= 80% 規則選定之安全邊際數值
+TH_E_A_R90_THRESH,E_A 在 R90 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
+TH_E_A_R90_MARGIN,E_A 在 R90 工作點選定之安全邊際 m,門檻設定,E4a/E4b,outputs/models/final/thresholds.json,,0.0 ~ 0.06,專案搜尋空間,E4a 跨折達標率 >= 80% 規則選定之安全邊際數值
+TH_E_A_R95_THRESH,E_A 在 R95 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
+TH_E_A_R95_MARGIN,E_A 在 R95 工作點選定之安全邊際 m,門檻設定,E4a/E4b,outputs/models/final/thresholds.json,,0.0 ~ 0.06,專案搜尋空間,E4a 跨折達標率 >= 80% 規則選定之安全邊際數值
+TH_E_A_R100_THRESH,E_A 在 R100 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
+TH_E_A_R100_MARGIN,E_A 在 R100 工作點選定之安全邊際 m,門檻設定,E4a/E4b,outputs/models/final/thresholds.json,,0.0 ~ 0.06,專案搜尋空間,E4a 跨折達標率 >= 80% 規則選定之安全邊際數值
+TH_M3_R80_THRESH,M3 在 R80 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
+TH_M3_R80_MARGIN,M3 在 R80 工作點選定之安全邊際 m,門檻設定,E4a/E4b,outputs/models/final/thresholds.json,,0.0 ~ 0.06,專案搜尋空間,E4a 跨折達標率 >= 80% 規則選定之安全邊際數值
+TH_M3_R90_THRESH,M3 在 R90 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
+TH_M3_R90_MARGIN,M3 在 R90 工作點選定之安全邊際 m,門檻設定,E4a/E4b,outputs/models/final/thresholds.json,,0.0 ~ 0.06,專案搜尋空間,E4a 跨折達標率 >= 80% 規則選定之安全邊際數值
+TH_M3_R95_THRESH,M3 在 R95 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
+TH_M3_R95_MARGIN,M3 在 R95 工作點選定之安全邊際 m,門檻設定,E4a/E4b,outputs/models/final/thresholds.json,,0.0 ~ 0.06,專案搜尋空間,E4a 跨折達標率 >= 80% 規則選定之安全邊際數值
+TH_M3_R100_THRESH,M3 在 R100 工作點之固化操作決策門檻值,門檻設定,E4b/E6,outputs/models/final/thresholds.json,,不適用,不適用,在全訓練集排序之分數第 k_req 筆切出之操作門檻（由 E4c 固化寫入）
+TH_M3_R100_MARGIN,M3 在 R100 工作點選定之安全邊際 m,門檻設定,E4a/E4b,outputs/models/final/thresholds.json,,0.0 ~ 0.06,專案搜尋空間,E4a 跨折達標率 >= 80% 規則選定之安全邊際數值
+METRIC_THREE_POINT_RECALLS,三點 log 預警倍數目標損失函數之目標召回率集合,評估指標,E2/E3,bankruptcy/src/tune.py:113,,"[0.5, 1.0]",專案搜尋空間,"集合設定為 [0.8, 0.9, 0.95]，覆蓋中高風險風控核心業務區間（tune.py:113）"
+SENS_PREVALENCES,E7a 盛行率敏感度評估之市場母體破產率網格,評估指標,E7a,bankruptcy/src/prevalence_sensitivity.py:36,,"[0.001, 0.10]",專案搜尋空間,"清單涵蓋 [0.005, 0.01, 0.02, 0.032, 0.05] 五種總體經濟繁榮與蕭條情境"
+DEF_TRAIN_BANKRUPTCY_RATE,訓練集中破產企業之歷史基準盛行率,評估指標,EDA/全階段,bankruptcy/app/assets/defaults.json:8,,不適用,不適用,"訓練集 176 家破產 / 5,455 筆樣本 = 3.226397800183318%"
+SCORE_ALLOW_MISSING,批次推論是否啟用缺值自動填補中位數防護,模型推論,MVP,bankruptcy/src/scoring.py:386,,True / False,程式碼限制,預設 False（嚴格檢驗，缺失即報錯）；設為 True 時在 20% 門檻內自動補值
+SCORE_MODEL_NAME,批次推論介面預設使用之模型名稱,模型推論,MVP,bankruptcy/src/scoring.py:384,,E_A / M3,程式碼限制,預設使用勝出之主力集成模型 E_A（scoring.py:384）
+SCORE_OPERATING_POINT,批次推論介面預設目標工作點,模型推論,MVP,bankruptcy/src/scoring.py:385,,R80 / R90 / R95 / R100,程式碼限制,預設使用 R90（90% 目標召回率風控核心工作點，scoring.py:385）
+DEF_N_INPUT_FEATURES,Streamlit 介面提供動態調整之主要財務特徵數量,模型推論,MVP,bankruptcy/app/assets/defaults.json:6,,不適用,不適用,篩選出平均重要度排名前 18 之關鍵財報指標（defaults.json:6）
+DEF_PERSISTENT_EPS_P50,單一最強特徵持續每股盈餘訓練集中位數基準,模型推論,EDA/E0/MVP,bankruptcy/app/assets/defaults.json:367,,不適用,不適用,"全訓練集 5,455 筆樣本之中位數為 0.224260187198639（defaults.json:367）"
+DEF_N_TRAIN,訓練集總有效樣本數,資料切分,E0-E6,bankruptcy/app/assets/defaults.json:3,,不適用,不適用,"6,819 筆樣本按 80% 分層切分後保留 5,455 筆訓練樣本（defaults.json:3）"
+DEF_N_RAW_COLUMNS,原始輸入資料集之特徵欄位總數,資料切分,EDA/全階段,bankruptcy/app/assets/defaults.json:4,,不適用,不適用,原始財務指標共 95 個（defaults.json:4）

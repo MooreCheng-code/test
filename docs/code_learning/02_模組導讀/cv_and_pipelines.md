@@ -101,8 +101,19 @@
 
 ### 4. `AdaptiveScaleWeightClassifier`（`bankruptcy/src/pipelines.py:48-110`）
 - **做什麼**：專為 Gradient Boosting（XGBoost M4、LightGBM M5）在策略 S1 下設計的動態類別加權包裝器。
-- **動態計算公式**：
-  $$\text{scale\_pos\_weight} = \frac{N_{\text{negative}}}{N_{\text{positive}}}$$
+- **程式碼雙重位置與實作釐清**：
+  - **概念說明位置（`bankruptcy/src/pipelines.py:53`）**：位於類別 docstring 中，以數學概念表示動態加權比值：
+    $$\text{scale\_pos\_weight} = \frac{N_{\text{negative}}}{N_{\text{positive}}}$$
+  - **實際計算與注入位置（`bankruptcy/src/pipelines.py:72-74`）**：位於 `fit(X, y)` 內部，從傳入的訓練折標籤數值化計算並安全防除零，再透過 `set_params()` 注入基底模型：
+    ```python
+    scale_weight = float(n_neg / max(1, n_pos))
+    self.scale_pos_weight_ = scale_weight
+    self.estimator_.set_params(scale_pos_weight=scale_weight)
+    ```
+- **最終固化與集成模型採用狀況（重要釐清）**：
+  - 此動態加權器**僅在 `imbalance == "S1"` 時啟用**（`bankruptcy/src/pipelines.py:188-190`, `202-204`）；
+  - 在 E2b 全集調參的最佳參數固化結果中，M4 採納 **S0**（無處置，`outputs/models/best_params/M4.json`），M5 採納 **S3**（SMOTE 30%，`outputs/models/best_params/M5.json`）；
+  - 由於 M4 與 M5 皆未選用 S1，因此在最終固化模型物件（`outputs/models/final/`）與主力集成模型 $E_A$ 中，**兩者皆未啟用 `AdaptiveScaleWeightClassifier`**。
 - **三個核心問題**：
   - *它解決什麼問題？* 傳統做法常在全資料集算好比例寫死在設定檔（例如 `scale_pos_weight=30.0`），這在嚴格的資料隔離下屬於跨折洩漏。
   - *沒有它會出什麼錯？* 若在管線外手動傳參，程式碼容易混亂且容易破壞 `clone()` 或 GridSearch 抽象。
@@ -123,10 +134,10 @@
 
 | 策略代碼 | 說明 | 演算法與參數 | 最終集成模型 $E_A$ 是否採用 |
 |:---:|---|---|:---:|
-| **S0** | **原始分佈（無處置）** | 無重採樣、無加權（天然破產率 3.23%） | **✅ 採用（M3、M4、M5 皆以 S0 固化）** |
+| **S0** | **原始分佈（無處置）** | 無重採樣、無加權（天然破產率 3.23%） | **✅ 採用（M3、M4 採納 S0 固化）** |
 | **S1** | **代價敏感類別加權** | `class_weight="balanced"` 或動態 `scale_pos_weight` | ❌ 未採用（機率校準惡化） |
 | **S2** | SMOTE 輕度過採樣 | `SMOTE(sampling_strategy=0.1, k_neighbors=5)` | ❌ 未採用 |
-| **S3** | SMOTE 中度過採樣 | `SMOTE(sampling_strategy=0.3, k_neighbors=5)` | ❌ 未採用（僅 M2/M5 在單獨調參時曾獲選） |
+| **S3** | SMOTE 中度過採樣 | `SMOTE(sampling_strategy=0.3, k_neighbors=5)` | **✅ 採用（M2、M5 採納 S3 固化，M5 納入 $E_A$）** |
 | **S4** | SMOTE 重度過採樣 | `SMOTE(sampling_strategy=0.5, k_neighbors=5)` | ❌ 未採用 |
 | **S5** | 邊界 SMOTE | `BorderlineSMOTE(sampling_strategy=0.3, k_neighbors=5)` | ❌ 未採用 |
 | **S6** | 混合採樣 | `SMOTETomek(sampling_strategy=0.3)` | ❌ 未採用 |

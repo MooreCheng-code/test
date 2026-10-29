@@ -1,0 +1,25 @@
+﻿來源,名稱,排除理由
+pipelines.py:build_pipeline,features,動態傳入容器：執行時傳入欲保留特徵清單或 None（預設使用全特徵）
+pipelines.py:build_pipeline,model_params,動態參數容器：執行時由 Optuna 尋優或最佳參數傳入，本身非靜態參數
+pipelines.py:build_pipeline,seed,全域隨機種子預設傳參：指向 config.SEED，已於 CFG_SEED 完整登錄
+preprocessing.py:TrainingMedianImputer,fallback_medians,推論內部查表：僅於推論時由 defaults.json 載入之中位數傳入，非調參旋鈕
+preprocessing.py:FeatureSelector,features,欄位容器：訓練階段由 DataFrame 欄位自動綁定，非可調超參數
+outputs/models/best_params/*.json,model,模型識別標籤：用以指明 M1～M5 模型類別字串，非數值參數
+outputs/models/best_params/*.json,inner_best_loss,E2b 最佳目標損失結果值：為 Optuna 尋優之產出指標，非輸入參數
+outputs/models/best_params/*.json,study_name,Optuna 內部 study 名稱識別碼（如 optuna_e2b_M1），純系統實作細節
+outputs/models/best_params/*.json,created_at,固化產物生成時間戳記，非模型超參數
+outputs/models/final/thresholds.json,inner_target_recall,"內部計算中介值：R' = min(1.0, R + m) 之內部召回率，非獨立旋鈕"
+outputs/models/final/thresholds.json,training_oof_actual_recall,訓練集 OOF 實測評估結果：為事後回測指標，非門檻設定參數
+outputs/models/final/thresholds.json,training_oof_alert_ratio,訓練集 OOF 實測預警比率結果：為事後回測指標，非門檻設定參數
+outputs/models/final/thresholds.json,training_oof_alert_proportion,訓練集 OOF 實測預警比例結果：為事後回測指標，非門檻設定參數
+outputs/models/final/thresholds.json,training_oof_precision,訓練集 OOF 實測精確率結果：為事後回測指標，非門檻設定參數
+app/assets/defaults.json:meta,train_bankruptcy_count,訓練集正樣本計數：與 train_bankruptcy_rate 呈代數等價（176/5455），避免重複登錄
+app/assets/defaults.json:meta,created_at,前端資源生成時間戳記，非參數
+app/assets/defaults.json:meta,train_indices_sha256,訓練集索引 SHA-256 完整性雜湊值，為防偽校驗簽章，非可調參數
+app/assets/defaults.json:top,raw_columns,原始 95 個財務特徵欄位名稱清單（大容量字串陣列），已收錄於 CFG_FEATURES
+app/assets/defaults.json:top,model_columns,通過共線過濾之 72 個特徵名稱清單（大容量字串陣列），屬於中介靜態名冊
+app/assets/defaults.json:top,fill_columns,缺失需自動填補之 18 個特徵名稱清單，屬於靜態查表資料
+app/assets/defaults.json:top,unused_columns,未進入模型之 23 個特徵名稱清單，屬於靜態查表資料
+app/assets/defaults.json:top,medians,全特徵訓練集中位數查表字典（72 欄對應數值），非單一純量參數
+app/assets/defaults.json:top,presets,前端展示用預設公司數值情境字典，非系統超參數
+app/assets/defaults.json:inputs,other_17_features,"其餘 17 個輸入特徵之分位數統計網格（min, p01..p99），屬前端滑桿範圍查表資料，代表性特徵已以最強單變數 Persistent EPS 登錄"
