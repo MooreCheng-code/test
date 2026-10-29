@@ -14,8 +14,10 @@
 
 ### F-01：`freeze_final_components()` 快取命中分支之 `UnboundLocalError`
 - **位置**：`bankruptcy/src/thresholding.py:631-636` 與 `bankruptcy/src/thresholding.py:672`
-- **現象與原因**：
-  在 `freeze_final_components()`（E4c 最終元件固化函式）中，第 627～636 行的模型迴圈檢查快取檔是否已存在：
+- **嚴重度評級**：**低（Low）**
+- **是否影響已固化產物**：**否，完全無影響**。已固化之最終模型（`bankruptcy/outputs/models/final/`）是在快取不存在的初始環境下一次性完整執行產出；正式推論與部署階段僅呼叫 `load_final_components()`（`bankruptcy/src/scoring.py:86`），絕不呼叫 `freeze_final_components()`。
+- **觸發條件與原因分析**：
+  在 `freeze_final_components()`（E4c 最終元件固化函式）中，第 627～636 行檢查快取檔案是否已存在：
   ```python
   if ref_file.exists() and oof_r0_file.exists() and oof_r1_file.exists():
       oof_r0[m] = np.load(oof_r0_file)
@@ -24,20 +26,29 @@
       logger.info(f"[E4c] Loaded cached reference_{m}.npy")
       continue
   ```
-  然而，區域變數 `final_references = {}` 直到迴圈結束後的**第 672 行**才被初始化。
-- **影響**：
-  初次執行 E4c 時因快取檔尚不存在，程式走第 638～679 行生成並寫入檔案，因此能順利完成；但若在 `reference_{m}.npy`、`_tmp_oof_r0_{m}.npy`、`_tmp_oof_r1_{m}.npy` 三者皆已存在的狀態下再次呼叫 `freeze_final_components()`，會在第 634 行直接拋出 `UnboundLocalError: cannot access local variable 'final_references' where it is not associated with a value`。
+  區域變數 `final_references = {}` 直到第 672 行才被初始化。因此，僅在磁碟上已存在 `reference_{m}.npy`、`_tmp_oof_r0_{m}.npy`、`_tmp_oof_r1_{m}.npy` 時，若使用者「再次呼叫」`freeze_final_components()`，才會在第 634 行拋出 `UnboundLocalError: cannot access local variable 'final_references' where it is not associated with a value`。正常流程下無需重跑 E4c，故此問題不影響任何功能。
 
 ### F-02：Optuna 派生超參數（M5 `subsample_freq` 與 M1 `solver`/`l1_ratio`）未隨 `best_params` 序列化
 - **位置**：`bankruptcy/src/tune.py:129-141`、`bankruptcy/src/tune.py:169`、`bankruptcy/src/tune.py:329-336`、`bankruptcy/src/tune.py:577`、`bankruptcy/src/tune.py:930-946`
-- **現象與原因**：
-  1. 在 `sample_hyperparameters()`（`bankruptcy/src/tune.py:121-178`）中，當模型為 `M5` (LightGBM) 時，程式碼根據 Optuna 抽樣的 `subsample` 動態設定派生參數：`"subsample_freq": 1 if subsample < 1.0 else 0`（第 169 行）；當模型為 `M1` (LogisticRegression) 時，根據 `penalty` 動態設定 `"solver"`（`"saga"` 或 `"lbfgs"`）、`"max_iter": 5000` 與 `"l1_ratio"`（第 129～141 行）。
-  2. 然而 `study.best_trial.params` 僅會記錄透過 `trial.suggest_*` 註冊的參數，不會包含上述派生參數。
-  3. 在 E2a 單折外層重擬合時（`bankruptcy/src/tune.py:328-336`），程式有手動補回 `model_params["subsample_freq"] = 1 if subsample < 1.0 else 0` 及 M1 的 `solver`/`l1_ratio`；但：
-     - 寫入 `bankruptcy/outputs/tables/e2a_nested_per_fold.csv` 時（`bankruptcy/src/tune.py:577`），存的是 `json.dumps(r["best_params"])` 而非 `r["model_params"]`。
-     - 在 E2b 全量訓練集調參寫入 `bankruptcy/outputs/models/best_params/M1.json` ～ `M5.json` 時（`bankruptcy/src/tune.py:930-946`），同樣直接儲存了未補上派生參數的 `best_trial.params`（例如 `M5.json` 中 `subsample: 0.6071695513247772`，但缺少 `"subsample_freq": 1`）。
-- **影響**：
-  後續讀取 `M5.json` 或 `e2a_nested_per_fold.csv` 中 `best_params` 欄位的模組——包含 E4c 最終固化（`bankruptcy/src/thresholding.py:610-615`）、E5 特徵解釋與精簡集評估（`bankruptcy/src/explain.py:462`）、E7b 種子穩定性（`bankruptcy/src/seed_stability.py:63`）——在建立 `LGBMClassifier` 時，`subsample_freq` 會退回 LightGBM 預設值 `0`（代表不執行列抽樣 bagging）。此差異已於 `PROJECT_STATE.md:117` 與 `bankruptcy/MODEL_CARD.md:145` 列為正式模型限制聲明。
+- **嚴重度評級**：**中（Medium，影響超參數手冊口徑與模型重現細節）**
+- **是否影響已固化產物**：**已作為既定行為固化**，已於 `PROJECT_STATE.md:117` 與 `bankruptcy/MODEL_CARD.md:145` 列為法定限制。
+- **各階段 M5 參數狀態完整對照清單**：
+  1. **使用「含 `subsample_freq=1`」之 M5 的階段**：
+     - **E2a 內層 3 折目標尋優**（`bankruptcy/src/tune.py:169, 206-214`）：`sample_hyperparameters()` 動態注入 `"subsample_freq": 1 if subsample < 1.0 else 0`，內層管線啟用列抽樣 bagging。
+     - **E2a 外層單折重擬合**（`bankruptcy/src/tune.py:335-336, 339-347`）：手動補回 `model_params["subsample_freq"] = 1`，故外層 15 次評估的驗證折分數是在 `subsample_freq=1` 下產出。
+     - **E2b 全訓練集 10 次內層尋優**（`bankruptcy/src/tune.py:169, 894-905`）：在尋優過程中同樣動態帶入 `"subsample_freq": 1`。
+     - **E3 外層訓練折參考分布生成**（`bankruptcy/src/ensemble.py:414, 417-425`）：從 `outputs/logs/e2_cache/*.joblib` 載入字典，使用 `d.get("model_params", ...)`，保留了 E2a 重建的 `subsample_freq=1`。
+  2. **使用「缺少 `subsample_freq`，退回預設值 `0`」之 M5 的階段**：
+     - **E2b 最佳參數序列化**（`bankruptcy/src/tune.py:930-946`）：`best_trial.params` 僅包含 Optuna 抽樣的原生參數，因此儲存至 `bankruptcy/outputs/models/best_params/M5.json` 時缺少 `"subsample_freq": 1`。
+     - **E4c 全訓練集最終元件固化**（`bankruptcy/src/thresholding.py:610-615, 774-782`）：直接讀取 `M5.json`，故最終凍結之 `model_M5.joblib` 實際參數為 `subsample_freq=0`。
+     - **E5 特徵解釋與精簡集外層擬合**（`bankruptcy/src/explain.py:462, 670-681`）：讀取 `bankruptcy/outputs/tables/e2a_nested_per_fold.csv` 的 `best_params` 欄位（`tune.py:577` 存入的是未補正之 `r["best_params"]`），故 E5 全域 SHAP 與精簡特徵重擬合均為 `subsample_freq=0`。
+     - **E7b 隨機種子穩定性分析**（`bankruptcy/src/seed_stability.py:63, 107-113`）：直接讀取 `M5.json`，故 5 組種子比較皆在 `subsample_freq=0` 下執行。
+     - **正式推論與部署**（`bankruptcy/src/scoring.py`、`bankruptcy/score_new_data.py`、`bankruptcy/src/final_eval.py`）：載入凍結之 `model_M5.joblib`（`subsample_freq=0`）。
+- **`subsample` 在缺少 `subsample_freq` 時是否生效**：
+  - **一般經驗／LightGBM 官方規格**（未於本專案固化流程重跑驗證，將於 `lab_03` 實測對照）：依據 LightGBM 官方文件，`subsample`（別名 `bagging_fraction`）只有在 `subsample_freq > 0`（別名 `bagging_freq > 0`）時才會啟動列抽樣（每 `subsample_freq` 輪疊代抽樣一次樣本子集）。若 `subsample_freq == 0`（LightGBM 預設值），即使 `subsample = 0.6072`，LightGBM 也會完全忽略該參數，每輪使用 100% 樣本進行擬合。
+  - **專案實測證據**：`bankruptcy/outputs/models/final/model_M5.joblib` 之分類器參數確為 `subsample_freq=0, subsample=0.6071695513247772`。
+- **教學與實驗規劃**：
+  後續在 `labs/lab_03_boosting_lr_trees.py` 中，將特別設計一組 `subsample_freq=0` vs. `1` 的消融對照（僅使用訓練集內部 CV），讓學習者親眼觀察 bagging 開啟前後對 LightGBM 訓練速度、樹深結構與泛化預警倍數的真實影響。
 
 ### F-03：`data_audit.py` 與 `preprocessing.py` 中 `QuantileTransformer` 的 `n_quantiles` 設定差異
 - **位置**：`bankruptcy/src/data_audit.py:231` 對照 `bankruptcy/src/preprocessing.py:310-315`

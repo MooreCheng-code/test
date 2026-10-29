@@ -1,0 +1,289 @@
+檔案,行號,錯誤說法（摘錄 ≤40 字）,正確說法,證據（檔案:行號）,該檔是否被 git 追蹤
+bankruptcy/app/app.py,542,"""15 折 CV 實際召回 (均值)"": ea_r",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/MODEL_CARD.md,61,基準倍數 (vs 隨機) | 15 折外層 CV Platt Brier (m,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/MODEL_CARD.md,73,_A$）均採用完全相同之 **15 折外層交叉驗證協定** 重算（每折以其餘,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/MODEL_CARD.md,76,andomForest) 之 15 折外層 CV Platt Brier 均值,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/MODEL_CARD.md,94,95 5.25x）優於（較低）15 折 CV 均值，顯示測試集看起來較容易、不,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/MODEL_CARD.md,95,間穩定性**：$E_A$ 在 15 折 CV 的 Brier 標準差僅 **0,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/MODEL_CARD.md,185,95 5.25x）優於（較低）15 折 CV 均值，但此點估計顯示測試集看起來,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/outputs/e6/E6_REPORT.md,87,M3 與單一最強特徵基準在 15 折 CV 與未拆封測試集上的關鍵表現指標對,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/outputs/e6/E6_REPORT.md,89,| 模型 | 指標 | 15 折 CV 表現 | 測試集表現 [95%,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/outputs/e6/E6_REPORT.md,102,上的各項排名與預警指標均優於 15 折 CV 的平均表現，顯示此測試集相對於交,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/outputs/e6_dryrun/E6_REPORT.md,89,M3 與單一最強特徵基準在 15 折 CV 與未拆封測試集上的關鍵表現指標對,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/outputs/e6_dryrun/E6_REPORT.md,91,| 模型 | 指標 | 15 折 CV 表現 | 測試集表現 [95%,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/outputs/e6_dryrun/E6_REPORT.md,104,上的各項排名與預警指標均優於 15 折 CV 的平均表現，顯示此測試集相對於交,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/outputs_backup_v4/e6/E6_REPORT.md,87,M3 與單一最強特徵基準在 15 折 CV 與未拆封測試集上的關鍵表現指標對,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/e6/E6_REPORT.md,89,| 模型 | 指標 | 15 折 CV 表現 | 測試集表現 [95%,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/e6/E6_REPORT.md,102,上的各項排名與預警指標均優於 15 折 CV 的平均表現，顯示此測試集相對於交,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/e6_v4a/E6_REPORT.md,87,M3 與單一最強特徵基準在 15 折 CV 與未拆封測試集上的關鍵表現指標對,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/e6_v4a/E6_REPORT.md,89,| 模型 | 指標 | 15 折 CV 表現 | 測試集表現 [95%,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/e6_v4a/E6_REPORT.md,102,上的各項排名與預警指標均優於 15 折 CV 的平均表現，顯示此測試集相對於交,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY.md,26,$\times$ 3 次重複（15 折重複分層交叉驗證，Repeated St,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY.md,75,95 5.25x）優於（較低）15 折 CV 均值，顯示測試集看起來較容易、不,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY.md,88,r_report.csv` (15 折 CV) 與 `outputs/e6/e,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY.md,165,| 42 組不平衡處理策略在 15 折驗證折之 3 點預警損失分布對照。 |,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY.md,172,集成候選與單一模型 M3 在 15 折驗證折之 AR@0.95 變異分布對照。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY.md,182,Mean ± Std) | 15 折外層驗證折置換特徵重要性 (Permut,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY_v4a.md,26,$\times$ 3 次重複（15 折重複分層交叉驗證，Repeated St,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY_v4a.md,75,95 5.25x）優於（較低）15 折 CV 均值，顯示測試集看起來較容易、不,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY_v4a.md,88,r_report.csv` (15 折 CV) 與 `outputs/e6/e,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY_v4a.md,165,| 42 組不平衡處理策略在 15 折驗證折之 3 點預警損失分布對照。 |,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY_v4a.md,172,集成候選與單一模型 M3 在 15 折驗證折之 AR@0.95 變異分布對照。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/outputs_backup_v4/RESULTS_SUMMARY_v4a.md,182,Mean ± Std) | 15 折外層驗證折置換特徵重要性 (Permut,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/RESULTS_SUMMARY.md,26,$\times$ 3 次重複（15 折重複分層交叉驗證，Repeated St,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/RESULTS_SUMMARY.md,75,95 5.25x）優於（較低）15 折 CV 均值，顯示測試集看起來較容易、不,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/RESULTS_SUMMARY.md,88,r_report.csv` (15 折 CV) 與 `outputs/e6/e,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/RESULTS_SUMMARY.md,167,| 42 組不平衡處理策略在 15 折驗證折之 3 點預警損失分布對照。 |,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/RESULTS_SUMMARY.md,174,集成候選與單一模型 M3 在 15 折驗證折之 AR@0.95 變異分布對照。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/RESULTS_SUMMARY.md,184,Mean ± Std) | 15 折外層驗證折置換特徵重要性 (Permut,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/build_learning_manual.py,740,一折少數破產樣本的過擬合，在 15 折 CV 中展現**全場最低的折間標準差（,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/build_learning_manual.py,749,"""evidence"": ""15 折外層 CV 中，M3 折均損失 1.65",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/build_learning_manual.py,920,產）；5 組不同隨機種子重跑 15 折 CV 顯示，種子造成的變動僅為折間標準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/build_learning_manual.py,1781,<th>15 折外層 CV AR@0.95 (均值±標準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/build_learning_manual.py,1782,<th>15 折外層 CV PR-AUC</th>,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/build_learning_manual.py,1939,特徵，再用這 20 個特徵跑 15 折 CV。這犯了 Hastie 等人在《E,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/build_learning_manual.py,1947,CV）</strong>——內層 5 折供 Optuna 選參數，外層 15 折,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",True
+bankruptcy/scripts/build_learning_manual.py,1971,"└── 內層 5 折 (每折訓練 4,364 筆內再切 5",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",True
+bankruptcy/scripts/build_learning_manual.py,2963,"', title: 'E5a 15 折外層驗證置換重要性 Top 20', d",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/build_learning_manual.py,3043,e(pipeline) 並在 15 折 CV 中執行時，每一折都會建立乾淨的轉,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/build_model_score_report.py,1597,🔁 交叉驗證：<strong>15 折重複分層交叉驗證 (5-Fold × 3,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,1664,警倍數。主要模型 E_A 在 15 折 CV 為 8.06x，測試集僅需 5.,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,1665,的抽樣波動，因此本專案一律以 15 折 CV 的保守估計作為生產與風控規劃基準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,1701,實測效能：</strong> 15 折 CV PR-AUC 達 <strong,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,1727,折間變異：</strong> 15 折外層 CV 的 AR@0.95 標準差僅,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,1808,線性基準：</strong> 15 折 CV PR-AUC 仍達 <stron,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,1835,實測結果：</strong> 15 折 CV 損失達 1.6538，表現劣於無,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,2049,est/n_train)（在 15 折 CV 中為 1/15 + 1/4 =,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,2222,"ion value=""cv"">15 折 CV 池化 OOF (N=5455,",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,2758,在嚴格統計學標準下，兩模型在 15 折驗證中無法判定何者顯著勝出。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/build_model_score_report.py,2763,於跨階段候選比較。請參考下方 15 折 CV 與獨立測試集的實測點估計對照。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/code_encyclopedia_data.py,339,"tle"": ""區塊 2：外層 15 折重複分層切分與原始列號映射 (make_",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/code_encyclopedia_data.py,869,"""執行 E2a（15 折外層 × 內層 CV 的無偏巢狀調參評估",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/code_encyclopedia_data.py,1023,"""執行 E5a（15 折外層置換重要性、階層式共線群組重要性與",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_full_architecture.py,92,"""15 折外層 Stratified CV 分割""",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/generate_full_architecture.py,93,"""每折僅約 11～12 筆珍稀破產樣本"",",外層驗證折破產正樣本平均 35.2 家（35～36 家）,bankruptcy/src/cv.py:70-116; bankruptcy/outputs/tables/e4a_threshold_transfer_per_fold.csv,False
+bankruptcy/scripts/generate_full_architecture.py,94,"""內層 5 折 Nested CV 超參數優化"",",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/generate_full_architecture.py,127,": XGBoost (極淺樹 max_depth=3 抗過擬合)"",","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+bankruptcy/scripts/generate_full_architecture.py,131,"""5 折內層搜尋平坦超參數地形"",",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/generate_mvp_report_and_card.py,5,computation of 15-fold outer-CV metrics ,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,128,"nfo(""Computing 15-fold CV metrics..."")",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,167,Brier Scores (15-fold outer-CV protocol ,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,168,"nfo(""Computing 15-fold outer-CV Platt ca",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,425,基準倍數 (vs 隨機) | 15 折外層 CV Platt Brier (m,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,437,_A$）均採用完全相同之 **15 折外層交叉驗證協定** 重算（每折以其餘,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,440,andomForest) 之 15 折外層 CV Platt Brier 均值,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,458,95 5.25x）優於（較低）15 折 CV 均值，顯示測試集看起來較容易、不,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,459,間穩定性**：$E_A$ 在 15 折 CV 的 Brier 標準差僅 **{,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,553,95 5.25x）優於（較低）15 折 CV 均值，但此點估計顯示測試集看起來,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,567,# CV 15-fold metrics (mean and s,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/generate_mvp_report_and_card.py,573,# CV 15-fold Brier metrics (mean,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/make_results_summary.py,500,ar95_pt}）優於（較低）15 折 CV 均值，顯示測試集看起來較容易、不,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/make_results_summary.py,513,r_report.csv` (15 折 CV) 與 `outputs/e6/e,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/make_results_summary.py,564,ngs} 組不平衡處理策略在 15 折驗證折之 3 點預警損失分布對照。 |,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/make_results_summary.py,571,集成候選與單一模型 M3 在 15 折驗證折之 AR@0.95 變異分布對照。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/make_results_summary.py,581,Mean ± Std) | 15 折外層驗證折置換特徵重要性 (Permut,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,82,看測試集調參』假象，全流程以 15 折 CV 作為保守承諾基準，以 E6 封存,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,129,"將營運決策門檻事前固化，接受 15 折驗證考驗"",",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,164,阱三（同一折調參報分）：採用 15 折外層（5-fold × 3 repeat,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,280,"""統計檢定顯示，這五大模型在 15 折驗證下無法被顯著區分。因此，我們不能把賭",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,318,"""解決跨折分布漂移：如何確保 15 折驗證達成率由 53% 躍升至 ≥ 80%",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,410,"業務端承諾時，必須以較保守的 15 折 CV 區間作為預期營運基準。"",",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,412,.95 5.25x）顯著優於 15 折 CV 均值（PR-AUC 0.4598,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,414,在未來的實際營運規劃中，應以 15 折 CV 的估計值（R90 預警倍數 8.,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,417,"{""label"": ""15 折 CV PR-AUC"", ""val"":",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,426,在計算未來人力與成本時，請以 15 折 CV 的保守估計（R90 預期捕獲 9,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,697,"0% 誇大承諾，而是以保守的 15 折 CV 作為營運承諾。"",",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,700,UC（0.5676）顯著高於 15 折 CV 的平均水準（0.4598），這說,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,702,"""3. 我們主張以 15 折 CV 的估計值（R90 召回率約 95",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/presentation_data.py,774,80/20 分層固化切分與 15 折重複交叉驗證，確保在橫斷面（Cross-,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/scripts/report_figures_data.py,115,"E_B, E_trees）在 15 折驗證折上的平均召回率 vs 預警倍數全動",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/report_figures_data.py,227,M5: LightGBM）在 15 折驗證折上的平均召回率 vs 預警倍數全軌,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/report_figures_data.py,295,"調優未處理羅吉斯迴歸）——在 15 折驗證上的平均 PR 曲線對照圖。"",",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data.py,644,"折負責無偏評估，每一折內部再切內層 5 折專門給 Optuna 調音量。"",",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data.py,649,每一折裡面，訓練資料又自己切了內層 5 折專門給 Optuna 調參數；調好最佳,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data.py,657,"--purple);"">↳ 【內層 5 折】Optuna 專用調音師 (Tuni",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data.py,903,"""在 15 折驗證中，<strong>折間標準差僅 1",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data.py,907,底平滑掉了所有噪點的干擾！在 15 折驗證中，M3 的折間標準差只有 1.35,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data.py,918,trong>極淺樹深度限制 (max_depth=3)</strong>：強制樹,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+bankruptcy/scripts/student_slides_data.py,1018,"""15 折驗證均值 AR@0.95 降至 <str",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data.py,1227,UC (0.5676) 優於 15 折 CV 均值 (0.4598)，統計上顯,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data.py,1228,向業務承諾時，必須以較保守的 15 折 CV 區間（預期捕獲 95%）作為基準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data.py,1232,高達 0.5676，比我們 15 折 CV 的平均值還要好。這代表這份測試集,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data.py,1579,"title"": ""為什麼選擇 15 折 Stratified CV + 5 折",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data.py,1583,"訓練強度），同時驗證折仍有 11～12 家能精確計算 Recall。"",",外層驗證折破產正樣本平均 35.2 家（35～36 家）,bankruptcy/src/cv.py:70-116; bankruptcy/outputs/tables/e4a_threshold_transfer_per_fold.csv,False
+bankruptcy/scripts/student_slides_data.py,1589,算精確的 Recall！再加上內層 5 折 Nested CV，確保超參數調校絕,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data.py,1592,"(--accent);"">🔬 15 折外層評估 + 5 折內層嵌套 (Nest",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data.py,1613,span>藍色：1 折驗證 (11~12 破產家數)</span>,外層驗證折破產正樣本平均 35.2 家（35～36 家）,bankruptcy/src/cv.py:70-116; bankruptcy/outputs/tables/e4a_threshold_transfer_per_fold.csv,False
+bankruptcy/scripts/student_slides_data.py,1671,trong>：相關係數 $> 0.98$ 的特徵會造成羅吉斯迴歸係數變異數爆炸,相關性過濾門檻固定為 |r| > 0.95,bankruptcy/src/preprocessing.py:353; bankruptcy/src/pipelines.py:249,False
+bankruptcy/scripts/student_slides_data.py,1690,：共線性雙胞胎欄位 (r > 0.98)</div>,相關性過濾門檻固定為 |r| > 0.95,bankruptcy/src/preprocessing.py:353; bankruptcy/src/pipelines.py:249,False
+bankruptcy/scripts/student_slides_data.py,1874,ost 為什麼設 <code>max_depth=3</code>？</stro,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+bankruptcy/scripts/student_slides_data.py,1881,ost 我們嚴格把樹深限制在 max_depth=3！為什麼？因為深度 3 只有,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+bankruptcy/scripts/student_slides_data_v2.py,326,家，若切 15 折每折僅約 11～12 家，破產樣本極為珍貴；檢核 2 解答：,外層驗證折破產正樣本平均 35.2 家（35～36 家）,bankruptcy/src/cv.py:70-116; bankruptcy/outputs/tables/e4a_threshold_transfer_per_fold.csv,False
+bankruptcy/scripts/student_slides_data_v2.py,352,"第一個真模型 — 淺決策樹 (max_depth=3) 實證輸出"",","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+bankruptcy/scripts/student_slides_data_v2.py,356,TreeClassifier(max_depth=3)</code> 訓練後，驗,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+bankruptcy/scripts/student_slides_data_v2.py,362,"TreeClassifier(max_depth=3, random_state","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+bankruptcy/scripts/student_slides_data_v2.py,472,案實證表現</strong>：15 折 CV 的 AR@0.95 = 8.06,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,477,】看右邊這張圖：我們的模型在 15 折驗證中，把 AR@0.95 壓到了 8.,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,570,ong>：全專案更進一步採用 15 折外層評估（每折約 11～12 筆破產，極,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,736,挑選的，這種極端隨機化讓它在 15 折驗證中表現奇蹟般地穩定，方差比隨機森林整,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,797,</strong>：調參只能在內層 5 折進行，外層驗證折絕不參與調參，杜絕超參,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data_v2.py,801,是，我們把 Optuna 關在內層 5 折裡調參，外層評估完全不知情！【小結】這,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data_v2.py,928,UC (0.5676) 優於 15 折 CV 均值 (0.4598)，統計上顯,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,929,向業務承諾時，必須以較保守的 15 折 CV 區間（預期捕獲 95%）作為基準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,951,"ht:800;\"">完整報告 15 折 CV 區間、E6 盲測點估計與 95%",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,1063,"折負責無偏評估，每一折內部再切內層 5 折專門給 Optuna 調音量。"",",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data_v2.py,1068,每一折裡面，訓練資料又自己切了內層 5 折專門給 Optuna 調參數；調好最佳,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data_v2.py,1069,"-purple);\"">↳ 【內層 5 折】Optuna 專用調音師 (Tuni",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data_v2.py,1111,"""15 折驗證均值 AR@0.95 降至 <str",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,1267,"le"": ""附錄：為什麼選擇 15 折 Stratified CV + 5 折",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,1271,"訓練強度），同時驗證折仍有 11～12 家能精確計算 Recall。"",",外層驗證折破產正樣本平均 35.2 家（35～36 家）,bankruptcy/src/cv.py:70-116; bankruptcy/outputs/tables/e4a_threshold_transfer_per_fold.csv,False
+bankruptcy/scripts/student_slides_data_v2.py,1277,算精確的 Recall！再加上內層 5 折 Nested CV，確保超參數調校絕,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+bankruptcy/scripts/student_slides_data_v2.py,1278,"--accent);\"">🔬 15 折外層評估 + 5 折內層嵌套 (Nest",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+bankruptcy/scripts/student_slides_data_v2.py,1322,ost 為什麼設 <code>max_depth=3</code>？</stro,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+bankruptcy/scripts/student_slides_data_v2.py,1329,ost 我們嚴格把樹深限制在 max_depth=3！為什麼？因為深度 3 只有,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+bankruptcy/src/ensemble.py,739,M3 had lowest 15-fold outer loss (1.6547,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/ensemble.py,1131,Leader: lowest 15-fold mean 3-point log ,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,182,on against E4a 15-fold CV expectations,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,702,M3 與單一最強特徵基準在 15 折 CV 與未拆封測試集上的關鍵表現指標對,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,704,namically read 15-fold CV baseline value,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,740,"""15 折 CV 表現"": f""{float(ea",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,747,"""15 折 CV 表現"": f""{float(ea",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,754,"""15 折 CV 表現"": f""{float(ea",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,761,"""15 折 CV 表現"": f""{float(m3",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,768,"""15 折 CV 表現"": f""{float(m3",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,775,"""15 折 CV 表現"": f""{float(m3",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,782,"""15 折 CV 表現"": f""{float(s_",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,789,"""15 折 CV 表現"": f""{float(s_",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,796,"""15 折 CV 表現"": f""{float(s_",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/final_eval.py,804,上的各項排名與預警指標均優於 15 折 CV 的平均表現，顯示此測試集相對於交,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/prevalence_sensitivity.py,81,# A. 15-fold CV Statistics,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/run_imbalance.py,330,"vs E0 Base LR (15-fold Mean):"")",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/run_imbalance.py,545,ne with lowest 15-fold alert_ratio@0.95 ,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/seed_stability.py,7,nd fixed outer 15-fold splits.,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/seed_stability.py,142,mpute per-seed 15-fold means and within-,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/src/thresholding.py,844,ng: Boxplot of 15-fold actual recalls,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/tests/test_mvp_completeness.py,262,# Check 15-fold CV metrics,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/tests/test_preprocessing.py,152,"linear (corr ~ 0.98 > 0.95), but slight",相關性過濾門檻固定為 |r| > 0.95,bankruptcy/src/preprocessing.py:353; bankruptcy/src/pipelines.py:249,True
+bankruptcy/tests/test_results_summary.py,54,ongest Feature 15-fold PR-AUC mean,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+bankruptcy/tests/test_results_summary.py,60,# 4. Base LR 15-fold PR-AUC mean,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/ml_learning_manual.html,845,<th>15 折外層 CV AR@0.95 (均值±標準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/ml_learning_manual.html,846,<th>15 折外層 CV PR-AUC</th>,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/ml_learning_manual.html,1003,特徵，再用這 20 個特徵跑 15 折 CV。這犯了 Hastie 等人在《E,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/ml_learning_manual.html,1011,CV）</strong>——內層 5 折供 Optuna 選參數，外層 15 折,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",True
+docs/ml_learning_manual.html,1035,"└── 內層 5 折 (每折訓練 4,364 筆內再切 5",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",True
+docs/ml_learning_manual.html,1437,"而被選為該家族唯一代表特徵，15 折 100% 入選。"", ""risk_di",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/ml_learning_manual.html,2027,"', title: 'E5a 15 折外層驗證置換重要性 Top 20', d",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/ml_learning_manual.html,2107,e(pipeline) 並在 15 折 CV 中執行時，每一折都會建立乾淨的轉,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/model_score_learning_report.html,1117,🔁 交叉驗證：<strong>15 折重複分層交叉驗證 (5-Fold × 3,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,1184,警倍數。主要模型 E_A 在 15 折 CV 為 8.06x，測試集僅需 5.,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,1185,的抽樣波動，因此本專案一律以 15 折 CV 的保守估計作為生產與風控規劃基準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,1221,實測效能：</strong> 15 折 CV PR-AUC 達 <strong,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,1247,折間變異：</strong> 15 折外層 CV 的 AR@0.95 標準差僅,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,1328,線性基準：</strong> 15 折 CV PR-AUC 仍達 <stron,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,1355,實測結果：</strong> 15 折 CV 損失達 1.6538，表現劣於無,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,1569,est/n_train)（在 15 折 CV 中為 1/15 + 1/4 =,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,1742,"ion value=""cv"">15 折 CV 池化 OOF (N=5455,",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,2039,要模型 E_A 在訓練期透過 15 折交叉驗證預先固化（Frozen）的四大正,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,2040,"median_ratio"": 0.9800028546959753, ""fam",相關性過濾門檻固定為 |r| > 0.95,bankruptcy/src/preprocessing.py:353; bankruptcy/src/pipelines.py:249,False
+docs/model_score_learning_report.html,2278,在嚴格統計學標準下，兩模型在 15 折驗證中無法判定何者顯著勝出。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/model_score_learning_report.html,2283,於跨階段候選比較。請參考下方 15 折 CV 與獨立測試集的實測點估計對照。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/presentation_outline.md,62,將營運決策門檻事前固化，接受 15 折驗證考驗。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/presentation_outline.md,74,- **關鍵數據**：15 折外層 Repeated Stratifi,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/presentation_outline.md,104,。統計檢定顯示，這五大模型在 15 折驗證下無法被顯著區分。因此，我們不能把賭,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/presentation_outline.md,136,業務端承諾時，必須以較保守的 15 折 CV 區間作為預期營運基準。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/presentation_outline.md,139,在計算未來人力與成本時，請以 15 折 CV 的保守估計（R90 預期捕獲 9,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/presentation_outline.md,225,0% 誇大承諾，而是以保守的 15 折 CV 作為營運承諾。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/presentation_outline.md,228,UC（0.5676）顯著高於 15 折 CV 的平均水準（0.4598），這說,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/presentation_outline.md,230,> 3. 我們主張以 15 折 CV 的估計值（R90 召回率約 95,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/presentation_outline.md,284,80/20 分層固化切分與 15 折重複交叉驗證，確保在橫斷面（Cross-,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/project_presentation.html,663,"第一道防線。"", ""工程標準：15 折巢狀交叉驗證（Nested CV）+ S",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+docs/student_learning_handbook.md,68,交叉驗證管理器<br/>• 15 折外層 Stratified CV (每折,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_learning_handbook.md,75,: XGBoost (極淺樹 max_depth=3 抗過擬合)<br/>• M,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+docs/student_learning_handbook.md,76,una 貝氏調參<br/>• 5 折內層搜尋平坦超參數地形<br/>• 正則化抗,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+docs/student_learning_handbook.md,167,splits.joblib`（15 折外層、5 折內層與測試集索引） |,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_learning_handbook.md,171,0)，證明 ML 的價值 | 15 折外層訓練驗證資料 | `e0_basel,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_learning_handbook.md,173,大模型最佳參數 (E2) | 內層 5 折資料 + Optuna | 各模型最佳,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+docs/student_learning_handbook.md,361,"V --> InnerCV[""內層 5 折 Optuna 超參數調校""]",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+docs/student_learning_handbook.md,370,採用「外層 15 折評估 + 內層 5 折調參」，確保評估結果無偏。,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+docs/student_learning_handbook.md,469,| 方案 | 15 折 CV AR@0.95 (均值 ± 標準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_learning_handbook.md,578,市場時，我們必須以保守的 **15 折 CV 均值（R90 預期捕獲 95%、,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_presentation.html,784,"strong>。"", ""計算 15 折的均值與標準差，全面掌握模型泛化能力的真",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_presentation_deck.md,221,的每一折裡面，訓練集又自己切了內層 5 折專門給 Optuna 調音量；調出最佳,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+docs/student_presentation_deck.md,310,底平滑掉了所有噪點的干擾！在 15 折驗證中，M3 的折間標準差只有 1.35,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_presentation_deck.md,315,棵樹繼續修正；標示重要參數 `max_depth=3`。,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+docs/student_presentation_deck.md,471,UC (0.5676) vs 15 折 CV 均值 (0.4598)；警告標示,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_presentation_deck.md,475,高達 0.5676，比我們 15 折 CV 的平均值 0.4598 還要好。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_presentation_deck.md,594,: Step 2 為什麼選擇 15 折 Stratified CV + 5 折,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_presentation_deck.md,596,- **視覺規劃**：15 折外層評估條狀圖（14 折訓練 93.3%,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+docs/student_presentation_deck.md,600,算精確的 Recall！再加上內層 5 折 Nested CV，確保超參數調校絕,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+docs/student_presentation_deck.md,614,共線性熱力矩陣警示（$r > 0.98$）。,相關性過濾門檻固定為 |r| > 0.95,bankruptcy/src/preprocessing.py:353; bankruptcy/src/pipelines.py:249,False
+docs/student_presentation_deck.md,660,**：XGBoost 限制 `max_depth=3` 防死記；特徵與樣本隨機採,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+docs/student_presentation_deck.md,663,ost 我們嚴格把樹深限制在 max_depth=3！為什麼？因為深度 3 只有,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+docs/student_presentation_v2.html,747,÷ 10 = 22 家，若切 15 折每折僅約 11～12 家，破產樣本極為珍,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+PROJECT_STATE.md,27,固化切分載入、外層 15 折/內層 5 折管理與測試集嚴格防洩漏隔離介面。,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",True
+PROJECT_STATE.md,40,5 折：5 折 × 3 重複；內層 5 折；E2b 10 折；測試集索引）。,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",True
+PROJECT_STATE.md,59,- **調參目標**：最小化內層 5 折合併 OOF 後的三點 log 預警倍數,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",True
+PROJECT_STATE.md,100,6$）之精確率為 3.61%（15 折 CV）/ 4.24%（測試集），每捕獲,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+PROJECT_STATE.md,127,：程式化模型卡生成器，動態由 15 折 CV 與 E6 分數檔計算所有指標，含,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+RESULTS_SUMMARY.md,26,$\times$ 3 次重複（15 折重複分層交叉驗證，Repeated St,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+RESULTS_SUMMARY.md,75,95 5.25x）優於（較低）15 折 CV 均值，顯示測試集看起來較容易、不,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+RESULTS_SUMMARY.md,88,r_report.csv` (15 折 CV) 與 `outputs/e6/e,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+RESULTS_SUMMARY.md,167,| 42 組不平衡處理策略在 15 折驗證折之 3 點預警損失分布對照。 |,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+RESULTS_SUMMARY.md,174,集成候選與單一模型 M3 在 15 折驗證折之 AR@0.95 變異分布對照。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+RESULTS_SUMMARY.md,184,Mean ± Std) | 15 折外層驗證折置換特徵重要性 (Permut,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,True
+scratch/check_facts_deep.py,33,26 (slide-18): 15-fold Repeated Stratifi,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+scratch/create_notebook.py,78,"ODO: 建立一棵淺決策樹 (max_depth=3)，並在訓練集進行訓練\n""","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/create_notebook.py,79,"TreeClassifier(max_depth=3, random_state","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/create_notebook.py,154,"TreeClassifier(max_depth=3, random_state","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/execute_class_models.py,18,"TreeClassifier(max_depth=3, random_state","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/execute_class_models.py,25,"st Real Model (max_depth=3) ==="")","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/slides_core_1_5.py,510,家，若切 15 折每折僅約 11～12 家，破產樣本極為珍貴；檢核 2 解答：,外層驗證折破產正樣本平均 35.2 家（35～36 家）,bankruptcy/src/cv.py:70-116; bankruptcy/outputs/tables/e4a_threshold_transfer_per_fold.csv,False
+scratch/slides_core_1_5.py,592,"第一個真模型 — 淺決策樹 (max_depth=3) 實證輸出"",","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/slides_core_1_5.py,596,TreeClassifier(max_depth=3)</code> 訓練後，驗,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/slides_core_1_5.py,607,"TreeClassifier(max_depth=3, random_state","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/slides_core_1_5.py,810,案實證表現</strong>：15 折 CV 的 AR@0.95 = 8.06,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+scratch/slides_core_1_5.py,815,】看右邊這張圖：我們的模型在 15 折驗證中，把 AR@0.95 壓到了 8.,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+scratch/slides_core_6_11.py,86,ong>：全專案更進一步採用 15 折外層評估（每折約 11～12 筆破產，極,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+scratch/slides_core_6_11.py,295,挑選的，這種極端隨機化讓它在 15 折驗證中表現奇蹟般地穩定，方差比隨機森林整,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+scratch/slides_core_6_11.py,404,</strong>：調參只能在內層 5 折進行，外層驗證折絕不參與調參，杜絕超參,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+scratch/slides_core_6_11.py,406,是，我們把 Optuna 關在內層 5 折裡調參，外層評估完全不知情！【小結】這,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+scratch/slides_core_6_11.py,657,"choice=""完整報告 15 折 CV 區間、E6 盲測點估計與 95%",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+scratch/test_gen_arch.py,53,"驗證 (cv.py)"", [""15 折外層 Stratified CV"", """,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+scratch/test_gen_arch.py,67,": XGBoost (極淺樹 max_depth=3)"", ""M5: Light","M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/test_gen_arch.py,68,"(tune.py)"", [""5 折內層搜尋平坦超參數地形"", ""正則化防過擬合",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+scratch/update_handbook_arch.py,25,交叉驗證管理器<br/>• 15 折外層 Stratified CV (每折,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+scratch/update_handbook_arch.py,32,: XGBoost (極淺樹 max_depth=3 抗過擬合)<br/>• M,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+scratch/update_handbook_arch.py,33,una 貝氏調參<br/>• 5 折內層搜尋平坦超參數地形<br/>• 正則化抗,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+slide_mapping.csv,60,"slide-60,為什麼選擇 15 折 Stratified CV + 5 折",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+teaching/step_quizzes.md,85,### Q2. 課堂示範用 `max_depth=3` 的淺決策樹在驗證集上達到,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+teaching/step_quizzes.md,167,- (B) 每折僅約 11～12 筆破產樣本，淺樹配合正規化項可強力防範,外層驗證折破產正樣本平均 35.2 家（35～36 家）,bankruptcy/src/cv.py:70-116; bankruptcy/outputs/tables/e4a_threshold_transfer_per_fold.csv,False
+tools/number_sources.md,39,| 交叉驗證架構 | 15 折外層 + 5 折內層 | `bankru,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+tools/number_sources.md,44,| 15 折 CV AR@0.95 | 8.06x,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+tools/number_sources.md,83,| N3 決策樹 (max_depth=3) 驗證 Accuracy | 97.,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+tools/number_sources.md,84,| N3 決策樹 (max_depth=3) 驗證 Recall | 20.45,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+tools/number_sources.md,85,| N3 決策樹 (max_depth=3) 驗證 Precision | 69,"M4 最佳參數 max_depth=2, subsample=0.8796",bankruptcy/outputs/models/best_params/M4.json:6-8,False
+破產預測_ML互動學習手冊.html,845,<th>15 折外層 CV AR@0.95 (均值±標準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_ML互動學習手冊.html,846,<th>15 折外層 CV PR-AUC</th>,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_ML互動學習手冊.html,1003,特徵，再用這 20 個特徵跑 15 折 CV。這犯了 Hastie 等人在《E,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_ML互動學習手冊.html,1011,CV）</strong>——內層 5 折供 Optuna 選參數，外層 15 折,E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+破產預測_ML互動學習手冊.html,1035,"└── 內層 5 折 (每折訓練 4,364 筆內再切 5",E2a 巢狀調參為內層 3 折；E2b 為 5 折 × 2 次重複 (10 次評估),"bankruptcy/src/cv.py:258; bankruptcy/src/tune.py:296, 856-862",False
+破產預測_ML互動學習手冊.html,1437,"而被選為該家族唯一代表特徵，15 折 100% 入選。"", ""risk_di",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_ML互動學習手冊.html,2027,"', title: 'E5a 15 折外層驗證置換重要性 Top 20', d",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_ML互動學習手冊.html,2107,e(pipeline) 並在 15 折 CV 中執行時，每一折都會建立乾淨的轉,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,1117,🔁 交叉驗證：<strong>15 折重複分層交叉驗證 (5-Fold × 3,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,1184,警倍數。主要模型 E_A 在 15 折 CV 為 8.06x，測試集僅需 5.,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,1185,的抽樣波動，因此本專案一律以 15 折 CV 的保守估計作為生產與風控規劃基準,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,1221,實測效能：</strong> 15 折 CV PR-AUC 達 <strong,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,1247,折間變異：</strong> 15 折外層 CV 的 AR@0.95 標準差僅,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,1328,線性基準：</strong> 15 折 CV PR-AUC 仍達 <stron,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,1355,實測結果：</strong> 15 折 CV 損失達 1.6538，表現劣於無,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,1569,est/n_train)（在 15 折 CV 中為 1/15 + 1/4 =,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,1742,"ion value=""cv"">15 折 CV 池化 OOF (N=5455,",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,2039,要模型 E_A 在訓練期透過 15 折交叉驗證預先固化（Frozen）的四大正,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,2040,"median_ratio"": 0.9800028546959753, ""fam",相關性過濾門檻固定為 |r| > 0.95,bankruptcy/src/preprocessing.py:353; bankruptcy/src/pipelines.py:249,False
+破產預測_全模型評分與參數學習報告.html,2278,在嚴格統計學標準下，兩模型在 15 折驗證中無法判定何者顯著勝出。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_全模型評分與參數學習報告.html,2283,於跨階段候選比較。請參考下方 15 折 CV 與獨立測試集的實測點估計對照。,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_學生教學簡報.html,784,"strong>。"", ""計算 15 折的均值與標準差，全面掌握模型泛化能力的真",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_學生教學簡報_v1_backup.html,784,"strong>。"", ""計算 15 折的均值與標準差，全面掌握模型泛化能力的真",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_學生教學簡報_v2.html,747,÷ 10 = 22 家，若切 15 折每折僅約 11～12 家，破產樣本極為珍,5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
+破產預測_結案簡報.html,663,"第一道防線。"", ""工程標準：15 折巢狀交叉驗證（Nested CV）+ S",5 折 × 3 次重複 = 15 次外層評估（每次訓練 80%、驗證 20%）,bankruptcy/config.py:24-25; bankruptcy/src/cv.py:97-101,False
