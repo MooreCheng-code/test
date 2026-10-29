@@ -2,7 +2,7 @@
 
 - **所依據的程式碼版本（Base Commit）**：`c35f833`（`c35f83371712aa59b7284c0e99944b47b2801a7a`，分支 `docs/code-learning`）
 - **Python 與測試環境**：Python 3.14.4，`bankruptcy/tests/` 內已提交之 24 個測試檔共 190 項測試（若含工作區未追蹤之 `test_model_score_report.py` 則為 25 個檔案、193 項測試）。
-- **最後更新階段**：階段 2a（模組導讀第一批：`config.md`、`data_audit.md`、`metrics.md`、`preprocessing.md` 完成；補做檢查已驗證，`_stale_claims.csv` 已建立）
+- **最後更新階段**：階段 2b（模組導讀第二批：`cv_and_pipelines.md`、`tuning_E2.md`、`ensemble_E3.md`、`calibration_and_threshold.md` 完成；2a 補確認項目已更新）
 
 ---
 
@@ -12,8 +12,23 @@
 | :--- | :--- | :--- | :--- |
 | **階段 0** | 專案唯讀盤點、`_progress.md`、`_findings.md` | ✅ 已完成 | `9576888` (`docs(code-learning): stage 0 - inventory and initial findings`) |
 | **階段 1** | `01_專案地圖與資料流.md`、`_facts_verified.md` | ✅ 已完成 | `ef8ac14` (`docs(code-learning): stage 1 - project map and data flow`) |
-| **階段 2a** | `02_模組導讀/`：`config.md`, `data_audit.md`, `metrics.md`, `preprocessing.md`；`_stale_claims.csv` | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 2a - module guides part 1`) |
-| **階段 2b** | `02_模組導讀/`：`cv_and_pipelines.md`, `tuning_E2.md`, `ensemble_E3.md`, `calibration_and_threshold.md` | ⏳ 下一步 | 待執行 |
+| **階段 2a** | `02_模組導讀/`：`config.md`, `data_audit.md`, `metrics.md`, `preprocessing.md`；`_stale_claims.csv` | ✅ 已完成 | `9978104` (`docs(code-learning): stage 2a - module guides part 1`) |
+| **階段 2b** | `02_模組導讀/`：`cv_and_pipelines.md`, `tuning_E2.md`, `ensemble_E3.md`, `calibration_and_threshold.md` | ✅ 已完成 | `c291360` (Part 1) + 本次提交 (Part 2) |
+| **階段 2c** | `02_模組導讀/`：`explain_E5.md`, `e6_lock_and_final_eval.md`, `e7_sensitivity.md`, `experiments_E0_E7.md`, `score_new_data.md`, `app_streamlit.md` | ⏳ 下一步 | 待執行 |
+| **階段 3** | `03a_param_registry.csv`、`03_參數手冊.md` | ⏸️ 待執行 | — |
+| **階段 4** | `labs/README.md`、`labs/lab_01_*.py` ～ `labs/lab_08_*.py`、`labs/.gitignore`、`docs/code_learning/lab_snapshots/` | ⏸️ 待執行 | — |
+| **階段 5** | `04_實驗操作指南.md` | ⏸️ 待執行 | — |
+| **階段 6** | `05_動手改程式配方.md` | ⏸️ 待執行 | — |
+| **階段 7** | `06_練習題與解答.md`、`labs/bugs/` | ⏸️ 待執行 | — |
+| **階段 8** | `00_讀我_學習路線.md`、`07_常見錯誤與除錯.md`、`08_術語表.md`、`09_面試說明稿.md` | ⏸️ 待執行 | — |
+| **階段 9** | `tools/check_code_docs.py` 與最終驗收 | ⏸️ 待執行 | — |
+
+### 1.1 過時說法清單統計（`_stale_claims.csv` 統計報告）
+
+全專案共掃描出 **288 筆**歷史過時說法，分佈如下：
+- **被 Git 追蹤之檔案**：**117 筆**（包含 `bankruptcy/src/final_eval.py` 13 筆、`bankruptcy/MODEL_CARD.md` 6 筆、`PROJECT_STATE.md` 5 筆、`bankruptcy/src/ensemble.py` 2 筆、`bankruptcy/src/run_imbalance.py` 2 筆、`bankruptcy/src/seed_stability.py` 2 筆等）。
+- **未被 Git 追蹤之工作區檔案**：**171 筆**（包含教學簡報資料腳本 `bankruptcy/scripts/student_slides_data_v2.py` 23 筆、`student_slides_data.py` 19 筆、`docs/model_score_learning_report.html` 13 筆、`docs/student_presentation_deck.md` 11 筆、`docs/student_learning_handbook.md` 10 筆等）。
+- **處理原則**：僅於清單中精確記錄「檔案, 行號, 錯誤說法, 正確說法, 證據, 是否被追蹤」，**不更動任何原始檔案**，供後續專項任務依表修正。
 | **階段 2c** | `02_模組導讀/`：`explain_E5.md`, `e6_lock_and_final_eval.md`, `e7_sensitivity.md`, `experiments_E0_E7.md`, `score_new_data.md`, `app_streamlit.md` | ⏸️ 待執行 | — |
 | **階段 3** | `03a_param_registry.csv`、`03_參數手冊.md` | ⏸️ 待執行 | — |
 | **階段 4** | `labs/README.md`、`labs/lab_01_*.py` ～ `labs/lab_08_*.py`、`labs/.gitignore`、`docs/code_learning/lab_snapshots/` | ⏸️ 待執行 | — |
@@ -71,4 +86,4 @@
 - **已讀核心檔案**：`bankruptcy/config.py`, `bankruptcy/src/cv.py`, `bankruptcy/src/data_audit.py`, `bankruptcy/src/preprocessing.py`, `bankruptcy/src/pipelines.py`, `bankruptcy/src/run_imbalance.py`, `bankruptcy/src/tune.py`, `bankruptcy/src/ensemble.py`, `bankruptcy/src/thresholding.py`, `bankruptcy/src/explain.py`, `bankruptcy/src/lock_utils.py`, `bankruptcy/src/seed_stability.py`, `bankruptcy/tests/test_frozen_hashes.py`, `bankruptcy/tests/test_integrity_phase0.py`, `bankruptcy/tests/test_mvp_completeness.py`, `bankruptcy/tests/test_lock.py`，以及 `bankruptcy/outputs/tables/` 與 `bankruptcy/outputs/e6/` 內之 CSV/JSON 彙總檔。
 - **關鍵發現**：詳見同目錄下之 `_findings.md`（包含既有文件與實際程式碼在內層 CV 折數、外層評估正樣本數、相關性門檻上的差異，以及 `thresholding.py:634` 與 `tune.py:577, 945` 的疑似程式問題）。
 - **已驗證事實表**：詳見同目錄下之 `_facts_verified.md`（涵蓋資料切分、CV 各層正樣本數、特徵漏斗、M0～M5 與 $E_A$、SMOTE 使用情況、Optuna 設定、校準與門檻、190/193 項測試清單與 E6 結果）。
-- **下一步**：執行階段 2b，撰寫 `docs/code_learning/02_模組導讀/` 下的 `cv_and_pipelines.md`、`tuning_E2.md`、`ensemble_E3.md`、`calibration_and_threshold.md` 四份導讀並提交。
+- **下一步**：執行階段 2c，撰寫 `docs/code_learning/02_模組導讀/` 下的剩餘導讀：`explain_E5.md`、`e6_lock_and_final_eval.md`、`e7_sensitivity.md`、`experiments_E0_E7.md`、`score_new_data.md`、`app_streamlit.md` 並提交。
