@@ -20,7 +20,7 @@
 | **階段 4a-fix** | G1～G5 修復：F-02 45 組配對深入檢定、單樹粗階梯同分機制、S3 vs S6 幾何特性證明、措辭嚴格校準、test_common 單元測試增至 10 項 | ✅ 已完成 | 本次提交 (docs(code-learning): stage 4a-fix - F-02 extended comparison, lab corrections, claims calibration) |
 | **階段 4b** | lab_05～lab_08 實作完成、	ools/update_lab_refs.py 替換卡片規劃中標籤為已完成、速查表對照更新、labs/README.md 包含演算法隨機性 vs 資料抽樣變異與極端召回率膨脹專門分析小節 | ✅ 已完成 | 本次提交 (docs(code-learning): stage 4b - lab_05 to lab_08, lab references updated) |
 | **階段 4b-fix** | H1～H7 事實修復：lab_04 M3 數據驗證（TomekLinks 0 剔除實測）、lab_08 與 E7b 措辭校準、E6 單次測試限制與 E4a 跨折補充、保護檔案 diff 雜湊、manifest 隔離、lab 模式縮減總表、標籤覆蓋統計 | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 4b-fix - lab_04 verification, E7b comparison wording, manifest fields, evidence coverage`) |
-| **階段 5** | `04_實驗操作指南.md` | ⏸️ 待執行 | — |
+| **階段 5** | 實驗操作指南：因果鏈全景 Mermaid 圖、12 步驟從零重現順序、EDA 至 MVP 13 階段全覆蓋（11 項固定模板）、四大常見重跑陷阱與排除對策、`check_code_docs.py --commands` AST 驗證通過 | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 5 - experiment operation guide`) |
 | **階段 6** | `05_動手改程式配方.md` | ⏸️ 待執行 | — |
 | **階段 7** | `06_練習題與解答.md`、`labs/bugs/` | ⏸️ 待執行 | — |
 | **階段 8** | `00_讀我_學習路線.md`、`07_常見錯誤與除錯.md`、`08_術語表.md`、`09_面試說明稿.md` | ⏸️ 待執行 | — |

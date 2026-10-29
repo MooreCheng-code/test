@@ -366,3 +366,24 @@
 
 ### H5 根因分析：Lab 模式與 Quick 縮減範圍總表
 - 於 `labs/README.md` 增設模式總表，明確定義 quick、standard、full 各自縮小之維度（折數、重複次數、網格點數、樹數、模型數、種子數），並載明「quick 模式結論品質低於 standard，不能拿來下結論，僅用於快速冒煙測試（確認程式與管線可正常運行）」。
+
+---
+
+## 7. 階段 5 實驗操作指南與指令 AST 檢驗架構
+
+### 7.1 指令真實性與 AST 靜態驗證機制（`--commands`）
+1. **問題背景**：文檔編寫中若發明不存在的 CLI 參數（例如假想 `--n-trials` 或 `--model-type`），會誤導學習者並造成執行崩潰。
+2. **實作架構**：
+   - 於 `tools/check_code_docs.py` 新增 `--commands` 模式，靜態解析 Markdown 內所有 code fence 及 inline 指令。
+   - 利用 Python `ast.walk` 掃描目標腳本之 `parser.add_argument(...)` 呼叫，動態提取合法旗標集合。
+   - 對指令中所有以 `-` 或 `--` 開頭之選項進行白名單比對；若指令指向不存在之檔案，或傳入未定義之選項，立即中斷並回報 ERROR。
+3. **單元測試與負向檢定（`tools/test_commands_checker.py`）**：
+   - 6 項單元測試 100% 通過。
+   - 負向測試驗證：成功攔截不存在腳本（`fake_non_existent.py`）、未知參數（`--fake-param`）、無 argparse 腳本傳參（`preflight.py --quick`）以及 Markdown 臨時檔案注入測試。
+
+### 7.2 實驗因果鏈與重現路徑設計
+1. **因果鏈精確綁定**：Mermaid 流程圖中每條邊均精確對齊實體檔案與程式碼行號（如 `preprocessing.py:132`、`splits.joblib`、`best_params/*.json`、`e3_selection.csv`、`models/final/*.joblib`）。
+2. **E6 盲測集受控防護（雙軌方案）**：
+   - **方案 A（推薦）**：常態學習與重現僅在 5,455 筆訓練集內部執行 E0～E5 與 E7，以 E4c 固化產物為驗收終點，嚴格不接觸 E6，維護資料集盲測純潔性。
+   - **方案 B（沙盒）**：若需演練 E6 流程，必須在全新獨立分支中重新切分 `splits.joblib`，並以 `--dry-run` 進行演練，主分支嚴禁解除 `E6_LOCK`。
+3. **常見重跑陷阱**：詳盡解析隨機種子漂移（`SEED=42` 與 `PYTHONHASHSEED`）、磁碟快取殘留（`e1_cache/`、`e2_cache/`、`e5_cache/`）、套件次版本浮點差異、以及 SHA-256 凍結測試防護機制。

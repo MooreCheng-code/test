@@ -250,18 +250,6 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path
                 f"Val PR-AUC: {np.mean(val_pr_aucs):.4f} (+/- {np.std(val_pr_aucs):.4f}) | "
                 f"Val AR@0.95: {np.mean(val_ar95s):.2f}x | 唯一分數數: {np.mean(val_n_uniques):.1f}"
             )
-                "train_ar95_mean": np.nan,
-                "val_ar95_mean": np.mean(val_ar95s),
-                "val_ar95_std": np.std(val_ar95s),
-                "ar95_gap": np.nan,
-                "val_ar90_mean": np.nan,
-                "avg_fit_seconds": np.mean(fold_times),
-            })
-            print(
-                f"  {m_code} ({m_name:<12}) depth={depth_label:<14} | "
-                f"Val PR-AUC: {np.mean(val_pr_aucs):.4f} (+/- {np.std(val_pr_aucs):.4f}) | "
-                f"Val AR@0.95: {np.mean(val_ar95s):.2f}x"
-            )
 
     df_results = pd.DataFrame(records)
 

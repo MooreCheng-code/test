@@ -1317,6 +1317,187 @@ def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
     return errors, warnings
 
 
+def extract_script_arguments(script_path: Path) -> set[str]:
+    """Extract valid argument flags from an argparse script using AST."""
+    if not script_path.is_file():
+        return set()
+    try:
+        content = script_path.read_text(encoding="utf-8")
+        tree = ast.parse(content)
+    except Exception:
+        return set()
+
+    valid_flags: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "add_argument":
+                for arg in node.args:
+                    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                        if arg.value.startswith("-"):
+                            valid_flags.add(arg.value)
+    return valid_flags
+
+
+def clean_token(t: str) -> str:
+    """Strip quotes, backticks, and punctuation from token."""
+    chars = '"`.,;:()[]{}!' + "'（），。；！ "
+    return t.strip(chars)
+
+
+def resolve_script_path(sub: str, repo_root: Path) -> Path:
+    """Resolve script path relative to repo_root or bankruptcy subdirectory."""
+    p = repo_root / sub.replace("\\", "/")
+    if p.is_file():
+        return p
+    p_b = repo_root / "bankruptcy" / sub.replace("\\", "/")
+    if p_b.is_file():
+        return p_b
+    return p
+
+
+def validate_single_command(cmd_str: str, repo_root: Path) -> tuple[bool, str]:
+    """Validate a single command string against real repository scripts and argparse AST.
+
+    Returns (is_valid, error_message).
+    """
+    import shlex
+    clean_cmd = cmd_str.strip()
+    if clean_cmd.startswith("$ ") or clean_cmd.startswith("> "):
+        clean_cmd = clean_cmd[2:].strip()
+    if clean_cmd.startswith("PS "):
+        clean_cmd = clean_cmd[3:].strip()
+        if clean_cmd.startswith(">"):
+            clean_cmd = clean_cmd[1:].strip()
+
+    try:
+        raw_tokens = shlex.split(clean_cmd, posix=False)
+    except Exception:
+        raw_tokens = clean_cmd.split()
+
+    tokens = [clean_token(t) for t in raw_tokens if clean_token(t)]
+    if not tokens:
+        return True, "Empty command"
+
+    cmd = tokens[0].lower()
+    if cmd in ("python", "python3", "python.exe"):
+        if len(tokens) < 2:
+            return True, "Interactive python"
+        sub = tokens[1]
+        start_idx = 2
+        if sub == "-m":
+            if len(tokens) < 3:
+                return False, "python -m missing module name"
+            mod = tokens[2]
+            if mod in ("pytest", "unittest", "uvicorn", "http.server"):
+                return True, f"Standard tool module {mod}"
+            rel_path = mod.replace(".", "/") + ".py"
+            script_path = resolve_script_path(rel_path, repo_root)
+            start_idx = 3
+        else:
+            if sub in ("pytest", "unittest"):
+                return True, f"Standard test runner {sub}"
+            script_path = resolve_script_path(sub, repo_root)
+
+        if not script_path.is_file():
+            rel_display = script_path.relative_to(repo_root) if script_path.is_relative_to(repo_root) else script_path
+            return False, f"Target script '{rel_display}' does not exist"
+
+        valid_flags = extract_script_arguments(script_path)
+        for t in tokens[start_idx:]:
+            if t.startswith("-"):
+                flag = t.split("=")[0]
+                if flag in ("-h", "--help"):
+                    continue
+                if flag not in valid_flags:
+                    return False, f"Unknown argument flag '{flag}' for script {script_path.name} (valid flags: {sorted(valid_flags) if valid_flags else 'none'})"
+        return True, "Valid python command"
+
+    elif cmd == "streamlit":
+        if len(tokens) >= 3 and tokens[1] == "run":
+            app_path = resolve_script_path(tokens[2], repo_root)
+            if not app_path.is_file():
+                return False, f"Streamlit target script '{tokens[2]}' does not exist"
+            return True, "Valid streamlit run command"
+        return True, "Other streamlit command"
+
+    elif cmd == "uvicorn":
+        if len(tokens) >= 2:
+            target = tokens[1].split(":")[0]
+            rel_path = target.replace(".", "/") + ".py"
+            script_path = resolve_script_path(rel_path, repo_root)
+            if not script_path.is_file():
+                return False, f"Uvicorn target module '{rel_path}' does not exist"
+            return True, "Valid uvicorn command"
+        return True, "Uvicorn invocation"
+
+    return True, "Non-python command"
+
+
+def check_commands_in_docs(target_path: Path | None = None) -> tuple[int, int]:
+    """Scan markdown documents for code block commands and validate script existence & AST arguments."""
+    errors = 0
+    warnings = 0
+    total_commands = 0
+
+    if target_path is None:
+        md_files = sorted(DOCS_DIR.rglob("*.md"))
+    elif target_path.is_file():
+        md_files = [target_path]
+    elif target_path.is_dir():
+        md_files = sorted(target_path.rglob("*.md"))
+    else:
+        print(f"Error: Target path {target_path} not found.")
+        return 1, 0
+
+    print(f"\nValidating commands & arguments AST in {len(md_files)} file(s)...")
+
+    for md_file in md_files:
+        rel_file = md_file.relative_to(REPO_ROOT) if md_file.is_relative_to(REPO_ROOT) else md_file
+        try:
+            content = md_file.read_text(encoding="utf-8")
+        except Exception as e:
+            print(f"[{rel_file}] [ERROR] Cannot read file: {e}")
+            errors += 1
+            continue
+
+        # 1. Check fenced shell blocks
+        fenced_pattern = re.compile(r"```([a-zA-Z0-9_\-]*)\r?\n(.*?)```", re.DOTALL)
+        for match in fenced_pattern.finditer(content):
+            lang = match.group(1).lower()
+            code_text = match.group(2)
+            start_pos = match.start()
+            line_no = content[:start_pos].count("\n") + 1
+
+            if lang in ("powershell", "bash", "sh", "cmd", "console", "shell"):
+                for offset, raw_line in enumerate(code_text.splitlines(), 1):
+                    line = raw_line.strip()
+                    if not line or line.startswith("#") or line.startswith("//") or line.startswith("::"):
+                        continue
+                    if re.match(r"^(\$|>|PS\s*>)?\s*(python|streamlit|uvicorn)\b", line):
+                        total_commands += 1
+                        ok, msg = validate_single_command(line, REPO_ROOT)
+                        if not ok:
+                            print(f"[{rel_file}:{line_no + offset}] [ERROR] Command verification failed: {msg} (line: {line})")
+                            errors += 1
+
+        # 2. Check inline commands outside fenced blocks
+        content_no_fence = fenced_pattern.sub("", content)
+        inline_pattern = re.compile(r"`((?:python|streamlit|uvicorn)\s+[^`\r\n]+)`")
+        for match in inline_pattern.finditer(content_no_fence):
+            cmd_line = match.group(1).strip()
+            line_no = content[:match.start()].count("\n") + 1
+            total_commands += 1
+            ok, msg = validate_single_command(cmd_line, REPO_ROOT)
+            if not ok:
+                print(f"[{rel_file}:{line_no}] [ERROR] Inline command verification failed: {msg} (cmd: {cmd_line})")
+                errors += 1
+
+    print("\n" + "=" * 50)
+    print(f"Commands AST check completed: {errors} error(s), {warnings} warning(s). Total commands verified: {total_commands}")
+    print("=" * 50)
+    return errors, warnings
+
+
 def main():
     parser = argparse.ArgumentParser(description="Consistency, evidence, and compliance checker.")
     parser.add_argument("path", nargs="?", default=None, help="Specific file or directory to check.")
@@ -1326,12 +1507,18 @@ def main():
     parser.add_argument("--cards-dir", type=str, default=None, help="Custom cards directory to check.")
     parser.add_argument("--allow-partial", action="store_true", help="Allow partial T1 coverage.")
     parser.add_argument("--evidence", action="store_true", help="Run evidence tags check.")
+    parser.add_argument("--commands", action="store_true", help="Run command syntax and argument AST validation on markdown files.")
     args = parser.parse_args()
 
     total_err = 0
     total_warn = 0
 
-    if args.evidence:
+    if args.commands:
+        target = Path(args.path) if args.path else None
+        e, w = check_commands_in_docs(target)
+        total_err += e
+        total_warn += w
+    elif args.evidence:
         target = Path(args.path) if args.path else None
         e, w = check_evidence_tags_all(target)
         total_err += e
