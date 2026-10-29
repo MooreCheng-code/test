@@ -55,6 +55,17 @@ python labs/test_common.py
 2. **獨立建構 CV 切分**：Lab 於 5,455 筆訓練集上自行以 `StratifiedKFold` 建立驗證切分，不重用專案正式切分檔案。
 3. **產物輸出嚴格隔離**：Lab 執行產物（圖表、全量 CSV、執行清冊 `run_manifest.json`）一律寫入 `labs/outputs/<lab_id>/`，並由 `labs/.gitignore` 排除追蹤；版本庫僅收納提交至 `docs/code_learning/lab_snapshots/` 的小型快照 CSV。絕不寫入 `bankruptcy/outputs/`。
 
+### 2.4 Lab 模式與 Quick 縮減範圍總表
+
+每支 Lab 腳本支援多種執行模式，各模式在不同維度上之縮減定義如下表所示：
+
+| 模式名稱 | 參數旗標 | CV 折數與重複次數 | 搜尋網格 / 參數維度 | 樹數量 / 候選模型數 | 適用情境與結論品質宣告 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **快速模式**<br>(`quick`) | `--quick`<br>或 `--mode quick` | 3 折或 5 折 $\times$ 1 次重複 | 網格點數精簡至 2～4 點 | 樹數縮減至 50～100 棵；精簡代表性模型 | **冒煙測試專用**：用於快速驗證腳本與演算法管線能正常執行（每支腳本 $\le 3$ 分鐘）。<br>⚠️ **【重要聲明】quick 模式結論品質低於 standard，不能拿來下正式科學結論，僅用於確認程式可跑。** |
+| **標準模式**<br>(`standard`) | `--standard`<br>或 `--mode standard` | 5 折 $\times$ 1 次重複 | 標準網格（涵蓋主要關鍵候選值） | 樹數 100～200 棵；評估完整模型列表 | **教學探索與參數敏感度觀察**：指標趨勢具備代表性，可作為課堂討論與超參數行為分析基礎。 |
+| **完整模式**<br>(`full`) | `--full`<br>或 `--mode full` | 5 折 $\times$ 3 次重複<br>（共 15 折外層評估） | 完整細緻網格（與正式實驗對齊） | 樹數 400～600 棵（依固化參數設定） | **高精度重現分析**：消除抽樣隨機性，方差與 E1～E4 正式實驗完全對齊，計算耗時較長。 |
+| **F-02 擴充檢定** | `--f02-extended` | 5 折 $\times$ 3 次重複 $\times$ 3 種子<br>（共 45 組配對） | 鎖定特定關鍵超參數組合（A vs B） | LightGBM 固化參數 | **假設驗證專用**：針對單一爭議參數（如 F-02）進行配對統計檢定與雜訊對照。 |
+
 ---
 
 ## 3. lab_01：決策樹與樹集成深度掃描 (`max_depth`)
@@ -174,13 +185,31 @@ python labs/test_common.py
 - **實際觀察**：
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S0'" col=mean_proba_mean expect=0.032688 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S1'" col=mean_proba_mean expect=0.171587 tolerance=0.001 -->
-  - **M1 的 class_weight 機率膨脹機制**：M1 在 S0 下平均預測機率為 0.0327（與真實盛行率 0.0323 一致）；採用 S1（`class_weight='balanced'`）時暴衝至 0.1716（膨脹 5.3 倍，Brier 惡化至 0.0883）。這是因為線性模型中 class_weight 等價於在 Log-odds 上平移 $\ln(w_1/w_0) \approx +3.4$。
+  - **M1 的 class_weight 機率膨脹機制**：M1 在 S0 下平均預測機率為 0.0327（與真實盛行率 0.0323 一致）；採用 S1（`class_weight='balanced'`）時大幅上升至 0.1716（膨脹 5.3 倍，Brier 惡化至 0.0883）。這是因為線性模型中 class_weight 等價於在 Log-odds 上平移 $\ln(w_1/w_0) \approx +3.4$。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M3' and strategy=='S0'" col=mean_proba_mean expect=0.033100 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M3' and strategy=='S1'" col=mean_proba_mean expect=0.040200 tolerance=0.001 -->
   - **M3 的 class_weight 膨脹緩和**：M3 在 S0 下為 0.0331，S1 下僅微升至 0.0402（僅 1.2 倍）。因為樹模型中 class_weight 僅改變分裂時的不純度計算，葉節點仍按樣本比例計算，多數葉節點仍為純負樣本（機率 0.0）。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S3'" col=pr_auc_mean expect=0.388301 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S6'" col=pr_auc_mean expect=0.388301 tolerance=0.001 -->
   - **M1 S3 vs S6 數值完全相同根因**：S3 為 `SMOTE(0.3)`，S6 為 `SMOTETomek(SMOTE(0.3))`。在 QuantileScaler 將 76 維特徵縮放至均勻分佈後，高維空間中幾無跨類別最近鄰邊界對，TomekLinks 剔除 0 筆樣本，故 S6 輸出與 S3 完全相同。此現象與專案正式 E1a 表格（`e1a_imbalance_comparison.csv`）中 M1 的 S3 與 S6 共享完全相同的 `alert_ratio@recall_0.95_mean = 10.865926` 一致。
+
+#### M3（ExtraTrees）全策略實測對照表：
+
+| 策略代號 | 策略名稱與實作方法 | 驗證 PR-AUC (Mean) | 驗證 AR@0.95 (Mean) | 平均預測機率 (Mean Proba) | 與 S0 差距及雜訊判定（M3 種子雜訊 Std: 0.0053） |
+| :---: | :--- | :---: | :---: | :---: | :--- |
+| **S0** | 基準線（不進行任何重抽樣） | **0.4402** | **8.54x** | 0.0331 | 基準線（最精簡無介入） |
+| **S1** | `class_weight='balanced'` | **0.4412** | **8.77x** | 0.0402 | PR-AUC 差 `+0.0010`（**未超出雜訊**，差異在種子變異內） |
+| **S2** | SMOTE (`sampling_strategy=0.1`) | **0.4265** | **9.55x** | 0.0336 | PR-AUC 差 `-0.0137`，AR@0.95 惡化至 9.55x |
+| **S3** | SMOTE (`sampling_strategy=0.3`) | **0.4157** | **7.95x** | 0.0347 | PR-AUC 差 `-0.0245`，但預警倍數收斂至最優 7.95x |
+| **S4** | SMOTE (`sampling_strategy=0.5`) | **0.4080** | **7.87x** | 0.0358 | PR-AUC 差 `-0.0322`，過多合成樣本導致邊際精度下降 |
+| **S5** | BorderlineSMOTE (`sampling_strategy=0.3`) | **0.4173** | **8.47x** | 0.0348 | 與 S3 差異在雜訊內（PR-AUC 差 `+0.0016`） |
+| **S6** | SMOTETomek (`sampling_strategy=0.3`) | **0.4157** | **7.94x** | 0.0347 | 與 S3 實質等價（PR-AUC 差 `0.000019`，**未超出雜訊**） |
+
+> [!NOTE]
+> **數據查證與歷史成因說明**：
+> 1. **回報誤植成因**：階段 4b 回報文字中，M3 之 S0、S2、S3、S6 曾出現「0.4368、0.4363、9.14x」，經查係撰寫報告整理 Markdown 時誤複製自 `lab_05` 前處理消融實驗的對照組數據。磁碟上之原始 CSV `labs/outputs/lab_04/lab_04_imbalance_strategies.csv` 與快照 CSV 本身自始至終完全正確無誤。
+> 2. **S3 vs S6 在 M3 上等價機制**：經單獨驗證 5 個訓練折中 TomekLinks 實際剔除筆數，5 折剔除樣本數全數為 0 筆（Fold 0～4 均為 0 筆）。因此 S6（SMOTETomek）與 S3（SMOTE）產生的訓練矩陣完全相同，僅極微小的隨機浮點誤差造成 0.000019 的 PR-AUC 差異，兩者在工程與統計上完全等價。
+> 3. **雜訊標註標準**：依據 `lab_08` 測得之 M3 演算法隨機種子標準差（PR-AUC Std: 0.0053），凡與基準線差異絕對值 $\le 0.005$ 者，均嚴格標註為「未超出雜訊」，避免將隨機抖動誤讀為策略效果。
 
 ---
 
@@ -271,7 +300,7 @@ python labs/test_common.py
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_cv_matrix_snapshot.csv where="n_splits_K==3 and n_repeats_R==1" col=val_positives_mean expect=58.666667 tolerance=0.1 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_cv_matrix_snapshot.csv where="n_splits_K==5 and n_repeats_R==1" col=val_positives_mean expect=35.200000 tolerance=0.1 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_cv_matrix_snapshot.csv where="n_splits_K==10 and n_repeats_R==1" col=val_positives_mean expect=17.600000 tolerance=0.1 -->
-  - **折內正樣本數與變異**：$K=3$ 時每折約 58.7 家正樣本，PR-AUC 折間標準差為 0.0356；$K=5$ 時每折 35.2 家正樣本（min 35, max 36），PR-AUC 標準差為 0.0564；$K=10$ 時每折僅 17.6 家正樣本，PR-AUC 標準差擴大至 0.0925，AR@0.95 標準差暴增至 8.99x。
+  - **折內正樣本數與變異**：$K=3$ 時每折約 58.7 家正樣本，PR-AUC 折間標準差為 0.0356；$K=5$ 時每折 35.2 家正樣本（min 35, max 36），PR-AUC 標準差為 0.0564；$K=10$ 時每折僅 17.6 家正樣本，PR-AUC 標準差擴大至 0.0925，AR@0.95 標準差擴大至 8.99x。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_sample_size_ladder_snapshot.csv where="subsample_ratio==0.1" col=clopper_pearson_95ci_width_mean expect=0.031950 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_sample_size_ladder_snapshot.csv where="subsample_ratio==0.2" col=clopper_pearson_95ci_width_mean expect=0.021891 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_sample_size_ladder_snapshot.csv where="subsample_ratio==0.3" col=clopper_pearson_95ci_width_mean expect=0.017834 tolerance=0.001 -->
@@ -316,39 +345,45 @@ python labs/test_common.py
 
 在機器學習工程中，初學者常混淆「演算法隨機性（Algorithm Randomness）」與「資料抽樣變異（Data Sampling Variation）」。本專案透過 `lab_08` 與正式實驗 `E7b`（`e7b_seed_stability.csv`）提供了嚴謹的實證對照：
 
-| 評估維度 | 指標 | 演算法隨機種子變異 (`seed_std`) | 資料折間抽樣變異 (`fold_std`) | 折間標準誤差 (`fold_se`) | 種子與折 SE 比率 (`ratio_seed_to_fold_se`) |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| **正式 E7b** | **PR-AUC** | **0.001700** | **0.079081** | 0.020419 | **0.0833 (8.3%)** |
-| **正式 E7b** | **AR@0.95** | **0.147909** | **2.128618** | 0.549607 | **0.2691 (26.9%)** |
-| **正式 E7b** | **Log Loss** | **0.014713** | **0.240029** | 0.061975 | **0.2374 (23.7%)** |
-| **Lab 08 (M3)** | **PR-AUC** | **0.005284** | **0.057119** | - | **約 9.2%** |
+| 評估維度 | 評估對象與設定 | 指標 | 演算法隨機種子變異 (`seed_std`) | 資料折間抽樣變異 (`fold_std`) | 折間標準誤差 (`fold_se`) | 種子與折 SE 比率 (`ratio_seed_to_fold_se`) |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| **正式 E7b** | **$E_A$ 集成模型**<br>（15 外層折，輪換模型與 SMOTE 種子） | **PR-AUC** | **0.001700** | **0.079081** | 0.020419 | **0.0833 (8.3%)** |
+| **正式 E7b** | **$E_A$ 集成模型**<br>（15 外層折，輪換模型與 SMOTE 種子） | **AR@0.95** | **0.147909** | **2.128618** | 0.549607 | **0.2691 (26.9%)** |
+| **正式 E7b** | **$E_A$ 集成模型**<br>（15 外層折，輪換模型與 SMOTE 種子） | **Log Loss** | **0.014713** | **0.240029** | 0.061975 | **0.2374 (23.7%)** |
+| **Lab 08** | **M3 單一模型**<br>（5 折，固定切分輪換模型種子） | **PR-AUC** | **0.005284** | **0.057119** | - | **約 9.2%** |
 
-#### 關鍵工程洞察：
-1. **資料抽樣變異佔據主導地位**：在正式 E7b 中，PR-AUC 的折間標準差（0.0791）是演算法種子標準差（0.0017）的 **46.5 倍**；AR@0.95 的折間標準差（2.13x）是種子標準差（0.15x）的 **14.4 倍**。
-2. **種子變異遠小於折間標準誤差**：`seed_std` 與 `fold_se`（$\text{fold\_std} / \sqrt{15}$）的比率僅 8.3%（PR-AUC）與 26.9%（AR@0.95），說明固定外層切分下，改變隨機種子（樹的特徵隨機抽樣、LightGBM 分裂、SMOTE 隨機點生成）引起的擾動，遠小於資料切分帶來的抽樣方差。
-3. **E7b 的協定事實**：E7b 固定外層 15 折切分，僅輪換模型種子與重抽樣種子（42, 7, 123, 2025, 31337），其評估本質是檢驗「演算法穩定度」，而非切分不確定性。
+#### 關鍵工程洞察與嚴格邊界：
+1. **單模型與集成的隨機性量級差異**：M3 單一模型的種子標準差（0.0053）約為 $E_A$ 集成模型種子標準差（0.0017）的 **3.1 倍**。兩者不可直接等同，但**兩者均獨立顯示演算法隨機種子變異遠小於資料抽樣（折間）變異**。
+2. **資料抽樣變異佔據主導地位**：在正式 E7b 中，PR-AUC 的折間標準差（0.0791）是演算法種子標準差（0.0017）的 **46.5 倍**；AR@0.95 的折間標準差（2.13x）是種子標準差（0.15x）的 **14.4 倍**。
+3. **種子變異遠小於折間標準誤差**：`seed_std` 與 `fold_se`（$\text{fold\_std} / \sqrt{15}$）的比率僅 8.3%（PR-AUC）與 26.9%（AR@0.95），說明固定外層切分下，改變隨機種子引起的擾動，遠小於資料切分帶來的抽樣方差。
+4. **協定與經驗邊界宣告**：
+   - E7b 固定外層 15 折切分，輪換的是模型隨機種子（42～46）與 SMOTE 隨機種子（42～46），其評估本質是檢驗固化集成管線在固定抽樣下的數值收斂性。
+   - 「集成模型較單一模型在隨機種子上更穩定」屬於機器學習社群之**一般經驗**，本專案未針對同架構單模型與集成進行完全受控的種子方差對比實驗，故不以此作為正式實證結論。
 
 ---
 
 ### 11.2 高召回率極端區間之非線性膨脹
 
-在破產預測等極端不平衡場景中，業務目標往往要求捕獲極高比例的破產企業（例如 90% 或 95%）。然而，隨之而來的代價是**預警名單規模的指數級急遽膨脹**。
+在破產預測等極端不平衡場景中，業務目標往往要求捕獲極高比例的破產企業（例如 90% 或 95%）。然而，隨之而來的代價是**預警名單規模的非線性劇增**。
 
-本專案透過 `lab_06`、正式實驗 `E4a`（`e4a_threshold_transfer_summary.csv`）與盲測集 `E6`（`e6_operating_points.csv`）揭示了此非線性規律：
+本專案透過 `lab_06`、正式實驗 `E4a`（`e4a_threshold_transfer_summary.csv`）與盲測集 `E6`（`e6_operating_points.csv`）揭示了此非線性趨勢：
 
 | 實驗來源 | 目標召回率 ($R$) | 捕獲破產家數 | 調查預警名單數 | 預警比例 | 預警倍數 ($\text{AR} = \text{Alerts}/P$) | 精確率 (Precision) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **正式 E6 (盲測)** | **R80** | 36 / 44 | 146 家 | 10.70% | **3.32x** | 24.66% |
 | **正式 E6 (盲測)** | **R90** | 43 / 44 | 337 家 | 24.71% | **7.66x** | 12.76% |
 | **正式 E6 (盲測)** | **R95** | 44 / 44 | 524 家 | 38.42% | **11.91x** | 8.40% |
-| **正式 E4a (M3)** | **R80** | ~28 / 35 | - | - | **3.53x** | ~24.0% |
-| **正式 E4a (M3)** | **R90** | ~32 / 35 | - | - | **5.64x** | ~17.0% |
-| **正式 E4a (M3)** | **R95** | ~33 / 35 | - | - | **12.63x** (含 $m=0.04$) | ~7.5% |
+| **正式 E4a (M3 跨折均值)** | **R80** | ~28 / 35 | - | - | **3.53x** (Std: 1.15) | ~24.0% |
+| **正式 E4a (M3 跨折均值)** | **R90** | ~32 / 35 | - | - | **5.64x** (Std: 1.63) | ~17.0% |
+| **正式 E4a (M3 跨折均值)** | **R95** | ~33 / 35 | - | - | **12.63x** (Std: 3.52，含 $m=0.04$) | ~7.5% |
 | **隨機基準線** | **任一 $R$** | $R \times P$ | $R \times N$ | $R$ | **31.00x ($N/P$)** | 3.23% |
 
 #### 關鍵業務與技術洞察：
-1. **邊際捕獲成本指數飆升**：在 E6 盲測集上，由 R80 升至 R90（多抓 7 家破產企業），需多調查 191 家企業（平均每多抓 1 家需調查 27.3 家）；而由 R90 升至 R95（僅多抓 1 家破產企業），需多調查 187 家企業！
-2. **預警倍數相對於隨機基準線**：
-   - 在 R80 下，模型預警倍數（3.32x）僅為隨機猜測（31.00x）的 **10.7%**，展現極高排查效率。
-   - 在 R95 下，為了確保 100% 捕獲（44/44 家），預警倍數攀升至 11.91x（約調查全體企業的 38.4%），精確率跌至 8.40%。
-3. **安全邊際 $m$ 的必要性**：在 E4a 門檻轉移實驗中，若不加邊際（$m=0$），在驗證折上的召回率達標率僅 53%～66%；加入 $m=0.04$ 安全邊際後，達標率達 86%～100%，但代價是預警倍數由 7.96x 膨脹至 12.63x。這具體體現了風險合規與審計成本之間的本質取捨。
+1. **邊際捕獲成本急遽上升（單次測試集觀察）**：在 E6 盲測集上，由 R80 升至 R90（多抓 7 家破產企業），需多調查 191 家企業（平均每多抓 1 家需調查 27.3 家）；而由 R90 升至 R95（僅多抓 1 家破產企業），需多調查 187 家企業。
+   > [!IMPORTANT]
+   > **單次盲測集限制說明**：上述「多調查 187 家僅多抓 1 家」為單次測試集（$P=44$ 家破產企業）之特定離散觀測。由於破產樣本稀少，極端召回區間的樣本點具有較大偶然性，邊際成本估計之方差極大，**不可外推為固定不變之客觀規律**。
+2. **多折交叉驗證之連續印證**：為避免單次測試集偏差，對照 E4a 跨折（15 次外層評估）之預警倍數：R80 為 3.53x（Std: 1.15）、R90 為 5.64x（Std: 1.63），而 R95（含安全邊際）為 12.63x（Std: 3.52）。多折均值證實了由 90% 邁向 95% 召回率時，排查名單規模呈倍數擴大的本質特性。
+3. **預警倍數相對於隨機基準線**：
+   - 在 R80 下，模型預警倍數（3.32x）僅為隨機猜測（31.00x）的 **10.7%**，排查效率顯著。
+   - 在 R95 下，為了追求極高捕獲率（44/44 家），預警倍數攀升至 11.91x（調查全體企業之 38.4%），精確率降至 8.40%。
+4. **安全邊際 $m$ 的必要性**：在 E4a 門檻轉移實驗中，若不加邊際（$m=0$），在驗證折上的召回率達標率僅 53%～66%；加入 $m=0.04$ 安全邊際後，達標率達 86%～100%，但代價是預警倍數由 7.96x 膨脹至 12.63x。這具體體現了風險合規與審計成本之間的本質取捨。

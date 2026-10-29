@@ -118,6 +118,10 @@ class TestLabCommon(unittest.TestCase):
             self.assertEqual(content["seed"], 42)
             self.assertIn("git_head", content)
             self.assertIn("git_dirty", content)
+            self.assertIn("git_dirty_labs", content)
+            self.assertIn("git_dirty_other_count", content)
+            self.assertIsInstance(content["git_dirty_labs"], bool)
+            self.assertIsInstance(content["git_dirty_other_count"], int)
             self.assertIn("packages", content)
             self.assertEqual(content["params"], params)
         finally:

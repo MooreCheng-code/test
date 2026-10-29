@@ -192,6 +192,38 @@ def get_git_head() -> str:
         return "unknown"
 
 
+def get_git_status_info() -> tuple[bool, int]:
+    """Check git status: returns (git_dirty_labs, git_dirty_other_count).
+
+    git_dirty_labs: True if any changes in labs/ or tools/
+    git_dirty_other_count: count of modified/untracked files outside labs/ and tools/
+    """
+    try:
+        res = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        lines = [line.strip() for line in res.stdout.strip().splitlines() if line.strip()]
+        labs_dirty = False
+        other_count = 0
+        for line in lines:
+            parts = line.split(maxsplit=1)
+            if len(parts) == 2:
+                path = parts[1].strip('"')
+            else:
+                path = line[2:].strip().strip('"')
+            if path.startswith("labs/") or path.startswith("tools/"):
+                labs_dirty = True
+            else:
+                other_count += 1
+        return labs_dirty, other_count
+    except Exception:
+        return False, 0
+
+
 def get_git_dirty(target_path: str = "labs") -> bool:
     """Check if the specified path has uncommitted changes in Git."""
     try:
@@ -237,10 +269,14 @@ def save_manifest(
         except Exception:
             packages_info[pkg] = "not_available"
 
+    git_dirty_labs, git_dirty_other_count = get_git_status_info()
+
     manifest = {
         "lab_id": lab_id,
         "git_head": get_git_head(),
-        "git_dirty": get_git_dirty("labs"),
+        "git_dirty": git_dirty_labs,
+        "git_dirty_labs": git_dirty_labs,
+        "git_dirty_other_count": git_dirty_other_count,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "elapsed_seconds": round(elapsed_seconds, 2),
         "seed": seed,
