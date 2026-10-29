@@ -90,6 +90,34 @@
 
 所有結論均自 `outputs/tables/` 固化表格核對：
 
+### 數字來源與評估協定對照表
+
+| 評估對象與數值 | 來源檔案與欄位 | 評估協定（切分與參數來源） | 是否可與其他模型直接比大小？ | 角色與決策脈絡 |
+|---|---|---|:---:|---|
+| **M3 AR@0.95 折標準差**<br>**1.347676** (~1.35x) | `outputs/tables/e2a_nested_summary.csv`<br>欄位 `ar95_fold_std` (第 3 列) | 5 折 × 3 次重複（15 次外層評估）；<br>超參數來自 E2a 各折獨立尋優 | 僅能與單一模型比波動度 | 單一模型中折間波動最小；但平均三點損失為 1.6547，排在第 6 名 |
+| **$E_A$ AR@0.95 折標準差**<br>**2.117742** (~2.12x) | `outputs/tables/e3_selection.csv`<br>欄位 `leader_ar95_std` | 同上（15 次外層評估）；M3/M4/M5 各折以 ECDF 百分位融合；參數來自 E2a 各折 | **可與 $E_{\text{trees}}$ 比較** | **Leader**（平均三點損失 1.6344 全專案最低，排第 1 名） |
+| **$E_{\text{trees}}$ AR@0.95 折標準差**<br>**2.303133** (~2.30x) | `outputs/tables/e3_selection.csv`<br>欄位 `runner_up_ar95_std` | 同上（15 次外層評估）；M2/M3/M4/M5 各折以 ECDF 百分位融合；參數來自 E2a 各折 | **可與 $E_A$ 比較** | **Runner-up**（平均三點損失 1.6496，排第 2 名） |
+
+> **重要決策釐清：為什麼 M3 標準差（1.35x）看起來較低，最終卻選 $E_A$（2.12x）？**
+> 1. **初選門檻是「三點對數損失」**：在 `apply_e3_selection_rule`（`bankruptcy/src/ensemble.py:1122`）中，所有候選模型首先按平均三點損失排序。$E_A$ 以 **1.6344** 奪得第 1 名（Leader），$E_{\text{trees}}$ 以 **1.6496** 奪得第 2 名（Runner-up），而 M3 損失為 **1.6547** 僅排在第 6 名（見 `outputs/tables/e3d_metric_alignment.csv`）。
+> 2. **Rule 2 比較的對象是「Leader vs. Runner-up」**：當 $E_A$ 與 $E_{\text{trees}}$ 的損失差異未達統計顯著時，Rule 2 比較的是 **$E_A$ 的 2.12x** 與 **$E_{\text{trees}}$ 的 2.30x**，判定 $E_A$ 的折間穩定度優於次名。**該規則根本未將 M3 納入標準差比對**，因為 M3 在第一關損失排序時已非前兩名。
+> 3. **模型多樣性優勢**：$E_A$ 融合三大異質樹模型（M3 直方圖、M4 深度 2 極淺樹、M5 葉節點導向樹），相比單一演算法 M3 具備更強的結構多樣性與抗過擬合能力。
+
+### E3 使用之超參數來源查核（程式碼事實）
+- **查核位置**：`bankruptcy/src/ensemble.py:406-415`
+  ```python
+  cache_file = E2_CACHE_DIR / f"{m}_r{rep}_f{f}.joblib"
+  d = joblib.load(cache_file)
+  val_scores_raw[m] = d["outer_val_scores"]
+  best_imbalance = d["best_imbalance"]
+  model_params = d.get("model_params", d.get("best_params", {}))
+  ```
+- **結論**：E3 外層評估使用的 M3、M4、M5 超參數，**完全來自 E2a 各外層折自己調出的最佳參數**，且外層驗證折分數是直接讀取該折在 E2a 中完成的無偏預測；內層 ECDF 參考分佈亦僅在該折的訓練折內部以 5 折 CV 生成。因此，**E3 的評估嚴格遵循巢狀交叉驗證防禦，不存在使用全訓練集 E2b 參數所導致的選擇偏誤**。
+
+---
+
+### 各項具體結論與檔案欄位比對
+
 1. **單一模型成對比較（E3a）**：
    - 來源：`outputs/tables/e3a_pairwise_models.csv` 之 `p_value_holm` 欄位。
    - 實測結論：所有 10 組單一模型兩兩比對之 Holm 校正後 p 值**全部為 1.0000**（無顯著差異）。

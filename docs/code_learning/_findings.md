@@ -55,6 +55,22 @@
 - **現象與原因**：
   `QuantileScaler.fit()`（`bankruptcy/src/preprocessing.py:310`）明確設定 `n_quantiles = min(1000, len(X))`，避免當訓練樣本數小於 1,000 時觸發 scikit-learn 警告；而 `audit_near_duplicates()`（`bankruptcy/src/data_audit.py:231`）直接使用 `QuantileTransformer(output_distribution="normal", random_state=SEED)`（預設 `n_quantiles=1000`）。在完整資料集（6,819 筆）上兩者行為一致，但若對小於 1,000 筆的子集呼叫 `audit_near_duplicates()` 則會產生 `UserWarning`。
 
+### F-04：E3 模型集成評估之超參數來源確認（確認無選擇偏誤）
+- **位置**：`bankruptcy/src/ensemble.py:406-415`
+- **嚴重度評級**：**資訊查核（無問題，確認合規）**
+- **現象與查核結果**：
+  在 `bankruptcy/src/ensemble.py:406-415` 中：
+  ```python
+  cache_file = E2_CACHE_DIR / f"{m}_r{rep}_f{f}.joblib"
+  d = joblib.load(cache_file)
+  val_scores_raw[m] = d["outer_val_scores"]
+  best_imbalance = d["best_imbalance"]
+  model_params = d.get("model_params", d.get("best_params", {}))
+  ```
+  程式直接讀取 E2a 各外層折在本地所儲存的 `outer_val_scores` 與該折獨立尋優所得的 `model_params`，且內層 ECDF 參考分佈亦僅在該折的訓練折內部生成。
+- **影響評估**：
+  證實 E3 的外層評估完全基於嚴格的巢狀交叉驗證隔離，**並未使用包含外層驗證折在內的全訓練集 E2b 參數**，因此在方法學上完全無偏，不存在選擇偏誤（Selection Bias）。
+
 ---
 
 ## 二、既有文件與實際程式碼不一致之處（Documentation vs. Code Discrepancies）
