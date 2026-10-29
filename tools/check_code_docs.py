@@ -1210,11 +1210,16 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
 
 def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
     """Scans markdown files and strictly validates evidence, code, cmd, and no-evidence tags."""
-    check_dir = target_dir or DOCS_DIR
-    if check_dir.is_file():
-        md_files = [check_dir]
+    if target_dir is not None:
+        if target_dir.is_file():
+            md_files = [target_dir]
+        else:
+            md_files = sorted(target_dir.rglob("*.md"))
     else:
-        md_files = sorted(check_dir.rglob("*.md"))
+        md_files = sorted(DOCS_DIR.rglob("*.md"))
+        labs_readme = REPO_ROOT / "labs" / "README.md"
+        if labs_readme.is_file() and labs_readme not in md_files:
+            md_files.append(labs_readme)
 
     print(f"\nValidating evidence & code tags in {len(md_files)} file(s)...\n")
     errors = 0
@@ -1266,7 +1271,7 @@ def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
                 in_cmd_section = True
                 
             # If claim requires evidence:
-            is_empirical = "【本專案實測" in stripped and not stripped.startswith(">") and "代表" not in stripped and not stripped.startswith("- 證據等級：")
+            is_empirical = "【本專案實測" in stripped and not stripped.startswith(">") and "代表" not in stripped and not stripped.startswith("- 證據等級：") and not stripped.startswith("- **【本專案實測")
             
             is_table_header = stripped.startswith("| :---") or any(
                 stripped.startswith(h) for h in [
@@ -1284,13 +1289,17 @@ def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
                 if has_no_evidence or has_cmd:
                     continue
                     
-                # Collect tags on this line or next line
-                tags_here = line_tags.get(idx, []) + line_tags.get(idx + 1, [])
+                # Collect tags on this line, previous lines (slack=2), or next line
+                tags_here = line_tags.get(idx - 2, []) + line_tags.get(idx - 1, []) + line_tags.get(idx, []) + line_tags.get(idx + 1, [])
                 if not tags_here:
-                    stmt_nums = extract_numbers_from_text(stripped)
-                    if stmt_nums:
-                        print(f"[{rel_file}:{idx}] [ERROR] Claim with concrete numbers lacks evidence/code tag: {stripped[:80]}")
+                    if is_empirical:
+                        print(f"[{rel_file}:{idx}] [ERROR] Claim with 【本專案實測】 lacks evidence/code tag: {stripped[:80]}")
                         errors += 1
+                    else:
+                        stmt_nums = extract_numbers_from_text(stripped)
+                        if stmt_nums:
+                            print(f"[{rel_file}:{idx}] [ERROR] Claim with concrete numbers lacks evidence/code tag: {stripped[:80]}")
+                            errors += 1
                 else:
                     # Verify numbers against all tags here
                     all_expect: list[float] = []

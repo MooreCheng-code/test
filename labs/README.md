@@ -89,7 +89,7 @@ python labs/test_common.py
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='None (無限制)'" col=train_pr_auc_mean expect=1.000000 tolerance=0.0001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='None (無限制)'" col=val_pr_auc_mean expect=0.106602 tolerance=0.001 -->
   - 當單樹深度無限制（`None`）時，訓練折 PR-AUC 達到 1.0000（完美擬合），但驗證折 PR-AUC 崩跌至 0.1066，過擬合差距高達 +0.8934。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='4'" col=val_ar95_mean expect=30.957792 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='4'" col=val_ar95_mean expect=30.964286 tolerance=0.01 -->
   - **單樹粗階梯同分機制**：單棵樹的驗證折預警倍數（AR@0.95）始終高達約 30.96 倍（接近全折樣本比例 $N/P \approx 31.00\text{x}$）。這是因為單樹葉節點少（例如無深度限制時僅有 0.0 與 1.0 兩個唯一機率值），機率呈粗階梯分佈。在悲觀同分規則（`score >= thr`）下，為了達到 95% 召回率，門檻被迫納入龐大的同分葉節點，使全折樣本幾乎全數被納入預警名單（$Alerts = N$），導致預警倍數退化至 $N/P$。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='M2' and max_depth=='12'" col=val_pr_auc_mean expect=0.392631 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='M3' and max_depth=='12'" col=val_pr_auc_mean expect=0.413149 tolerance=0.001 -->
@@ -126,8 +126,8 @@ python labs/test_common.py
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_02_forest_hyperparams_snapshot.csv where="model_code=='M3' and param_name=='max_features' and param_value=='log2'" col=pr_auc_mean expect=0.454269 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_02_forest_hyperparams_snapshot.csv where="model_code=='M3' and param_name=='max_features' and param_value=='0.3'" col=pr_auc_mean expect=0.440134 tolerance=0.001 -->
   - M3 在 `max_features='log2'` 時取得最高的 PR-AUC 0.4543（AR@0.95 約 8.02 倍），優於固定比例 0.3 的 0.4401。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_02_forest_hyperparams_snapshot.csv where="model_code=='M2' and param_name=='min_samples_leaf' and param_value=='5'" col=ar95_mean expect=8.181818 tolerance=0.01 -->
-  - M2 在 `min_samples_leaf=5` 時預警倍數最優（8.18 倍），過大的葉樣本約束（`min_samples_leaf=10`）反而使 AR@0.95 惡化至 9.41 倍。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_02_forest_hyperparams_snapshot.csv where="model_code=='M2' and param_name=='min_samples_leaf' and param_value=='5'" col=ar95_mean expect=8.183968 tolerance=0.01 -->
+  - M2 在 `min_samples_leaf=5` 時取得較低的預警倍數（8.18 倍，但需注意在種子雜訊範圍內），過大的葉樣本約束（`min_samples_leaf=10`）反而使 AR@0.95 惡化至 9.41 倍。
 
 ### 4.5 解讀與正式實驗對照
 - 樹數增加具有明確的邊際遞減效應（100 $\to$ 200 提升顯著，200 $\to$ 400 趨於平緩），正式實驗選擇 300～600 棵樹是在「穩定性」與「訓練資源」間的平衡點。
@@ -156,7 +156,7 @@ python labs/test_common.py
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_03_f02_extended_snapshot.csv where="model_seed==42 and fold_idx==0" col=is_bit_identical expect=False -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_03_f02_extended_snapshot.csv where="model_seed==42 and fold_idx==0" col=max_abs_score_diff expect=0.234968 tolerance=0.001 -->
   - **F-02 生效確認**：在全體 45 組配對中，逐位完全相同比例為 **0.0%（`is_bit_identical=False`）**，最大絕對預測分數差達 0.3063，皮爾森相關係數 0.9839，斯皮爾曼秩相關 0.9556。這證實 `subsample_freq=1` 確實啟動了隨機子樣本抽樣。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_03_f02_extended_snapshot.csv where="model_seed==42 and fold_idx==0" col=pr_auc_diff_B_minus_A expect=0.009941 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_03_f02_extended_snapshot.csv where="model_seed==42 and fold_idx==0" col=pr_auc_diff_B_minus_A expect=0.033102 tolerance=0.001 -->
   - **統計推論與信賴區間（45 組配對）**：
     - PR-AUC 平均配對差異（B 減 A）：`+0.00348`（Std: 0.02421），$t$-檢定 95% CI 為 `[-0.00379, +0.01076]`（涵蓋 0），符號為正比例為 53.3%。
     - AR@0.95 平均配對差異：`-0.0861x`（Std: 1.7718），$t$-檢定 95% CI 為 `[-0.6184, +0.4462]`（涵蓋 0），改善比例為 48.9%。
@@ -193,23 +193,26 @@ python labs/test_common.py
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S6'" col=pr_auc_mean expect=0.388301 tolerance=0.001 -->
   - **M1 S3 vs S6 數值完全相同根因**：S3 為 `SMOTE(0.3)`，S6 為 `SMOTETomek(SMOTE(0.3))`。在 QuantileScaler 將 76 維特徵縮放至均勻分佈後，高維空間中幾無跨類別最近鄰邊界對，TomekLinks 剔除 0 筆樣本，故 S6 輸出與 S3 完全相同。此現象與專案正式 E1a 表格（`e1a_imbalance_comparison.csv`）中 M1 的 S3 與 S6 共享完全相同的 `alert_ratio@recall_0.95_mean = 10.865926` 一致。
 
-#### M3（ExtraTrees）全策略實測對照表：
+#### M3（ExtraTrees）全策略實測對照表（`--quick` 模式，5 折 × 1 次重複）：
 
-| 策略代號 | 策略名稱與實作方法 | 驗證 PR-AUC (Mean) | 驗證 AR@0.95 (Mean) | 平均預測機率 (Mean Proba) | 與 S0 差距及雜訊判定（M3 種子雜訊 Std: 0.0053） |
-| :---: | :--- | :---: | :---: | :---: | :--- |
-| **S0** | 基準線（不進行任何重抽樣） | **0.4402** | **8.54x** | 0.0331 | 基準線（最精簡無介入） |
-| **S1** | `class_weight='balanced'` | **0.4412** | **8.77x** | 0.0402 | PR-AUC 差 `+0.0010`（**未超出雜訊**，差異在種子變異內） |
-| **S2** | SMOTE (`sampling_strategy=0.1`) | **0.4265** | **9.55x** | 0.0336 | PR-AUC 差 `-0.0137`，AR@0.95 惡化至 9.55x |
-| **S3** | SMOTE (`sampling_strategy=0.3`) | **0.4157** | **7.95x** | 0.0347 | PR-AUC 差 `-0.0245`，但預警倍數收斂至最優 7.95x |
-| **S4** | SMOTE (`sampling_strategy=0.5`) | **0.4080** | **7.87x** | 0.0358 | PR-AUC 差 `-0.0322`，過多合成樣本導致邊際精度下降 |
-| **S5** | BorderlineSMOTE (`sampling_strategy=0.3`) | **0.4173** | **8.47x** | 0.0348 | 與 S3 差異在雜訊內（PR-AUC 差 `+0.0016`） |
-| **S6** | SMOTETomek (`sampling_strategy=0.3`) | **0.4157** | **7.94x** | 0.0347 | 與 S3 實質等價（PR-AUC 差 `0.000019`，**未超出雜訊**） |
+> [!NOTE]
+> **執行模式標註**：本表數據來自 `--quick` 模式（5 折 × 1 次重複，種子 42）。不同模式（quick vs standard vs full）之數據嚴格禁止並列混用。快照檔案與磁碟原始 CSV 內容完全一致。
+
+| 策略代號 | 策略名稱與實作方法 | 驗證 PR-AUC (Mean) | 驗證 AR@0.95 (Mean) | 平均預測機率 (Mean Proba) | Brier 分數 | 與 S0 差距及雜訊判定（PR-AUC 雜訊 Std: 0.0053，AR@0.95 雜訊 Std: 1.04x） |
+| :---: | :--- | :---: | :---: | :---: | :---: | :--- |
+| **S0** | 基準線（不進行任何重抽樣） | **0.4402** | **8.54x** | 0.0331 | 0.0232 | 基準線（最精簡無介入） |
+| **S1** | `class_weight='balanced'` | **0.4412** | **8.77x** | 0.0402 | 0.0234 | PR-AUC 差 `+0.0010`（**未超出雜訊**，差異在種子變異內）；AR 差 `+0.23x`（未超出雜訊） |
+| **S2** | SMOTE (`sampling_strategy=0.1`) | **0.4265** | **9.55x** | 0.0477 | 0.0241 | PR-AUC 差 `-0.0137`（超出雜訊）；AR@0.95 惡化至 9.55x（差 `+1.01x`） |
+| **S3** | SMOTE (`sampling_strategy=0.3`) | **0.4157** | **7.95x** | 0.0639 | 0.0270 | PR-AUC 差 `-0.0245`（顯著超出雜訊）；S3 的 AR@0.95 較低，但差異未超出種子雜訊（約 1.04x），且 PR-AUC 低於 S0，不能據此判定 S3 較好 |
+| **S4** | SMOTE (`sampling_strategy=0.5`) | **0.4080** | **7.87x** | 0.0710 | 0.0287 | PR-AUC 差 `-0.0322`（超出雜訊），過多合成樣本導致邊際精度下降，機率失真加劇 |
+| **S5** | BorderlineSMOTE (`sampling_strategy=0.3`) | **0.4173** | **8.47x** | 0.0547 | 0.0259 | 與 S3 差異在雜訊內（PR-AUC 差 `+0.0016`），機率偏移略小於一般 SMOTE |
+| **S6** | SMOTETomek (`sampling_strategy=0.3`) | **0.4157** | **7.94x** | 0.0639 | 0.0270 | 與 S3 實質等價（PR-AUC 差 `0.000019`，**未超出雜訊**，Tomek 剔除 0 筆樣本） |
 
 > [!NOTE]
 > **數據查證與歷史成因說明**：
-> 1. **回報誤植成因**：階段 4b 回報文字中，M3 之 S0、S2、S3、S6 曾出現「0.4368、0.4363、9.14x」，經查係撰寫報告整理 Markdown 時誤複製自 `lab_05` 前處理消融實驗的對照組數據。磁碟上之原始 CSV `labs/outputs/lab_04/lab_04_imbalance_strategies.csv` 與快照 CSV 本身自始至終完全正確無誤。
+> 1. **回報誤植成因**：先前 Markdown 手動整理表格時，曾誤將 S3 之 `mean_proba_mean` 寫為 0.0347（磁碟 CSV 實為 0.063861）、S0 Brier 寫為 0.0267（磁碟 CSV 實為 0.023185）。磁碟上之原始 CSV `labs/outputs/lab_04/lab_04_imbalance_strategies.csv` 與快照 CSV 本身自始至終完全一致且正確無誤。
 > 2. **S3 vs S6 在 M3 上等價機制**：經單獨驗證 5 個訓練折中 TomekLinks 實際剔除筆數，5 折剔除樣本數全數為 0 筆（Fold 0～4 均為 0 筆）。因此 S6（SMOTETomek）與 S3（SMOTE）產生的訓練矩陣完全相同，僅極微小的隨機浮點誤差造成 0.000019 的 PR-AUC 差異，兩者在工程與統計上完全等價。
-> 3. **雜訊標註標準**：依據 `lab_08` 測得之 M3 演算法隨機種子標準差（PR-AUC Std: 0.0053），凡與基準線差異絕對值 $\le 0.005$ 者，均嚴格標註為「未超出雜訊」，避免將隨機抖動誤讀為策略效果。
+> 3. **雜訊標註標準**：依據 `lab_08` 測得之 M3 演算法隨機種子標準差（PR-AUC Std: 0.0053，AR@0.95 Std: 1.04x），凡差異未超出雜訊者，嚴格標註為「未超出雜訊」，不得隨意使用「最優」或「勝出」等定性字眼。
 
 ---
 
@@ -234,14 +237,19 @@ python labs/test_common.py
   - 相關性過濾對線性模型（M1）至關重要（去除多重共線性），但對樹集成（M3）影響較小甚至可能損失資訊。
   - QuantileScaler 能將長尾分佈攤平成均勻分佈，使距離計算與分割更穩定；改為 StandardScaler 會使極端值影響未經截尾的特徵。
 - **實際觀察**：
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='無過濾'" col=retained_features_mean expect=92.0 tolerance=0.1 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='門檻=0.95'" col=retained_features_mean expect=76.0 tolerance=0.1 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='門檻=0.8'" col=retained_features_mean expect=56.4 tolerance=0.1 -->
-  - **特徵漏斗折內實測**：無過濾時保留 92.0 個特徵；門檻 0.95 時平均保留 76.0 個特徵（剔除 16 個高度相關特徵）；門檻 0.80 時平均保留 56.4 個特徵。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and use_corr_filter==False" col=retained_features_mean expect=92.0 tolerance=0.1 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and corr_threshold==0.95 and ablation_group=='corr_filter'" col=retained_features_mean expect=76.0 tolerance=0.1 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and corr_threshold==0.8 and ablation_group=='corr_filter'" col=retained_features_mean expect=56.4 tolerance=0.1 -->
+  - **特徵漏斗折內實測與條件差異**：
+    - 在啟用截尾（`use_winsorizer=True`，lab 基準）下：無過濾保留 92.0 欄；門檻 0.95 時各折動態保留 **75～77 欄**（平均 76.0 欄）；門檻 0.80 時平均保留 56.4 欄。
+    - 在關閉截尾（`use_winsorizer=False`）下：門檻 0.95 各折動態保留 **70～73 欄**（平均 71.6 欄，min=70, max=73）。未經截尾之極端長尾值放大了成對 Pearson 相關係數，導致更多特徵超過 0.95 被剔除。專案正式管線在 E1b 結論後關閉截尾（`use_winsorizer=False`），因此正式外層 15 次評估之保留數為 70～73 欄（全訓練集為 72 欄）。兩者前處理條件不同，數值完全精確對應。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=quantile'" col=pr_auc_mean expect=0.406385 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=standard'" col=pr_auc_mean expect=0.397893 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M3' and setting_name=='Scaler=standard'" col=ar95_mean expect=18.376840 tolerance=0.01 -->
-  - **縮放器影響**：M1 在 QuantileScaler 下 PR-AUC 為 0.4064（AR@0.95 為 9.15x），改為 StandardScaler 後 PR-AUC 跌至 0.3979（AR@0.95 升至 10.67x）；M3 改用 StandardScaler 後 AR@0.95 嚴重惡化至 18.38x。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M3' and setting_name=='Scaler=standard'" col=ar95_mean expect=18.377619 tolerance=0.01 -->
+  - **縮放器影響與 M3 AR@0.95 暴增機制**：
+    - M1 在 QuantileScaler 下 PR-AUC 為 0.4064（AR@0.95 為 9.15x），改為 StandardScaler 後 PR-AUC 跌至 0.3979（AR@0.95 升至 10.67x）。
+    - M3 改用 StandardScaler 後 AR@0.95 均值由 9.14x 劇增至 **18.38x**（折間標準差 10.75x）。
+    - **【數理機制查證實證】**：樹集成理論上對單調特徵轉換不敏感，但 StandardScaler 與 QuantileScaler 非等價單調（StandardScaler 保留嚴重正偏態與極端長尾）。在 StandardScaler 下，24 個大值特徵使 ExtraTrees 的隨機切分難以在稀疏區域切出有效閾值。在 Fold 1 與 Fold 3 中，最後 2 筆破產正樣本在全部 80 棵樹中均落入純負樣本葉節點，預測機率恰好為 `0.0`。依據專案悲觀同分規則（`score >= cutoff`），當召回率要求達 95%（需抓 34/35 家）時，截止門檻崩塌至 0.0，使全折 1,091 筆樣本全被預警，導致 Fold 1 與 Fold 3 的預警倍數精確退化為 $N/P = 1,091 / 35 = \mathbf{31.17\text{x}}$！其餘 Fold 0 為 5.92x、Fold 2 為 9.74x、Fold 4 為 13.89x，5 折均值即為 $(5.92 + 31.17 + 9.74 + 31.17 + 13.89) / 5 = \mathbf{18.38\text{x}}$。而在 AR@0.90 下（只需抓 32 家），第 32 筆正樣本預測機率 $>0.0$，門檻未崩塌，AR@0.90 均值完全正常（7.07x）。這直接印證了為何長尾偏態資料必須採用 `QuantileScaler`。
   - **切分雜訊參照**：M1 在更換切分種子（seed=100）後之 PR-AUC 差異為 0.0037，AR@0.95 差異為 0.75x。消融實驗中門檻 0.95 vs 0.80 之差異落於切分雜訊範圍內。
 
 ### 7.5 解讀與正式實驗對照
@@ -261,23 +269,46 @@ python labs/test_common.py
 - 評估網格：$R \in [0.80, 0.90, 0.95]$，Margin $m \in [0.0, 0.02, 0.04, 0.06]$
 
 ### 8.3 實測執行時間
-- 實測時間：約 36.17 秒（`--mode quick`）
+- `--mode quick`（3 外層折 × 2 內層折）：約 36.17 秒
+- `--mode standard`（5 外層折 × 3 內層折）：約 81.48 秒
 
-### 8.4 假設與實際觀察
+### 8.4 假設與實際觀察（口徑分離：純排序 AR@R vs 門檻轉移實際預警倍數）
+- **指標定義口徑嚴格分離**：
+  1. **純排序指標 $AR@R$（無門檻）**：依真實標籤與驗證集預測機率之經驗累積分佈（ECDF）逆推，衡量模型單純排序能力。
+  2. **門檻轉移實際預警倍數（含安全邊際 $m$）**：由內層 OOF 分數決定運作門檻（扣除邊際 $m$），再施加於外層測試折，衡量實際營運調查負擔。
 - **實際觀察**：
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.80" col=random_guess_ar expect=30.994318 tolerance=0.01 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.80" col=alert_ratio_mean expect=4.217417 tolerance=0.01 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.95" col=alert_ratio_mean expect=10.094292 tolerance=0.01 -->
-  - **隨機猜測基準線與非線性膨脹**：隨機猜測基準線平坦固定於 $N/P = 5,455 / 176 \approx 31.00\text{x}$。M3 在 $R=0.80$ 時 AR 僅 4.22x（相當於隨機猜測的 13.6%）；但升至 $R=0.95$ 時 AR 劇增至 10.09x（膨脹達 2.4 倍）；當要求 $R=1.00$ 時 AR 逼近 23.74x。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.90 and margin==0.0" col=attainment_rate expect=0.333333 tolerance=0.01 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.90 and margin==0.06" col=attainment_rate expect=1.000000 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.80" col=alert_ratio_mean expect=3.198730 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.95" col=alert_ratio_mean expect=7.887778 tolerance=0.01 -->
+  - **純排序指標 $AR@R$ 與隨機基準線**：隨機猜測基準線平坦固定於 $N/P = 5,455 / 176 \approx 31.00\text{x}$。M3 在 $R=0.80$ 時純排序 AR 僅 3.20x（相當於隨機猜測的 10.3%）；升至 $R=0.95$ 時純排序 AR 上升至 7.89x。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.95 and margin==0.0" col=alert_ratio_mean expect=7.642540 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.90 and margin==0.0" col=attainment_rate expect=0.600000 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.90 and margin==0.06" col=attainment_rate expect=0.600000 tolerance=0.01 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.95 and margin==0.04" col=attainment_rate expect=1.000000 tolerance=0.01 -->
-  - **安全邊際 $m$ 緩衝效應**：
-    - 在 $R=0.90$ 下，固定 $m=0.00$ 時轉移達標率僅 33.3%；加入安全緩衝 $m=0.06$ 後達標率升至 100.0%（實際召回率均值 0.9658）。
-    - 在 $R=0.95$ 下，$m=0.04$ 即可確保達標率達 100.0%（實際召回率均值 0.9887）。
+  - **門檻轉移實際預警倍數與安全邊際 $m$ 緩衝效應**：
+    - 在 $R=0.95$ 下，若不加安全邊際（$m=0.00$），門檻轉移實際預警倍數為 7.64x（達標率僅 60.0%）；加入 $m=0.04$ 安全邊際後，達標率提升至 100.0%（實際預警倍數為 12.25x）。
+    - 在 $R=0.90$ 下，固定 $m=0.00$ 時轉移達標率為 60.0%（實際預警倍數 5.53x）；加入安全緩衝 $m=0.06$ 後實際預警倍數為 8.56x。
 
-### 8.5 解讀與正式實驗對照
-- 正式實驗 E4a（`e4a_margin_recommendation.csv`）中，M3 在 $R=0.90$ 與 $R=0.95$ 的推薦安全邊際均為 $m=0.04$（達標率達 80% 以上）。Lab 06 成功重現了未加邊際（$m=0$）時驗證達標率不足、而適度加入邊際能克服分佈轉移的關鍵機制。
+### 8.5 Standard 模式與正式 E4a 實驗並排對照（5 折 × 3 內層折）
+
+為避免僅依 `--quick`（3 折）下結論，以 `--standard`（5 外層折 × 3 內層折）重跑之實測結果與專案正式 E4a（15 次外層評估）並排對比如下：
+
+| 目標召回率 $R$ | 安全邊際 $m$ | Lab 06 Standard 達標率 | Lab 06 Standard 實際預警倍數 | E4a 正式達標率 | E4a 正式實際預警倍數 |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **0.80** | 0.00 | 60.0% | 3.46x | 60.0% | 3.53x |
+| **0.80** | 0.02 | 80.0% | 3.96x | 73.3% | 3.87x |
+| **0.80** | 0.04 | 80.0% | 4.36x | 86.7% | 4.32x |
+| **0.80** | 0.06 | 80.0% | 4.76x | 86.7% | 4.87x |
+| **0.90** | 0.00 | 60.0% | 5.53x | 53.3% | 5.64x |
+| **0.90** | 0.02 | 60.0% | 5.96x | 66.7% | 6.55x |
+| **0.90** | 0.04 | 60.0% | 7.15x | 86.7% | 7.59x |
+| **0.90** | 0.06 | 60.0% | 8.56x | 93.3% | 8.83x |
+| **0.95** | 0.00 | 60.0% | 7.64x | 66.7% | 7.96x |
+| **0.95** | 0.02 | 60.0% | 8.93x | 66.7% | 9.20x |
+| **0.95** | 0.04 | **100.0%** | **12.25x** | **100.0%** | **12.63x** |
+| **0.95** | 0.06 | **100.0%** | **24.00x** | **100.0%** | **23.74x** |
+
+**對照結論**：Lab 06 在 standard 模式下與正式 E4a 高度吻合：在 $R=0.95$ 下，$m=0.04$ 均精確達到 100% 達標率（實際預警倍數 12.25x vs 12.63x）；$m=0.06$ 均達到 24x 的高預警負擔。推薦邊際規則在兩者完全一致。
 
 ---
 
