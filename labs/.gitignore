@@ -1,0 +1,5 @@
+# Lab outputs (ignored here rather than modifying root .gitignore)
+outputs/
+__pycache__/
+*.py[cod]
+*$py.class
