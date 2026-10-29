@@ -2,7 +2,7 @@
 
 - **所依據的程式碼版本（Base Commit）**：`c35f833`（`c35f83371712aa59b7284c0e99944b47b2801a7a`，分支 `docs/code-learning`）
 - **Python 與測試環境**：Python 3.14.4，`bankruptcy/tests/` 內已提交之 24 個測試檔共 190 項測試（若含工作區未追蹤之 `test_model_score_report.py` 則為 25 個檔案、193 項測試）。
-- **最後更新階段**：階段 0（唯讀盤點與初步發現建立）
+- **最後更新階段**：階段 1（架構與資料流 `01_專案地圖與資料流.md` 及已驗證事實表 `_facts_verified.md` 完成）
 
 ---
 
@@ -10,9 +10,9 @@
 
 | 階段 | 名稱與產出檔案 | 狀態 | Commit 紀錄 |
 | :--- | :--- | :--- | :--- |
-| **階段 0** | 專案唯讀盤點、`_progress.md`、`_findings.md` | ✅ 已完成 | 本次提交 |
-| **階段 1** | `01_專案地圖與資料流.md`、`_facts_verified.md` | ⏳ 準備執行 | 待提交 |
-| **階段 2a** | `02_模組導讀/`：`config.md`, `data_audit.md`, `metrics.md`, `preprocessing.md` | ⏸️ 待執行 | — |
+| **階段 0** | 專案唯讀盤點、`_progress.md`、`_findings.md` | ✅ 已完成 | `9576888` (`docs(code-learning): stage 0 - inventory and initial findings`) |
+| **階段 1** | `01_專案地圖與資料流.md`、`_facts_verified.md` | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 1 - project map and data flow`) |
+| **階段 2a** | `02_模組導讀/`：`config.md`, `data_audit.md`, `metrics.md`, `preprocessing.md` | ⏳ 下一步 | 待提交 |
 | **階段 2b** | `02_模組導讀/`：`cv_and_pipelines.md`, `tuning_E2.md`, `ensemble_E3.md`, `calibration_and_threshold.md` | ⏸️ 待執行 | — |
 | **階段 2c** | `02_模組導讀/`：`explain_E5.md`, `e6_lock_and_final_eval.md`, `e7_sensitivity.md`, `experiments_E0_E7.md`, `score_new_data.md`, `app_streamlit.md` | ⏸️ 待執行 | — |
 | **階段 3** | `03a_param_registry.csv`、`03_參數手冊.md` | ⏸️ 待執行 | — |
@@ -70,4 +70,5 @@
 
 - **已讀核心檔案**：`bankruptcy/config.py`, `bankruptcy/src/cv.py`, `bankruptcy/src/data_audit.py`, `bankruptcy/src/preprocessing.py`, `bankruptcy/src/pipelines.py`, `bankruptcy/src/run_imbalance.py`, `bankruptcy/src/tune.py`, `bankruptcy/src/ensemble.py`, `bankruptcy/src/thresholding.py`, `bankruptcy/src/explain.py`, `bankruptcy/src/lock_utils.py`, `bankruptcy/src/seed_stability.py`, `bankruptcy/tests/test_frozen_hashes.py`, `bankruptcy/tests/test_integrity_phase0.py`, `bankruptcy/tests/test_mvp_completeness.py`, `bankruptcy/tests/test_lock.py`，以及 `bankruptcy/outputs/tables/` 與 `bankruptcy/outputs/e6/` 內之 CSV/JSON 彙總檔。
 - **關鍵發現**：詳見同目錄下之 `_findings.md`（包含既有文件與實際程式碼在內層 CV 折數、外層評估正樣本數、相關性門檻上的差異，以及 `thresholding.py:634` 與 `tune.py:577, 945` 的疑似程式問題）。
-- **下一步**：執行階段 1，撰寫 `01_專案地圖與資料流.md` 與 `_facts_verified.md` 並提交。
+- **已驗證事實表**：詳見同目錄下之 `_facts_verified.md`（涵蓋資料切分、CV 各層正樣本數、特徵漏斗、M0～M5 與 $E_A$、SMOTE 使用情況、Optuna 設定、校準與門檻、190/193 項測試清單與 E6 結果）。
+- **下一步**：執行階段 2a，撰寫 `docs/code_learning/02_模組導讀/` 下的 `config.md`、`data_audit.md`、`metrics.md`、`preprocessing.md` 四份導讀並提交。
