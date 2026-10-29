@@ -17,7 +17,7 @@
 |---|---|---|---|---|---|
 | **E0** | **基準模型與管線檢驗**<br>建立隨機猜測、單一特徵與基礎羅吉斯迴歸基準；以標籤隨機打亂檢驗管線洩漏。 | `bankruptcy/src/run_baselines.py`<br>`run_e0_baselines()`<br>`run_label_shuffle_test()` | `outputs/tables/e0_baselines_summary.csv`<br>`outputs/tables/e0_label_shuffle.csv` | - Single Feature (-EPS) PR-AUC = 0.3012<br>- Base LR (S0) PR-AUC = 0.3938<br>- 標籤打亂後 ROC-AUC 回落至 0.47～0.51，PR-AUC 回落至 0.032（無洩漏） | **安全**<br>(耗時約 1～2 分鐘) |
 | **E1** | **不平衡策略與前處理消融**<br>比較 S0～S6 共 7 種採樣策略；針對縮放器、截尾與相關過濾器進行消融實驗。 | `bankruptcy/src/run_imbalance.py`<br>`run_e1_experiments()` | `outputs/tables/e1a_imbalance_comparison.csv`<br>`outputs/tables/e1_selection_recommendation.csv`<br>`outputs/tables/e1b_ablation.csv` | - 複雜過採樣無顯著超越 S0 (Rule 3 簡約原則選 S0)<br>- QuantileTransformer 優於 StandardScaler<br>- 保留相關過濾器 (72 特徵) | **安全**<br>(支援快取，耗時約 5～10 分鐘) |
-| **E2a** | **巢狀交叉驗證超參數調校**<br>在外層無偏環境下，內層 3 折網格尋優，量化單一模型泛化效能。 | `bankruptcy/src/tune.py`<br>`run_e2a_nested_tuning()` | `outputs/tables/e2a_nested_summary.csv`<br>`outputs/logs/e2_cache/*.joblib` | - M3 (ExtraTrees) 三點損失 1.6547，折間標準差 1.348% 為單模型中最優<br>- 固化各折最佳參數快取 | **安全**<br>(運算量大，耗時約 30～60 分鐘) |
+| **E2a** | **巢狀交叉驗證超參數調校**<br>在外層無偏環境下，內層 3 折網格尋優，量化單一模型泛化效能。 | `bankruptcy/src/tune.py`<br>`run_e2a_nested_tuning()` | `outputs/tables/e2a_nested_summary.csv`<br>`outputs/logs/e2_cache/*.joblib` | - M3 (ExtraTrees) 三點損失 1.6547，折間標準差 1.348 倍為單模型中最優<br>- 固化各折最佳參數快取 | **安全**<br>(運算量大，耗時約 30～60 分鐘) |
 | **E2b** | **全訓練集超參數最佳化**<br>在全體訓練集（5,455 筆）上搜尋最終模型最佳超參數。 | `bankruptcy/src/tune.py`<br>`run_e2b_full_train_tuning()` | `outputs/models/best_params/M*.json` | - 產出供生產與後續分析使用的全集超參數設定檔 | **安全**<br>(耗時約 10～15 分鐘) |
 | **E3** | **集成策略比選**<br>比對單模型與 4 種集成方式（$E_A$、$E_B$、$E_C$、$E_{\text{trees}}$），驗證異質多樣性效益。 | `bankruptcy/src/ensemble.py`<br>`run_e3_ensemble_selection()` | `outputs/tables/e3_selection.csv` | - $E_A$ (M3+M4+M5 百分位數等權平均) 三點損失 1.6344 最優<br>- 顯著優於單一模型與樹集成 | **安全**<br>(讀取 E2 快取，耗時約 1～2 分鐘) |
 | **E4** | **機率校準與安全邊際門檻轉移**<br>驗證 OOF 門檻跨折轉移能力，計算安全邊際 $m$，擬合校準器。 | `bankruptcy/src/thresholding.py`<br>`run_e4_pipeline()` | `outputs/tables/e4a_threshold_transfer.csv`<br>`outputs/models/final/thresholds.json`<br>`outputs/models/final/calibrator_*.joblib` | - 建議邊際：R80(0.02)、R90(0.06)、R95(0.04)、R100(0.00)<br>- 達標率 $\ge 80\%$<br>- Platt 校準器 Brier Score 0.0243 | **安全**<br>(耗時約 3～5 分鐘) |
@@ -54,7 +54,7 @@ E0 建立三個基準層次（`bankruptcy/src/run_baselines.py:102-301`）：
 
 **結論解讀**：
 - 單一每股盈餘指標（-EPS）本身就具備高達 0.8861 的 ROC-AUC 與 0.3012 的 PR-AUC，展現傳統財報指標的強大預測力。
-- 引入多變量羅吉斯迴歸（Base LR）後，PR-AUC 提升至 0.3938，AR@0.95 顯著由 16.11% 下降至 10.31%（調查負擔降低 36%），證明多變量特徵確實具備增量資訊。
+- 引入多變量羅吉斯迴歸（Base LR）後，PR-AUC 提升至 0.3938，AR@0.95 顯著由 16.11 倍下降至 10.31 倍（調查負擔降低 36%），證明多變量特徵確實具備增量資訊。
 
 ---
 
@@ -97,12 +97,12 @@ E0 建立三個基準層次（`bankruptcy/src/run_baselines.py:102-301`）：
 | 評估模型 | 最終推薦策略 | 最終推薦縮放器 | 推薦依據規則 (Rule Applied) | 核心實測理由 |
 |---|---|---|---|---|
 | **M1 (Logistic Regression)** | **S0** | **quantile** | **Rule 3 (奧坎剃刀簡約原則)** | 任何過採樣技術（SMOTE 等）均未能在統計顯著性上勝過原始資料 S0；故選擇最簡單、運算最快之 S0。 |
-| **M2 (Random Forest)** | **S0** | **quantile** | **Rule 3 (奧坎剃刀簡約原則)** | S0 在 PR-AUC (0.4296) 與 AR@0.95 (11.84%) 均穩定，過採樣並無顯著增益。 |
+| **M2 (Random Forest)** | **S0** | **quantile** | **Rule 3 (奧坎剃刀簡約原則)** | S0 在 PR-AUC (0.4296) 與 AR@0.95 (11.84 倍) 均穩定，過採樣並無顯著增益。 |
 | **M4 (XGBoost)** | **S0** | **quantile** | **Rule 3 (奧坎剃刀簡約原則)** | 樹模型本身對不平衡具備適應力，S0 結構最精簡且能避免合成樣本帶來的邊界噪聲。 |
 
 ### 4.3 前處理消融數據洞察 (`outputs/tables/e1b_ablation.csv`)
 1. **相關過濾器（Correlation Filter）的作用**：
    - 移除了 20 個共線性特徵（如 `Operating Profit Per Share` 與 `Operating Profit Growth Rate` 等高度共線欄位），保留 72 個核心特徵。
-   - 消融數據顯示，關閉相關過濾器後，M1 的 AR@0.95 由 10.87% 惡化至 12.00%（負擔增加 1.13 個百分點），證明過濾共線性特徵確實提升了線性模型的泛化穩定性。
+   - 消融數據顯示，關閉相關過濾器後，M1 的 AR@0.95 由 10.87 倍惡化至 12.00 倍（負擔增加 1.13 倍），證明過濾共線性特徵確實提升了線性模型的泛化穩定性。
 2. **縮放器選擇（QuantileTransformer）**：
    - 財務比率存在極端厚尾與偏態，QuantileTransformer 將資料映射至均勻分佈，有效消除了極端異常值的干擾，全線優於標準常態化（StandardScaler）。

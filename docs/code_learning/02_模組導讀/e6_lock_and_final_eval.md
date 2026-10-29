@@ -7,7 +7,7 @@
 如果開發者在調參、挑選門檻、修改前處理時，能夠隨意讀取或評估測試集，就會產生統計學上嚴重的**資料窺探偏誤（Data Snooping Bias）**——即使沒有拿測試集去 `.fit()`，人類大腦會根據測試集分數反覆調整超參數，使測試集退化為實質上的「第二驗證集」。
 
 為了徹底杜絕這種現象，本專案在系統層級實施了嚴格的**防禦性單次解封架構（One-time Defensive Unseal Architecture）**：
-1. **硬體與權限隔離**：`bankruptcy/src/cv.py:270-285` 的 `get_test_data` 設置檢查點，禁止任何常規實驗讀取測試集。
+1. **硬體與權限隔離**：`bankruptcy/src/cv.py:220-234` 的 `get_test_data` 設置檢查點，禁止任何常規實驗讀取測試集。
 2. **8 項飛行前檢查（Preflight Audit）**：在接觸測試集前，必須 100% 通過程式碼一致性、檔案雜湊與單元測試（`bankruptcy/src/preflight.py:59-310`）。
 3. **不可逆鎖定旗標（`E6_LOCK`）**：在正式評估前寫入不可逆的鎖定記錄（`bankruptcy/src/lock_utils.py:45-85`），一旦鎖定，系統永久封鎖再次解封評估。
 4. **單次固化推論**：評估時直接呼叫統一推論管線產出分數並壓縮固化（`bankruptcy/src/final_eval.py:88-150`），後續所有圖表分析均以離線只讀模式（`--analyze`）從固化檔讀取，不重新推論。
@@ -81,7 +81,7 @@ flowchart TD
   在 `outputs/logs/` 下創建名為 `E6_LOCK` 的檔案，寫入包含解鎖時間戳記、主機名稱、使用者名稱、平台架構、索引 SHA-256 以及 11 個模型檔案的 SHA-256 雜湊表（以 JSON 格式儲存）。
 - 若檔案已存在，則拋出 `RuntimeError("E6 lock already exists! Holdout test evaluation is permanently sealed.")`。
 
-#### 2. 測試集存取警衛 (`bankruptcy/src/cv.py:270-285`)
+#### 2. 測試集存取警衛 (`bankruptcy/src/cv.py:220-234`)
 - 在 `cv.py` 中，讀取測試集資料必須呼叫 `get_test_data(i_know_this_is_final_evaluation=False)`。
 - 若呼叫時未傳入 `i_know_this_is_final_evaluation=True`，函式直接拒絕讀取並報錯，防止任何日常開發腳本或除錯程式意外碰觸測試集。
 

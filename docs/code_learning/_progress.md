@@ -15,7 +15,8 @@
 | **階段 2a** | `02_模組導讀/`：`config.md`, `data_audit.md`, `metrics.md`, `preprocessing.md`；`_stale_claims.csv` | ✅ 已完成 | `9978104` (`docs(code-learning): stage 2a - module guides part 1`) |
 | **階段 2b** | `02_模組導讀/`：`cv_and_pipelines.md`, `tuning_E2.md`, `ensemble_E3.md`, `calibration_and_threshold.md` | ✅ 已完成 | `c291360` (Part 1) + 本次提交 (Part 2) |
 | **階段 2c** | `02_模組導讀/`：`explain_E5.md`, `e6_lock_and_final_eval.md`, `e7_sensitivity.md`, `experiments_E0_E7.md`, `score_new_data.md`, `app_streamlit.md`；最小版檢查器 `tools/check_code_docs.py` | ✅ 已完成 | `55c4191` (Part 1) + 本次提交 (Part 2) |
-| **階段 3** | `03a_param_registry.csv`、`03_參數手冊.md` | ⏳ 下一步 | 待執行 |
+| **階段 3a** | `03a_param_registry.csv`（機器可讀參數登錄表，共 96 筆參數，T1 82 筆、T2 14 筆；17 欄位全數具備）、`tools/build_param_registry.py`、`tools/check_code_docs.py --registry` | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 3a - parameter registry, 2c follow-ups, stronger checker`) |
+| **階段 3b/c** | `03_參數手冊.md`（T1 參數卡、調參方向速查表、參數交互作用表） | ⏳ 待放行 | 待審核 3a 後執行 |
 | **階段 4** | `labs/README.md`、`labs/lab_01_*.py` ～ `labs/lab_08_*.py`、`labs/.gitignore`、`docs/code_learning/lab_snapshots/` | ⏸️ 待執行 | — |
 | **階段 5** | `04_實驗操作指南.md` | ⏸️ 待執行 | — |
 | **階段 6** | `05_動手改程式配方.md` | ⏸️ 待執行 | — |

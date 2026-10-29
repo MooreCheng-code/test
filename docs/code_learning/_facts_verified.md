@@ -55,8 +55,8 @@
 
 | 模型代號 | 演算法類別 | 基礎設定與來源位置 | 在專案中的角色 |
 | :--- | :--- | :--- | :--- |
-| **M0** | `sklearn.dummy.DummyClassifier` | `strategy="prior", random_state=SEED`（`bankruptcy/src/pipelines.py:140-144`） | E0 無資訊基準線（預測機率恆等於訓練折破產盛行率） |
-| **M1** | `sklearn.linear_model.LogisticRegression` | `max_iter=5000, random_state=SEED`（`bankruptcy/src/pipelines.py:146-154`） | 線性模型代表；亦作為 MVP 單筆線性貢獻對照模型（`bankruptcy/outputs/models/mvp_extras/model_M1.joblib`） |
+| **M0** | `sklearn.dummy.DummyClassifier` | `strategy="prior", random_state=SEED`（`bankruptcy/src/pipelines.py:134-144`） | E0 無資訊基準線（預測機率恆等於訓練折破產盛行率） |
+| **M1** | `sklearn.linear_model.LogisticRegression` | `max_iter=5000, random_state=SEED`（`bankruptcy/src/pipelines.py:134-154`） | 線性模型代表；亦作為 MVP 單筆線性貢獻對照模型（`bankruptcy/outputs/models/mvp_extras/model_M1.joblib`） |
 | **M2** | `sklearn.ensemble.RandomForestClassifier` | `n_estimators=300, random_state=SEED, n_jobs=-1`（`bankruptcy/src/pipelines.py:156-165`） | Bagging 樹模型代表（參與 E1、E2、E3 比較） |
 | **M3** | `sklearn.ensemble.ExtraTreesClassifier` | `n_estimators=300`（E2b 調參後為 `n_estimators=600, max_depth=None, min_samples_leaf=2, max_features=0.3`）（`bankruptcy/src/pipelines.py:167-176`, `bankruptcy/outputs/models/best_params/M3.json`） | 極端隨機樹；因 15 次外層評估之 AR@0.95 標準差最小（**1.3477x**），入選 $E_A$ 成員並擔任 **E4/E6 單一模型控制組（Control Single Model）** |
 | **M4** | `xgboost.XGBClassifier` | `n_estimators=300, eval_metric="logloss"`（E2b 調參後為 `n_estimators=250, learning_rate=0.0468, max_depth=2, subsample=0.8796, colsample_bytree=0.9017, reg_lambda=1.6903, min_child_weight=7.3009`）（`bankruptcy/src/pipelines.py:178-190`, `bankruptcy/outputs/models/best_params/M4.json`） | 梯度提升樹代表；入選 $E_A$ 成員，並擔任 **MVP 單筆 TreeSHAP 歸因模型**（`bankruptcy/src/local_explain.py:47`） |

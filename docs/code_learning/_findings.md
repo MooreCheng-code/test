@@ -69,7 +69,7 @@
   ```
   程式直接讀取 E2a 各外層折在本地所儲存的 `outer_val_scores` 與該折獨立尋優所得的 `model_params`，且內層 ECDF 參考分佈亦僅在該折的訓練折內部生成。
 - **影響評估**：
-  證實 E3 的外層評估完全基於嚴格的巢狀交叉驗證隔離，**並未使用包含外層驗證折在內的全訓練集 E2b 參數**，因此在方法學上完全無偏，不存在選擇偏誤（Selection Bias）。
+  證實 E3 的外層評估確實基於外層驗證折隔離，**並未使用包含外層驗證折在內的全訓練集 E2b 參數**。但在同一組 15 次外層折分數上進行最終模型篩選，仍存在輕微的多重比較選擇偏誤（屬一般經驗，未經本專案驗證）；E6 測試集才是完全獨立的最終檢驗。
 
 ---
 
@@ -112,6 +112,18 @@
   - M4 最終固化超參數（`bankruptcy/outputs/models/best_params/M4.json`）：`max_depth: 2`, `subsample: 0.879563935600964`, `n_estimators: 250`, `learning_rate: 0.046776815926747296`。
 - **不一致之既有文件位置**：
   - `docs/student_learning_handbook.md:76` 與 `docs/student_presentation_deck.md:660`：寫為 `max_depth=3`、`Subsample 0.8`、優化 `AR@R90`。
+
+### F-05：參數登錄表之 JSON 鍵值與動態衍生參數行號定位機制
+- **位置**：`tools/build_param_registry.py` 與 `tools/check_code_docs.py:248-261`
+- **嚴重度評級**：**實作機制（已在 3a 工具中解決）**
+- **現象與解決方案**：
+  在建構機器可讀參數登錄表時，`thresholds.json` 與 `defaults.json` 等靜態設定檔無 AST 變數宣告；若行號填 0 則無法通過符號 ±3 行驗證。本專案透過結構化行號搜尋器精確定位各門檻工作點與預設特徵數在 JSON 檔案中的原始行號（如 `thresholds.json:7` 為 `E_A` R80 門檻），實現 100% 符號行號自動核驗。
+
+### F-06：動態樣本權重 `scale_pos_weight` 之來源類型界定
+- **位置**：`bankruptcy/src/pipelines.py:53, 72-74`
+- **嚴重度評級**：**口徑規範（已符合使用者指令規範）**
+- **現象與規範**：
+  `AdaptiveScaleWeightClassifier` 在訓練時動態計算 `scale_pos_weight = n_neg / max(1, n_pos)`，嚴格依賴當前訓練折 `y`，故在參數登錄表中將其來源類型標定為 `derived`，目前值標定為「動態：由訓練折計算」，避免初學者誤以為其為 Optuna 靜態搜尋之固定數值。
 
 ---
 
