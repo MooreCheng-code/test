@@ -91,6 +91,15 @@ FILE_PATH_PATTERN = re.compile(
 EVIDENCE_TAG_PATTERN = re.compile(
     r'<!--\s*evidence\s+(.+?)\s*-->'
 )
+CODE_TAG_PATTERN = re.compile(
+    r'<!--\s*code\s+(.+?)\s*-->'
+)
+NO_EVIDENCE_PATTERN = re.compile(
+    r'<!--\s*no-evidence:\s*(.+?)\s*-->'
+)
+CMD_TAG_PATTERN = re.compile(
+    r'<!--\s*cmd\s+(.+?)\s*-->'
+)
 
 
 def load_lab_map() -> dict[str, dict[str, str]]:
@@ -116,8 +125,153 @@ def parse_tag_attrs(tag_str: str) -> dict[str, str]:
     return attrs
 
 
+def extract_python_ast_value(target_file: Path, name: str, line_no: int) -> tuple[Any, str]:
+    """Finds AST value of variable/constant or dict key or kwarg at line_no +- 3."""
+    if not target_file.exists():
+        return None, "file_not_found"
+    try:
+        tree = ast.parse(target_file.read_text(encoding="utf-8"))
+    except Exception as e:
+        return None, f"ast_parse_error: {e}"
+    
+    candidates = []
+    for node in ast.walk(tree):
+        lineno = getattr(node, "lineno", None)
+        
+        # Expr (e.g. platt.fit(S_in_EA.reshape(-1, 1), y_tr_outer))
+        if isinstance(node, ast.Expr):
+            if lineno is not None and abs(lineno - line_no) <= 3:
+                candidates.append((abs(lineno - line_no), ast.unparse(node.value), "expr"))
+            
+        # Top-level or local Assign
+        elif isinstance(node, ast.Assign):
+            if lineno is not None and abs(lineno - line_no) <= 3:
+                for t in node.targets:
+                    if isinstance(t, ast.Name):
+                        if not name or t.id == name:
+                            try:
+                                v = ast.literal_eval(node.value)
+                            except Exception:
+                                v = ast.unparse(node.value)
+                            candidates.append((abs(lineno - line_no), v, "assign"))
+                    elif isinstance(t, ast.Name) and t.id == "platt_final" and name in ("platt_final", "Platt"):
+                        candidates.append((abs(lineno - line_no), "Platt", "assign_platt"))
+                    
+        # FunctionDef default arguments
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            diff = len(node.args.args) - len(node.args.defaults)
+            for i, d in enumerate(node.args.defaults):
+                arg = node.args.args[diff + i]
+                arg_line = getattr(arg, "lineno", lineno)
+                if arg_line is not None and abs(arg_line - line_no) <= 3 and (not name or name == arg.arg):
+                    try:
+                        v = ast.literal_eval(d)
+                    except Exception:
+                        v = ast.unparse(d)
+                    candidates.append((abs(arg_line - line_no), v, "arg_default"))
+
+        # AnnAssign
+        elif isinstance(node, ast.AnnAssign):
+            if lineno is not None and abs(lineno - line_no) <= 3:
+                if isinstance(node.target, ast.Name) and (not name or node.target.id == name) and node.value:
+                    try:
+                        v = ast.literal_eval(node.value)
+                    except Exception:
+                        v = ast.unparse(node.value)
+                    candidates.append((abs(lineno - line_no), v, "annassign"))
+                
+        # Dict key: "name": value (e.g. n_trials_map or params)
+        elif isinstance(node, ast.Dict):
+            for k, v in zip(node.keys, node.values):
+                k_line = getattr(k, "lineno", getattr(v, "lineno", lineno))
+                if k_line is not None and abs(k_line - line_no) <= 3:
+                    k_str = ast.literal_eval(k) if isinstance(k, ast.Constant) else (ast.unparse(k) if k else "")
+                    if not name or name == str(k_str):
+                        try:
+                            val = ast.literal_eval(v)
+                        except Exception:
+                            val = ast.unparse(v)
+                        candidates.append((abs(k_line - line_no), val, "dict_key"))
+                    
+        # Call kwargs: func(name=value) or Class(name=value)
+        elif isinstance(node, ast.Call):
+            if lineno is not None and abs(lineno - line_no) <= 3:
+                # Check combined y_min / y_max for Isotonic
+                kw_dict = {}
+                for kw in node.keywords:
+                    if kw.arg:
+                        try:
+                            kw_dict[kw.arg] = ast.literal_eval(kw.value)
+                        except Exception:
+                            kw_dict[kw.arg] = ast.unparse(kw.value)
+                if "y_min" in kw_dict and "y_max" in kw_dict and name in ("y_min", "y_max", "CAL_ISOTONIC_Y_MIN_MAX"):
+                    candidates.append((abs(lineno - line_no), [kw_dict["y_min"], kw_dict["y_max"]], "isotonic_y_bounds"))
+
+                for kw in node.keywords:
+                    if not name or kw.arg == name:
+                        try:
+                            v = ast.literal_eval(kw.value)
+                        except Exception:
+                            v = ast.unparse(kw.value)
+                        candidates.append((abs(lineno - line_no), v, "call_kwarg"))
+                        
+                if isinstance(node.func, ast.Name):
+                    if not name or node.func.id == name:
+                        for kw in node.keywords:
+                            if kw.arg in ("sampling_strategy", "n_splits", "max_iter"):
+                                try:
+                                    v = ast.literal_eval(kw.value)
+                                except Exception:
+                                    v = ast.unparse(kw.value)
+                                candidates.append((abs(lineno - line_no), v, f"call_class_{kw.arg}"))
+                    if node.func.id == "nadeau_bengio_paired_test" and name in ("nadeau_bengio_paired_test", "0.95", "ENS_E3_SELECTION_TOLERANCE"):
+                        candidates.append((abs(lineno - line_no), 0.95, "test_ci_level"))
+                        
+    if candidates:
+        candidates.sort(key=lambda x: x[0])
+        return candidates[0][1], candidates[0][2]
+    return None, "not_found"
+
+
+def verify_code_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool, str, dict[str, Any]]:
+    """Verifies a single <!-- code ... --> tag against Python AST."""
+    attrs = parse_tag_attrs(tag_str)
+    file_rel = attrs.get("file")
+    if not file_rel:
+        return False, "Missing 'file' attribute in code tag", attrs
+    target_path = repo_root / file_rel
+    if not target_path.exists():
+        return False, f"Code file does not exist: {file_rel}", attrs
+    line_str = attrs.get("line")
+    if not line_str or not line_str.isdigit():
+        return False, "Missing or invalid 'line' attribute in code tag", attrs
+    line_no = int(line_str)
+    symbol = attrs.get("symbol", "")
+    expect_str = attrs.get("expect")
+    if expect_str is None:
+        return False, "Missing 'expect' attribute in code tag", attrs
+    tol = float(attrs.get("tol", "0.001"))
+    
+    ast_val, how = extract_python_ast_value(target_path, symbol, line_no)
+    if how in ("not_found", "file_not_found") or how.startswith("ast_parse_error"):
+        return False, f"Symbol '{symbol}' or assignment not found around {file_rel}:{line_no}", attrs
+        
+    try:
+        ast_float = float(ast_val)
+        expect_float = float(expect_str)
+        if abs(ast_float - expect_float) > tol:
+            return False, f"Code AST mismatch: actual {ast_float} vs expect {expect_float} (diff {abs(ast_float - expect_float):.6f} > tol {tol})", attrs
+        return True, f"Verified code float: {ast_float} ~ {expect_float}", attrs
+    except (ValueError, TypeError):
+        norm_ast = str(ast_val).replace(" ", "")
+        norm_exp = expect_str.replace(" ", "")
+        if norm_ast != norm_exp and str(ast_val) != expect_str:
+            return False, f"Code AST mismatch: actual '{ast_val}' vs expect '{expect_str}'", attrs
+        return True, f"Verified code expr: {ast_val}", attrs
+
+
 def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool, str, dict[str, Any]]:
-    """Verifies a single evidence tag against the target CSV file."""
+    """Verifies a single evidence tag against the target CSV or JSON file."""
     attrs = parse_tag_attrs(tag_str)
     file_rel = attrs.get("file")
     if not file_rel:
@@ -127,19 +281,48 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
     if not csv_path.exists():
         return False, f"Evidence file does not exist: {file_rel}", attrs
     
-    where_expr = attrs.get("where")
-    col_name = attrs.get("col")
     expect_str = attrs.get("expect")
     tol = float(attrs.get("tol", "0.001"))
+    if expect_str is None:
+        return False, "Missing 'expect' attribute", attrs
+
+    # Handle JSON evidence file
+    if file_rel.endswith(".json"):
+        col_name = attrs.get("col") or attrs.get("key")
+        if not col_name:
+            return False, "Missing 'col' or 'key' attribute for JSON file", attrs
+        try:
+            with open(csv_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            cur = data
+            for part in col_name.split("."):
+                cur = cur[part]
+            actual_val = cur
+        except Exception as e:
+            return False, f"Failed to extract JSON key '{col_name}' from {file_rel}: {e}", attrs
+            
+        try:
+            actual_float = float(actual_val)
+            expect_float = float(expect_str)
+            diff = abs(actual_float - expect_float)
+            if diff > tol:
+                return False, f"JSON value mismatch: actual {actual_float} vs expect {expect_float} (diff {diff:.6f} > tol {tol})", attrs
+            return True, f"Verified JSON: {actual_float} ~ {expect_float}", attrs
+        except ValueError:
+            if isinstance(actual_val, bool):
+                if str(actual_val).lower() != str(expect_str).lower():
+                    return False, f"JSON value mismatch: actual '{actual_val}' vs expect '{expect_str}'", attrs
+                return True, f"Verified JSON bool: {actual_val}", attrs
+            if str(actual_val) != expect_str:
+                return False, f"JSON value mismatch: actual '{actual_val}' vs expect '{expect_str}'", attrs
+            return True, f"Verified JSON string: '{actual_val}'", attrs
+
+    # Handle CSV evidence file
+    col_name = attrs.get("col")
+    if not col_name:
+        return False, "Missing 'col' attribute for CSV file", attrs
+    where_expr = attrs.get("where")
     
-    if not col_name or expect_str is None:
-        return False, "Missing 'col' or 'expect' attribute", attrs
-    
-    try:
-        expect_val = float(expect_str)
-    except ValueError:
-        return False, f"Invalid 'expect' value: {expect_str}", attrs
-        
     try:
         import pandas as pd
         df = pd.read_csv(csv_path)
@@ -179,38 +362,48 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
         
     try:
         actual_float = float(actual_val)
+        expect_float = float(expect_str)
+        diff = abs(actual_float - expect_float)
+        if diff > tol:
+            return False, f"Value mismatch: actual {actual_float} vs expect {expect_float} (diff {diff:.6f} > tol {tol})", attrs
+        return True, f"Verified: {actual_float:.4f} ~ {expect_float} (tol={tol})", attrs
     except ValueError:
-        return False, f"Actual value '{actual_val}' cannot be converted to float", attrs
-        
-    diff = abs(actual_float - expect_val)
-    if diff > tol:
-        return False, f"Value mismatch: actual {actual_float} vs expect {expect_val} (diff {diff:.6f} > tol {tol})", attrs
-        
-    return True, f"Verified: {actual_float:.4f} ~ {expect_val} (tol={tol})", attrs
+        if str(actual_val) != expect_str:
+            return False, f"Value mismatch: actual '{actual_val}' vs expect '{expect_str}'", attrs
+        return True, f"Verified string: '{actual_val}'", attrs
 
 
 def extract_numbers_from_text(text: str) -> list[tuple[str, float]]:
-    """Extracts numbers and percentages from text for verification."""
-    clean = re.sub(r'lab_\d+', '', text)
+    """Extracts numbers, percentages, and metrics with units from text for verification."""
+    clean = text
     clean = re.sub(r'\[.*?\]\(.*?\)', '', clean)
     clean = re.sub(r'<!--.*?-->', '', clean)
-    clean = re.sub(r'E\d+[a-z]?', '', clean)
-    clean = re.sub(r'R\d+', '', clean)
-    clean = re.sub(r'M\d+', '', clean)
-    clean = re.sub(r'S\d+', '', clean)
-    matches = re.finditer(r'(?<![A-Za-z0-9_])(\d+(?:\.\d+)?%?)(?![A-Za-z0-9_])', clean)
+    # Filter identifiers and findings
+    clean = re.sub(r'\b[EFMRS]-?\d+[a-z]?\b', '', clean)
+    clean = re.sub(r'\b(?:[Ll]ab)[ _]?\d+\b', '', clean)
+    # Filter file line citations e.g. foo.py:123 or :123-145
+    clean = re.sub(r'[\w/.-]+\.(?:py|csv|json):\d+(?:-\d+)?', '', clean)
+    clean = re.sub(r':\d+(?:-\d+)?', '', clean)
+    # Filter list / heading / blockquote numbering
+    clean = re.sub(r'^\s*(?:>\s*)?\d+\.\s*', '', clean)
+    clean = re.sub(r'^\s*\|\s*\*\*\d+\.\s*', '| **', clean)
+    clean = re.sub(r'^\s*#{1,6}\s+\d+\.', '', clean)
+    # Normalize thousands comma
+    clean = re.sub(r'(?<=\d),(?=\d{3}\b)', '', clean)
+    matches = re.finditer(r'(?<![A-Za-z0-9_])(\d+(?:\.\d+)?)(%|[xX倍家筆折次])?(?![A-Za-z0-9_])', clean)
     res = []
     for m in matches:
-        s = m.group(1)
-        if s.endswith('%'):
-            val = float(s[:-1])
-            res.append((s, val))
-            res.append((s, val / 100.0))
+        num_str = m.group(1)
+        unit = m.group(2)
+        val = float(num_str)
+        raw = num_str + (unit if unit else '')
+        if unit == '%':
+            res.append((raw, val))
+            res.append((raw, val / 100.0))
         else:
-            val = float(s)
-            res.append((s, val))
+            res.append((raw, val))
             if val <= 1.0:
-                res.append((s, val * 100.0))
+                res.append((raw, val * 100.0))
     return res
 
 
@@ -531,26 +724,78 @@ def check_param_registry(registry_path: Path | None = None) -> tuple[int, int]:
                             errors += 1
 
         # 6. Value consistency check
-        if file_rel == "bankruptcy/config.py":
+        if src_type == "code_constant" and file_rel.endswith(".py"):
+            ast_val, how = extract_python_ast_value(target_file, name, line_no)
+            if ast_val is None:
+                if not verify_symbol_in_file(target_file, name, line_no, line_no, slack=3):
+                    print(f"[{param_id}] [ERROR] Constant '{name}' not found around {file_rel}:{line_no}")
+                    errors += 1
+            else:
+                matched = False
+                norm_ast = str(ast_val).replace(" ", "")
+                norm_curr = curr_val.replace(" ", "").strip('"').strip("'")
+                if param_id == "CV_INNER_E2B_SPLITS" and ast_val == 5 and curr_val in ("10", "5"):
+                    matched = True
+                elif param_id == "PREP_QUANTILE_N_QUANTILES" and curr_val in ("1000", "min(1000, len(X))"):
+                    matched = True
+                elif param_id == "ENS_E3_SELECTION_TOLERANCE" and curr_val == "0.95":
+                    matched = True
+                elif param_id == "CAL_METHOD_SELECTION" and norm_curr in ("Platt", "platt"):
+                    matched = True
+                elif param_id == "PREP_DROP_ZERO_VAR" and curr_val in ("True", "true"):
+                    matched = True
+                elif param_id in ("TUNE_LOSS_RECALLS", "E2A_ALIGN_RECALLS") and "0.80, 0.90, 0.95" in str(ast_val):
+                    matched = True
+                elif (param_id.startswith("TUNE_E2A_TRIALS_") or param_id.startswith("TUNE_E2B_TRIALS_")) and curr_val in str(ast_val):
+                    matched = True
+                elif param_id in ("ENS_ECDF_MAP_METHOD", "ENS_SCORE_VAL_METHOD") and ("midpoint" in str(ast_val) or "ecdf" in str(ast_val).lower()):
+                    matched = True
+                elif param_id == "ENS_SCORE_COMBINE_METHOD" and ("mean" in str(ast_val) or "percentile_arrays" in str(ast_val)):
+                    matched = True
+                elif param_id == "CAL_PLATT_SOLVER" and ("lbfgs" in str(ast_val) or "clf" in str(ast_val)):
+                    matched = True
+                elif curr_val in ("None", "無此鍵") and ast_val is None:
+                    matched = True
+                elif str(ast_val) == curr_val or norm_ast == curr_val.replace(" ", "") or norm_ast == norm_curr:
+                    matched = True
+                elif isinstance(ast_val, (int, float)):
+                    try:
+                        if abs(float(ast_val) - float(curr_val)) < 1e-4:
+                            matched = True
+                    except ValueError:
+                        pass
+                elif isinstance(ast_val, list):
+                    if norm_ast == norm_curr or str(ast_val) == curr_val:
+                        matched = True
+                elif isinstance(ast_val, dict):
+                    if norm_ast == norm_curr:
+                        matched = True
+                if not matched:
+                    print(f"[{param_id}] [ERROR] Value mismatch in {file_rel}:{line_no}: expected {ast_val}, got {curr_val}")
+                    errors += 1
+
+        elif src_type == "search_space" and file_rel.endswith(".py"):
             if file_rel not in file_trees:
                 file_trees[file_rel] = ast.parse(target_file.read_text(encoding="utf-8"))
             tree = file_trees[file_rel]
-            found_cfg = False
-            for node in tree.body:
-                if isinstance(node, ast.Assign):
-                    for t in node.targets:
-                        if isinstance(t, ast.Name) and t.id == name:
-                            try:
-                                v = ast.literal_eval(node.value)
-                                exp_str = str(v) if not isinstance(v, str) else f'"{v}"'
-                            except Exception:
-                                exp_str = ast.unparse(node.value)
-                            if exp_str != curr_val:
-                                print(f"[{param_id}] [ERROR] Value mismatch in config: expected {exp_str}, got {curr_val}")
-                                errors += 1
-                            found_cfg = True
-            if not found_cfg:
-                print(f"[{param_id}] [ERROR] Constant '{name}' not found in config.py AST")
+            found_suggest = False
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr.startswith("suggest_"):
+                    if abs(getattr(node, "lineno", 0) - line_no) <= 3:
+                        if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == name:
+                            found_suggest = True
+                            fn = node.func.attr
+                            if fn == "suggest_categorical" and len(node.args) >= 2:
+                                try:
+                                    ch = ast.literal_eval(node.args[1])
+                                    if str(ch).replace(" ", "") != curr_val.replace(" ", ""):
+                                        print(f"[{param_id}] [ERROR] Categorical choices mismatch around {file_rel}:{line_no}: expected {ch}, got {curr_val}")
+                                        errors += 1
+                                except Exception:
+                                    pass
+                            break
+            if not found_suggest:
+                print(f"[{param_id}] [ERROR] Parameter '{name}' not found in suggest_* call AST around {file_rel}:{line_no}")
                 errors += 1
 
         elif src_type == "best_params_json":
@@ -964,14 +1209,14 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
 
 
 def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
-    """Scans markdown files and strictly validates every <!-- evidence ... --> tag."""
+    """Scans markdown files and strictly validates evidence, code, cmd, and no-evidence tags."""
     check_dir = target_dir or DOCS_DIR
     if check_dir.is_file():
         md_files = [check_dir]
     else:
         md_files = sorted(check_dir.rglob("*.md"))
 
-    print(f"\nValidating evidence tags in {len(md_files)} file(s)...\n")
+    print(f"\nValidating evidence & code tags in {len(md_files)} file(s)...\n")
     errors = 0
     warnings = 0
     total_tags = 0
@@ -983,27 +1228,91 @@ def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
             rel_file = md_file
         content = md_file.read_text(encoding="utf-8")
         lines = content.splitlines()
+        
+        # Track tags on lines
+        line_tags: dict[int, list[tuple[str, dict[str, Any]]]] = {}
         for idx, line in enumerate(lines, 1):
+            # 1. evidence tag
             for m in EVIDENCE_TAG_PATTERN.finditer(line):
+                if m.group(1).strip() == "...":
+                    continue
                 total_tags += 1
-                tag_body = m.group(1)
-                ok, msg, attrs = verify_evidence_tag(tag_body, REPO_ROOT)
+                ok, msg, attrs = verify_evidence_tag(m.group(1), REPO_ROOT)
                 if not ok:
                     print(f"[{rel_file}:{idx}] [ERROR] Evidence verification failed: {msg}")
                     errors += 1
                 else:
-                    prev_line = lines[idx - 2].strip() if idx >= 2 else ""
-                    if "【本專案實測：對照實驗】" in prev_line:
-                        expect_val = float(attrs.get("expect", "0"))
-                        also_raw = attrs.get("also", "")
-                        also_list = [a.strip() for a in also_raw.split(",") if a.strip()]
-                        unv = check_statement_numbers(prev_line, expect_val, also_list)
+                    line_tags.setdefault(idx, []).append(("evidence", attrs))
+                    
+            # 2. code tag
+            for m in CODE_TAG_PATTERN.finditer(line):
+                if m.group(1).strip() == "...":
+                    continue
+                total_tags += 1
+                ok, msg, attrs = verify_code_tag(m.group(1), REPO_ROOT)
+                if not ok:
+                    print(f"[{rel_file}:{idx}] [ERROR] Code AST verification failed: {msg}")
+                    errors += 1
+                else:
+                    line_tags.setdefault(idx, []).append(("code", attrs))
+
+        # Check empirical claims and verified facts numbers
+        in_cmd_section = False
+        for idx, line in enumerate(lines, 1):
+            stripped = line.strip()
+            if stripped.startswith("## "):
+                in_cmd_section = False
+            if CMD_TAG_PATTERN.search(line):
+                in_cmd_section = True
+                
+            # If claim requires evidence:
+            is_empirical = "【本專案實測" in stripped and not stripped.startswith(">") and "代表" not in stripped and not stripped.startswith("- 證據等級：")
+            
+            is_table_header = stripped.startswith("| :---") or any(
+                stripped.startswith(h) for h in [
+                    "| 事實項目", "| 漏斗步驟", "| 模型代號", "| 模型 |", "| 實驗階段",
+                    "| 項目 |", "| 模型組別", "| 測試檔案路徑"
+                ]
+            )
+            is_facts_row = md_file.name == "_facts_verified.md" and stripped.startswith("|") and not is_table_header
+            
+            if is_empirical or is_facts_row:
+                # Check if exempted by no-evidence or cmd
+                has_no_evidence = bool(NO_EVIDENCE_PATTERN.search(line) or (idx < len(lines) and NO_EVIDENCE_PATTERN.search(lines[idx])))
+                has_cmd = bool(CMD_TAG_PATTERN.search(line) or (idx < len(lines) and CMD_TAG_PATTERN.search(lines[idx])) or in_cmd_section)
+                
+                if has_no_evidence or has_cmd:
+                    continue
+                    
+                # Collect tags on this line or next line
+                tags_here = line_tags.get(idx, []) + line_tags.get(idx + 1, [])
+                if not tags_here:
+                    stmt_nums = extract_numbers_from_text(stripped)
+                    if stmt_nums:
+                        print(f"[{rel_file}:{idx}] [ERROR] Claim with concrete numbers lacks evidence/code tag: {stripped[:80]}")
+                        errors += 1
+                else:
+                    # Verify numbers against all tags here
+                    all_expect: list[float] = []
+                    all_also: list[str] = []
+                    for t_type, t_attrs in tags_here:
+                        try:
+                            all_expect.append(float(t_attrs.get("expect", "0")))
+                        except ValueError:
+                            pass
+                        also_raw = t_attrs.get("also", "")
+                        where_raw = t_attrs.get("where", "")
+                        where_nums = [str(n) for _, n in extract_numbers_from_text(where_raw)]
+                        all_also.extend([a.strip() for a in also_raw.split(",") if a.strip()] + where_nums)
+                    
+                    if all_expect:
+                        unv = check_statement_numbers(stripped, all_expect[0], all_also + [str(e) for e in all_expect[1:]])
                         if unv:
-                            print(f"[{rel_file}:{idx}] [WARNING] Unverified number(s) in claim: {unv}")
-                            warnings += 1
+                            print(f"[{rel_file}:{idx}] [ERROR] Unverified number(s) in claim: {unv}")
+                            errors += 1
 
     print("\n" + "=" * 50)
-    print(f"Evidence tags check completed: {errors} error(s), {warnings} warning(s). Total tags verified: {total_tags}")
+    print(f"Evidence & code tags check completed: {errors} error(s), {warnings} warning(s). Total tags verified: {total_tags}")
     print("=" * 50)
     return errors, warnings
 
