@@ -76,6 +76,11 @@ FORBIDDEN_WORDS = [
     "100%保證",
     "絕無可能失敗",
     "嚴格無偏",  # Requested by user in Stage 3 instruction
+    "完美",  # Requested by user in Stage 6-fix
+    "精確吻合 100%",
+    "精確吻合100%",
+    "100% 精確吻合",
+    "100%精確吻合",
 ]
 
 # Strict 15-fold misnomer (must use 5 折 × 3 次重複 = 15 次外層評估)

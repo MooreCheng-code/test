@@ -231,7 +231,7 @@ CARD_29,"TH_MARGINS, TH_ATTAINMENT_THRESHOLD",證據等級,設定,【本專案�
 CARD_29,"TH_MARGINS, TH_ATTAINMENT_THRESHOLD",調大調小,調大調小,- 依目標召回率動態推薦安全邊際：【本專案實測：對照實驗】在 E4a 實測中，E_A 於 R90 推薦邊際為 m=0.06（達標率達 93.3%，14/15 次外層評估（5 折 × 3 次重複）；而在 m=0.04 時達標率僅 73.3%，...,本專案實測,,PASS,具體物理意義與影響,CSV 數字
 CARD_29,"TH_MARGINS, TH_ATTAINMENT_THRESHOLD",調大調小,調大調小,- 未加邊際（m=0.0）：【本專案實測：對照實驗】在 R90 與 R95 下驗證折達標率均僅為 53.3%（8/15 次外層評估（5 折 × 3 次重複）），未達 80% 門檻，證明經驗門檻在未見資料上極易欠覆蓋。,本專案實測,,PASS,具體物理意義與影響,CSV 數字
 CARD_29,"TH_MARGINS, TH_ATTAINMENT_THRESHOLD",調大調小,調大調小,- 提高達標率門檻（例如從 0.8 改為 0.9）：【一般經驗，未經本專案驗證】（lab_06，已完成：見 labs/README.md）迫使演算法推薦更大的邊際，進一步加強防禦性。,一般經驗,,PASS,具體物理意義與影響,一般經驗標示
-CARD_29,"TH_MARGINS, TH_ATTAINMENT_THRESHOLD",風險與陷阱,風險,若直接使用單次訓練集的完美經驗門檻，面對真實未知資料時必然產生「達標率不足（Under-coverage）」；E4a 引入外層 CV 達標率檢驗是解決門檻泛化問題的核心創新。,一般經驗,,PASS,工程實務陷阱防範,一般經驗標示
+CARD_29,"TH_MARGINS, TH_ATTAINMENT_THRESHOLD",風險與陷阱,風險,若直接使用單次訓練集的無邊際經驗門檻，面對真實未知資料時必然產生「達標率不足（Under-coverage）」；E4a 引入外層 CV 達標率檢驗是解決門檻泛化問題的核心創新。,一般經驗,,PASS,工程實務陷阱防範,一般經驗標示
 CARD_29,"TH_MARGINS, TH_ATTAINMENT_THRESHOLD",如何安全實驗,如何實驗,呼叫 `bankruptcy/src/thresholding.py:440` 的 `run_e4a_threshold_experiment`（lab_06，已完成：見 labs/README.md）。,一般經驗,bankruptcy/src/thresholding.py:440,PASS,規範訓練資料內部實驗，禁止動用測試集,CSV 數字
 CARD_29,"TH_MARGINS, TH_ATTAINMENT_THRESHOLD",已知限制或矛盾,已知限制,專案為 $E_A$ 推薦安全邊際在 R90 為 m=0.06（達標率 93.3%），在 R95 為 m=0.04（達標率 93.3%）。,專案設定,,PASS,如實揭露專案已知限制與取捨,CSV 數字
 CARD_30,"CFG_COST_FN, CFG_COST_FP, CFG_COST_FN_SENSITIVITY_LIST",白話意義,白話,"漏報與誤報的罰款比例。假定誤報一家正常企業去調查的成本為 1（`COST_FP=1.0`），漏報一家破產企業導致呆帳的損失為 20（`COST_FN=20.0`），即 20:1 的非對稱成本。敏感度清單 `[10.0, 20.0, 50.0...",無,,PASS,直觀白話比喻說明,CSV 數字

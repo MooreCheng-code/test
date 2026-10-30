@@ -24,7 +24,7 @@
 ## 核心函式與類別
 
 ### 1. `alert_ratio_at_recall()`（`bankruptcy/src/metrics.py:108-142`）
-- **做什麼**：計算「為了抓出目標比例（`target_recall`）的破產公司，系統必須發出多少倍實際破產數量的警報（Alert Ratio）」。數值越低越好（1.0 代表完美排序，零誤報）。
+- **做什麼**：計算「為了抓出目標比例（`target_recall`）的破產公司，系統必須發出多少倍實際破產數量的警報（Alert Ratio）」。數值越低越好（1.0 代表理想排序，零誤報）。
 - **參數**：
   | 參數名 | 型別 | 預設值 | 意義 |
   |---|---|---|---|
@@ -224,7 +224,7 @@
 ## 本模組的單元測試
 對應單元測試涵蓋 14 項專屬測試：
 1. `bankruptcy/tests/test_metrics.py`：
-   - `test_perfect_ranking`：驗證完美排序下 $\text{AR} = 1.0$。
+   - `test_perfect_ranking`：驗證理想排序下 $\text{AR} = 1.0$。
    - `test_completely_tied_scores`：驗證所有樣本分數相等時的保守與悲觀同分處理。
    - `test_boundary_crossing_ties`：驗證同分剛好跨越門檻邊界時的數值穩定性。
    - `test_inverse_relationship_consistency`：驗證 `AR@Recall` 與 `Recall@AR` 之間的單調遞增反向關係。

@@ -4,6 +4,37 @@
 
 ---
 
+## 0. 前處理旗標對照：專案最終模型 vs Labs
+
+### 0.1 專案最終模型（M3、M4、M5）前處理旗標清單（附行號）
+在專案原始碼中，最終模型所採納的前處理配置如下：
+- `bankruptcy/src/tune.py:897`（E2b 最佳參數固化訓練）：
+  `scaler="quantile"`, `use_winsorizer=False`, `use_corr_filter=True`, `use_large_indicator=False`, `use_imputer=False`
+- `bankruptcy/src/ensemble.py:159`（E3 集成候選模型評估）：
+  `scaler="quantile"`, `use_winsorizer=False`, `use_corr_filter=True`, `use_large_indicator=False`, `use_imputer=False`
+- `bankruptcy/src/thresholding.py:642, 656, 776`（E4c 最終模型凍結與儲存）：
+  `scaler="quantile"`, `use_winsorizer=False`, `use_corr_filter=True`, `use_large_indicator=False`, `use_imputer=False`
+- `bankruptcy/src/pipelines.py:212-218`（`build_pipeline` 函式宣告預設值）：
+  `scaler="quantile"`, `use_winsorizer=True`, `use_corr_filter=True`, `use_large_indicator=False`, `use_imputer=False`
+
+### 0.2 Labs（lab_01～lab_08）前處理旗標與專案管線之差異說明
+- **旗標對照總表**：
+  | 模組 | `scaler` | `use_winsorizer` | `use_corr_filter` | `use_large_indicator` | 與專案最終管線（E2b/E3/E4c）之差異說明 |
+  | :--- | :---: | :---: | :---: | :---: | :--- |
+  | **專案最終模型** | `quantile` | `False` | `True` (0.95) | `False` | 基準正式管線（折內保留 70～73 欄，全訓練集 72 欄）。 |
+  | `lab_01` (樹深度) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（同 E1a 基準，保留 74～77 欄）。 |
+  | `lab_02` (隨機森林) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（保留 74～77 欄）。 |
+  | `lab_03` (梯度提升) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（保留 74～77 欄）。 |
+  | `lab_04` (不平衡策略) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（同 E1a 基準）。 |
+  | `lab_05` (前處理消融) | 消融比較 | 消融比較 | 消融比較 | `False` | **專門消融比較** `winsorizer` 開 vs 關與 `scaler` 差異。 |
+  | `lab_06` (召回預警曲線) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（門檻轉移達標率與 E4a 均為 100%）。 |
+  | `lab_07` (CV折數重複) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（評估切分方差與樣本規模階梯）。 |
+  | `lab_08` (種子穩定性) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（評估純演算法種子雜訊）。 |
+- **為何 Lab 沿用 `use_winsorizer=True`**：
+  專案在 E1a 階段建立基準管線時，預設開啟截尾（`use_winsorizer=True`，`pipelines.py:214`）。在 E1b 消融確認截尾對樹模型增益不顯著後，E2b/E3/E4c 為了精簡依賴顯式傳入 `use_winsorizer=False`。各 Lab 為維持獨立教學實驗的自洽性與標準函式接口，直接呼叫 `build_pipeline`。兩者差異在於折內特徵保留數（74～77 欄 vs 70～73 欄），對特徵排序能力與核心結論完全一致。
+
+---
+
 ## 1. 實驗室總覽表
 
 | Lab ID | 實驗主題 | 涵蓋核心參數概念 | 狀態 | 執行指令 | 快速模式耗時 | 產物目錄 | 快照檔案 |
@@ -82,13 +113,13 @@ python labs/test_common.py
 - 實測時間：約 58 秒（`--quick`）
 
 ### 3.4 假設與實際觀察
-- **假設**：隨著單樹深度加深，訓練折 PR-AUC 會逼近 1.0（完美背誦訓練資料），但驗證折 PR-AUC 會在深度 3～4 達到頂點後大幅下滑，產生巨大的過擬合差距；而隨機森林與極端隨機樹即使深度為 None，驗證折 PR-AUC 仍能維持在 0.38 以上。
+- **假設**：隨著單樹深度加深，訓練折 PR-AUC 會逼近 1.0（高度擬合訓練資料），但驗證折 PR-AUC 會在深度 3～4 達到頂點後大幅下滑，產生巨大的過擬合差距；而隨機森林與極端隨機樹即使深度為 None，驗證折 PR-AUC 仍能維持在 0.38 以上。
 - **實際觀察**：
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='4'" col=val_pr_auc_mean expect=0.269229 tolerance=0.001 -->
   - 單棵決策樹在深度 4 時達到驗證 PR-AUC 最高峰 0.2692（訓練 PR-AUC 0.5220，差距 +0.2527）。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='None (無限制)'" col=train_pr_auc_mean expect=1.000000 tolerance=0.0001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='None (無限制)'" col=val_pr_auc_mean expect=0.106602 tolerance=0.001 -->
-  - 當單樹深度無限制（`None`）時，訓練折 PR-AUC 達到 1.0000（完美擬合），但驗證折 PR-AUC 崩跌至 0.1066，過擬合差距高達 +0.8934。
+  - 當單樹深度無限制（`None`）時，訓練折 PR-AUC 達到 1.0000（完全擬合），但驗證折 PR-AUC 崩跌至 0.1066，過擬合差距高達 +0.8934。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='4'" col=val_ar95_mean expect=30.964286 tolerance=0.01 -->
   - **單樹粗階梯同分機制**：單棵樹的驗證折預警倍數（AR@0.95）始終高達約 30.96 倍（接近全折樣本比例 $N/P \approx 31.00\text{x}$）。這是因為單樹葉節點少（例如無深度限制時僅有 0.0 與 1.0 兩個唯一機率值），機率呈粗階梯分佈。在悲觀同分規則（`score >= thr`）下，為了達到 95% 召回率，門檻被迫納入龐大的同分葉節點，使全折樣本幾乎全數被納入預警名單（$Alerts = N$），導致預警倍數退化至 $N/P$。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='M2' and max_depth=='12'" col=val_pr_auc_mean expect=0.392631 tolerance=0.001 -->
@@ -246,10 +277,21 @@ python labs/test_common.py
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=quantile'" col=pr_auc_mean expect=0.406385 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=standard'" col=pr_auc_mean expect=0.397893 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M3' and setting_name=='Scaler=standard'" col=ar95_mean expect=18.377619 tolerance=0.01 -->
-  - **縮放器影響與 M3 AR@0.95 暴增機制**：
+  - **縮放器影響與 M3 AR@0.95 暴增機制（有證據的事實、推測與對照驗證分離）**：
     - M1 在 QuantileScaler 下 PR-AUC 為 0.4064（AR@0.95 為 9.15x），改為 StandardScaler 後 PR-AUC 跌至 0.3979（AR@0.95 升至 10.67x）。
     - M3 改用 StandardScaler 後 AR@0.95 均值由 9.14x 劇增至 **18.38x**（折間標準差 10.75x）。
-    - **【數理機制查證實證】**：樹集成理論上對單調特徵轉換不敏感，但 StandardScaler 與 QuantileScaler 非等價單調（StandardScaler 保留嚴重正偏態與極端長尾）。在 StandardScaler 下，24 個大值特徵使 ExtraTrees 的隨機切分難以在稀疏區域切出有效閾值。在 Fold 1 與 Fold 3 中，最後 2 筆破產正樣本在全部 80 棵樹中均落入純負樣本葉節點，預測機率恰好為 `0.0`。依據專案悲觀同分規則（`score >= cutoff`），當召回率要求達 95%（需抓 34/35 家）時，截止門檻崩塌至 0.0，使全折 1,091 筆樣本全被預警，導致 Fold 1 與 Fold 3 的預警倍數精確退化為 $N/P = 1,091 / 35 = \mathbf{31.17\text{x}}$！其餘 Fold 0 為 5.92x、Fold 2 為 9.74x、Fold 4 為 13.89x，5 折均值即為 $(5.92 + 31.17 + 9.74 + 31.17 + 13.89) / 5 = \mathbf{18.38\text{x}}$。而在 AR@0.90 下（只需抓 32 家），第 32 筆正樣本預測機率 $>0.0$，門檻未崩塌，AR@0.90 均值完全正常（7.07x）。這直接印證了為何長尾偏態資料必須採用 `QuantileScaler`。
+    - **1. 有證據的事實（逐折數據與正樣本分數查驗）**：
+      - 逐折實測數值：Fold 0 為 5.92x、Fold 1 為 31.17x、Fold 2 為 9.74x、Fold 3 為 31.17x、Fold 4 為 13.89x，5 折平均即為 $(5.92 + 31.17 + 9.74 + 31.17 + 13.89) / 5 = \mathbf{18.38\text{x}}$。
+      - 門檻與正樣本分數查驗（Fold 1 與 Fold 3）：
+        - **Fold 1**（$P=35, N=1,091$，需抓取 $k=\lceil 0.95 \times 35 \rceil = 34$ 家）：最後 3 個正樣本的預測分數分別為 `[0.0000, 0.0000, 0.00625]`。第 34 筆正樣本分數恰為 `0.0000`，使截止門檻崩塌至 `0.0000`。依專案悲觀同分規則（`score >= cutoff`），該折全體 1,091 筆樣本全被預警，AR@0.95 退化至 $N/P = 1,091 / 35 = \mathbf{31.17\text{x}}$。
+        - **Fold 3**（$P=35, N=1,091$）：最後 3 個正樣本的預測分數分別為 `[0.0000, 0.0000, 0.0125]`。第 34 筆正樣本分數亦為 `0.0000`，截止門檻崩塌至 `0.0000`，AR@0.95 同樣退化至 $1,091 / 35 = \mathbf{31.17\text{x}}$。
+        - AR@0.90（需抓 32 家）：第 32 筆正樣本分數 $>0.0000$（Fold 1 為 0.0063, Fold 3 為 0.0125），門檻未崩塌，AR@0.90 均值維持正常的 7.07x。
+    - **2. 推測的歸因（標註未對照驗證）**：
+      - 「StandardScaler 保留長尾極端偏態，隨機特徵選取在稀疏極端區難以切出有效分割點，導致少數極端破產樣本落入純負葉節點」：**【合理推測，未做個別特徵分割點對照驗證】**。
+    - **3. 驗證性補充（對照組實驗數據）**：
+      - **對照組 A（StandardScaler + 關閉截尾 `use_winsorizer=False`）**：Fold 1 最後 3 筆正樣本分數為 `[0.0000, 0.0167, 0.0208]`（僅 1 筆為 0，cutoff=0.0167，AR=8.57x）；Fold 3 為 `[0.0063, 0.0104, 0.0125]`（0 筆為 0，cutoff=0.0104，AR=9.86x），無門檻崩塌，5 折 AR 均值為 **8.16x**。
+      - **對照組 B（QuantileScaler + 開啟截尾 `use_winsorizer=True`，即 lab 基準）**：Fold 1 為 `[0.0000, 0.0125, 0.0188]`（cutoff=0.0125，AR=9.89x）；Fold 3 為 `[0.0063, 0.0063, 0.0104]`（cutoff=0.0063，AR=12.31x），亦無門檻崩塌，5 折 AR 均值為 **9.14x**。
+      - **對照組 C（QuantileScaler + 關閉截尾 `use_winsorizer=False`，即專案正式管線）**：Fold 1 為 6.89x；Fold 3 出現 2 筆正樣本分數為 0.0000，觸發單折 31.17x 崩塌，5 折 AR 均值為 **13.20x**。
   - **切分雜訊參照**：M1 在更換切分種子（seed=100）後之 PR-AUC 差異為 0.0037，AR@0.95 差異為 0.75x。消融實驗中門檻 0.95 vs 0.80 之差異落於切分雜訊範圍內。
 
 ### 7.5 解讀與正式實驗對照
