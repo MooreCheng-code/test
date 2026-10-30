@@ -22,8 +22,8 @@
 | **階段 4b-fix** | H1～H7 事實修復：lab_04 M3 數據驗證（TomekLinks 0 剔除實測）、lab_08 與 E7b 措辭校準、E6 單次測試限制與 E4a 跨折補充、保護檔案 diff 雜湊、manifest 隔離、lab 模式縮減總表、標籤覆蓋統計 | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 4b-fix - lab_04 verification, E7b comparison wording, manifest fields, evidence coverage`) |
 | **階段 5** | 實驗操作指南：因果鏈全景 Mermaid 圖、12 步驟從零重現順序、EDA 至 MVP 13 階段全覆蓋（11 項固定模板）、四大常見重跑陷阱與排除對策、`check_code_docs.py --commands` AST 驗證通過 | ✅ 已完成 | `9748f7a` (`docs(code-learning): stage 5 - experiment operation guide`) |
 | **階段 5-fix** | I1～I8 修正：lab_04 數據口徑與模式查核、S3 措辭校準、lab_05 M3 數理機制與特徵數查核、lab_06 數據口徑與 Standard 模式對照、卡片抽查檔名勘誤、資源耗時標註（無 GPU）、證據標籤擴展至 labs 達 141 個 | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 5-fix - lab_04/05/06 verification, resource claims, evidence scope`) |
-| **階段 6** | `05_動手改程式配方.md`、`check_code_docs.py --recipes` 檢查器模式 | ⏸️ 待執行 | — |
-| **階段 7** | `06_練習題與解答.md`、`labs/bugs/` | ⏸️ 待執行 | — |
+| **階段 6** | `05_動手改程式配方.md`、`check_code_docs.py --recipes` 檢查器模式、7 配方風險總表、沙盒示範 | ✅ 已完成 | `96b9fce` + `40d4715` (6-fix) |
+| **階段 7** | `06_練習題.md`、`06_小測驗.md`、`06_解答.md`、`labs/bugs/`（10 支沙盒除錯腳本）、`check_code_docs.py --exercises` | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 7 - exercises, solutions, bug-hunt sandbox`) |
 | **階段 8** | `00_讀我_學習路線.md`、`07_常見錯誤與除錯.md`、`08_術語表.md`、`09_面試說明稿.md` | ⏸️ 待執行 | — |
 | **階段 9** | `tools/check_code_docs.py` 與最終驗收 | ⏸️ 待執行 | — |
 
@@ -95,8 +95,8 @@
   - 階段 4b & 4b-fix：Lab 結果快照、README 與跨實驗印證、AST 命令檢查器。
   - 階段 5 & 5-fix：實驗操作指南（`04_實驗操作指南.md`）、`--commands` 檢查模式、安全重跑判定表、lab_04/05/06 深入驗證與資源耗時來源標記。
   - 階段 6 & 6-fix：動手改程式配方（`05_動手改程式配方.md`）、`--recipes` 檢查模式、沙盒示範（配方 1、2、3、4、5）與單元測試、7 個配方風險等級總表；6-fix 完成前處理旗標對照表、lab_05 18.38x 機制三層分離、E2a 耗時各折加總校正、危險指令總表與修辭中立化。
-- **當前項目**：階段 6-fix 完成，準備提交並進行階段 7。
-- **下一步**：使用者審查通過並放行後，進入階段 7（練習題與除錯沙盒）。
+- **當前項目**：階段 7 完成，全套驗證通過。
+- **下一步**：使用者審查通過並放行後，進入階段 8（學習路線、常見錯誤除錯、術語表、面試說明稿）。
 
 ---
 

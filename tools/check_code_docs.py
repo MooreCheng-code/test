@@ -1668,6 +1668,160 @@ def check_recipes(target_path: Optional[Path] = None) -> tuple[int, int]:
     return errors, warnings
 
 
+def check_exercises(
+    exercises_path: Optional[Path] = None,
+    bugs_dir: Optional[Path] = None,
+    lab_map_file: Optional[Path] = None,
+) -> tuple[int, int]:
+    """
+    Validates exercises, quizzes, and bug-hunting scripts according to Stage 7 requirements:
+    1. 06_練習題.md: No answer keywords ('解答', '答案', '正確' outside of 06_解答.md references).
+    2. 06_練習題.md: All cited module and lab links must exist.
+    3. 06_練習題.md: All cited labs in predictive questions must be marked '已完成' in lab_map.csv.
+    4. labs/bugs/*.py: Must have required header, must not reference data.csv or get_train_data or import bankruptcy,
+       must not contain bug-revealing comments (# BUG, # 錯誤, # FIXME).
+    """
+    errors = 0
+    warnings = 0
+
+    # 1. Validate exercises document
+    ex_file = exercises_path if exercises_path else (DOCS_DIR / "06_練習題.md")
+    if not ex_file.exists():
+        print(f"[ERROR] Exercises document not found: {ex_file}")
+        return 1, 0
+
+    rel_ex = ex_file.relative_to(REPO_ROOT) if ex_file.is_relative_to(REPO_ROOT) else ex_file
+    print(f"\nValidating exercises document: {rel_ex}")
+
+    try:
+        ex_text = ex_file.read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"[{rel_ex}] [ERROR] Cannot read file: {e}")
+        return 1, 0
+
+    lines = ex_text.splitlines()
+
+    # 1.1 Check forbidden answer keywords
+    forbidden_answer_words = ["解答", "答案", "正確"]
+    for idx, line in enumerate(lines, 1):
+        # strip allowed reference: 06_解答.md
+        cleaned_line = line.replace("06_解答.md", "")
+        for word in forbidden_answer_words:
+            if word in cleaned_line:
+                print(f"[{rel_ex}:{idx}] [ERROR] Forbidden answer keyword '{word}' found in exercises doc: {line.strip()[:80]}")
+                errors += 1
+
+    # 1.2 Check cited links and files
+    link_pattern = re.compile(r'\[([^\]]+)\]\(([^\)]+)\)')
+    for idx, line in enumerate(lines, 1):
+        for m in link_pattern.finditer(line):
+            link_target = m.group(2).split("#")[0].strip()
+            if not link_target or link_target.startswith("http://") or link_target.startswith("https://"):
+                continue
+            # resolve path
+            if link_target.startswith("/"):
+                target_path = REPO_ROOT / link_target.lstrip("/")
+            else:
+                target_path = (ex_file.parent / link_target).resolve()
+
+            if not target_path.exists():
+                print(f"[{rel_ex}:{idx}] [ERROR] Cited link target does not exist: {link_target}")
+                errors += 1
+
+    # 1.3 Check predictive questions lab status in lab_map.csv
+    lab_map_path = lab_map_file if lab_map_file else LAB_MAP_CSV
+    lab_map_dict = {}
+    if lab_map_path.exists():
+        with open(lab_map_path, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                lab_id = r.get("lab_id", "").strip()
+                status = r.get("狀態", r.get("status", "")).strip()
+                lab_map_dict[lab_id] = status
+
+    # Find lab references in Predictive Questions section (## 2. 預測題)
+    in_predictive_sec = False
+    lab_id_pattern = re.compile(r'\b(lab_0[1-8])\b')
+    for idx, line in enumerate(lines, 1):
+        if line.strip().startswith("## 2. 預測題"):
+            in_predictive_sec = True
+        elif line.strip().startswith("## 3. 除錯題"):
+            in_predictive_sec = False
+
+        if in_predictive_sec:
+            for m in lab_id_pattern.finditer(line):
+                lid = m.group(1)
+                status = lab_map_dict.get(lid, "")
+                if status != "已完成":
+                    print(f"[{rel_ex}:{idx}] [ERROR] Predictive question references lab '{lid}' with incomplete status: '{status}'")
+                    errors += 1
+
+    # 2. Validate labs/bugs/*.py
+    b_dir = bugs_dir if bugs_dir else (REPO_ROOT / "labs" / "bugs")
+    if not b_dir.exists():
+        print(f"[ERROR] Bugs directory not found: {b_dir}")
+        return errors + 1, warnings
+
+    bug_scripts = sorted(b_dir.glob("*.py"))
+    print(f"Validating {len(bug_scripts)} sandbox bug script(s) in {b_dir}...")
+    if not bug_scripts:
+        print(f"[{b_dir}] [ERROR] No bug scripts found in sandbox.")
+        errors += 1
+
+    required_header_lines = [
+        "# ============================================================",
+        "# 教學用「含錯誤」練習腳本：請勿當作專案寫法使用",
+        "# 內含一個刻意植入的錯誤，請找出來。解答見 docs/code_learning/06_解答.md",
+        "# 只使用合成資料，不讀取專案資料。",
+        "# ============================================================",
+    ]
+
+    leak_comment_pattern = re.compile(r'#.*?(?:\bBUG\b|\bFIXME\b|\bbug\b|\bfixme\b|錯誤)', re.IGNORECASE)
+    forbidden_tokens = ["data.csv", "get_train_data", "import bankruptcy", "from bankruptcy"]
+
+    for bug_file in bug_scripts:
+        rel_bug = bug_file.relative_to(REPO_ROOT) if bug_file.is_relative_to(REPO_ROOT) else bug_file
+        try:
+            b_text = bug_file.read_text(encoding="utf-8")
+        except Exception as e:
+            print(f"[{rel_bug}] [ERROR] Cannot read bug script: {e}")
+            errors += 1
+            continue
+
+        b_lines = b_text.splitlines()
+
+        # Check required header
+        header_ok = True
+        if len(b_lines) < 5:
+            header_ok = False
+        else:
+            for h_idx, expected_h in enumerate(required_header_lines):
+                if b_lines[h_idx].strip() != expected_h:
+                    header_ok = False
+                    break
+        if not header_ok:
+            print(f"[{rel_bug}] [ERROR] Missing or invalid required safety header in bug script.")
+            errors += 1
+
+        # Check forbidden tokens and leak comments
+        for idx, line in enumerate(b_lines, 1):
+            # Check forbidden data access or bankruptcy import
+            for token in forbidden_tokens:
+                if token in line:
+                    print(f"[{rel_bug}:{idx}] [ERROR] Forbidden token '{token}' in bug script: {line.strip()[:80]}")
+                    errors += 1
+
+            # Check leak comments (excluding header lines 1-5)
+            if idx > 5 and leak_comment_pattern.search(line):
+                print(f"[{rel_bug}:{idx}] [ERROR] Answer leak comment detected in bug script: {line.strip()[:80]}")
+                errors += 1
+
+    print("\n" + "=" * 50)
+    print(f"Exercises check completed: {errors} error(s), {warnings} warning(s). Verified {len(bug_scripts)} bug script(s).")
+    print("=" * 50)
+    return errors, warnings
+
+
 def main():
     parser = argparse.ArgumentParser(description="Consistency, evidence, and compliance checker.")
     parser.add_argument("path", nargs="?", default=None, help="Specific file or directory to check.")
@@ -1679,12 +1833,21 @@ def main():
     parser.add_argument("--evidence", action="store_true", help="Run evidence tags check.")
     parser.add_argument("--commands", action="store_true", help="Run command syntax and argument AST validation on markdown files.")
     parser.add_argument("--recipes", action="store_true", help="Run modification recipes check.")
+    parser.add_argument("--exercises", action="store_true", help="Run exercises, quizzes, and bug scripts check.")
+    parser.add_argument("--exercises-file", type=str, default=None, help="Custom exercises markdown file to check.")
+    parser.add_argument("--bugs-dir", type=str, default=None, help="Custom bugs directory to check.")
     args = parser.parse_args()
 
     total_err = 0
     total_warn = 0
 
-    if args.recipes:
+    if args.exercises:
+        ex_path = Path(args.exercises_file) if args.exercises_file else (Path(args.path) if args.path else None)
+        b_dir = Path(args.bugs_dir) if args.bugs_dir else None
+        e, w = check_exercises(exercises_path=ex_path, bugs_dir=b_dir)
+        total_err += e
+        total_warn += w
+    elif args.recipes:
         target = Path(args.path) if args.path else None
         e, w = check_recipes(target)
         total_err += e
