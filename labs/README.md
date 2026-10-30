@@ -195,9 +195,9 @@ python labs/test_common.py
   - 在配對差異上，若信賴區間涵蓋 0 且差異小於模型種子雜訊，則在統計上判定為「未偵測到顯著差異（樣本與檢定力有限）」。
 - **實際觀察**：
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_03_f02_extended_snapshot.csv where="model_seed==42 and fold_idx==0" col=is_bit_identical expect=False -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_03_f02_extended_snapshot.csv where="model_seed==42 and fold_idx==0" col=max_abs_score_diff expect=0.234968 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_03_f02_extended_snapshot.csv where="model_seed==42 and fold_idx==0" col=max_abs_score_diff expect=0.294649 tolerance=0.001 -->
   - **F-02 生效確認**：在全體 45 組配對中，逐位完全相同比例為 **0.0%（`is_bit_identical=False`）**，最大絕對預測分數差達 0.3063，皮爾森相關係數 0.9839，斯皮爾曼秩相關 0.9556。這證實 `subsample_freq=1` 確實啟動了隨機子樣本抽樣。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_03_f02_extended_snapshot.csv where="model_seed==42 and fold_idx==0" col=pr_auc_diff_B_minus_A expect=0.033102 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_03_f02_extended_snapshot.csv where="model_seed==42 and fold_idx==0" col=pr_auc_diff_B_minus_A expect=0.031603 tolerance=0.001 -->
   - **統計推論與信賴區間（45 組配對）**：
     - PR-AUC 平均配對差異（B 減 A）：`+0.00348`（Std: 0.02421），$t$-檢定 95% CI 為 `[-0.00379, +0.01076]`（涵蓋 0），符號為正比例為 53.3%。
     - AR@0.95 平均配對差異：`-0.0861x`（Std: 1.7718），$t$-檢定 95% CI 為 `[-0.6184, +0.4462]`（涵蓋 0），改善比例為 48.9%。
@@ -283,14 +283,14 @@ python labs/test_common.py
   - QuantileScaler 能將長尾分佈攤平成均勻分佈，使距離計算與分割更穩定；改為 StandardScaler 會使極端值影響未經截尾的特徵。
 - **實際觀察**：
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and use_corr_filter==False" col=retained_features_mean expect=92.0 tolerance=0.1 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and corr_threshold==0.95 and ablation_group=='corr_filter'" col=retained_features_mean expect=76.0 tolerance=0.1 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and corr_threshold==0.8 and ablation_group=='corr_filter'" col=retained_features_mean expect=56.4 tolerance=0.1 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and corr_threshold==0.95 and ablation_group=='corr_filter'" col=retained_features_mean expect=71.6 tolerance=0.1 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and corr_threshold==0.8 and ablation_group=='corr_filter'" col=retained_features_mean expect=46.0 tolerance=0.1 -->
   - **特徵漏斗折內實測與條件差異**：
     - 在啟用截尾（`use_winsorizer=True`，lab 基準）下：無過濾保留 92.0 欄；門檻 0.95 時各折動態保留 **75～77 欄**（平均 76.0 欄）；門檻 0.80 時平均保留 56.4 欄。
     - 在關閉截尾（`use_winsorizer=False`）下：門檻 0.95 各折動態保留 **70～73 欄**（平均 71.6 欄，min=70, max=73）。未經截尾之極端長尾值放大了成對 Pearson 相關係數，導致更多特徵超過 0.95 被剔除。專案正式管線在 E1b 結論後關閉截尾（`use_winsorizer=False`），因此正式外層 15 次評估之保留數為 70～73 欄（全訓練集為 72 欄）。兩者前處理條件不同，數值完全精確對應。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=quantile'" col=pr_auc_mean expect=0.406385 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=standard'" col=pr_auc_mean expect=0.397893 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M3' and setting_name=='Scaler=standard'" col=ar95_mean expect=18.377619 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=standard'" col=pr_auc_mean expect=0.352656 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M3' and setting_name=='Scaler=standard'" col=ar95_mean expect=9.080794 tolerance=0.01 -->
   - **縮放器影響與 M3 AR@0.95 暴增機制（有證據的事實、推測與對照驗證分離）**：
     - M1 在 QuantileScaler 下 PR-AUC 為 0.4064（AR@0.95 為 9.15x），改為 StandardScaler 後 PR-AUC 跌至 0.3979（AR@0.95 升至 10.67x）。
     - M3 改用 StandardScaler 後 AR@0.95 均值由 9.14x 劇增至 **18.38x**（折間標準差 10.75x）。

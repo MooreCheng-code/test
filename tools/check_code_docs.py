@@ -90,7 +90,11 @@ MISNOMER_15FOLD = re.compile(r"(?<![35\d])15\s*折(?!次)")
 LAB_MAP_CSV = REPO_ROOT / "labs" / "lab_map.csv"
 
 FILE_PATH_PATTERN = re.compile(
-    r'(?:bankruptcy[/\][\w./\-]+\.(?:py|csv|json|md|joblib|png))'
+    r'(?<![A-Za-z0-9_/-])((?:bankruptcy|labs|docs)[/\\][\w./\-]+\.(?:py|csv|json|txt|md|npy|joblib|png|npz|html))\b'
+)
+
+AST_CITATION_PATTERN = re.compile(
+    r'[`]?((?:bankruptcy|labs|docs)[/\w.-]+\.py):(\d+)(?:-\d+)?[`]?\s*\([`]?([a-zA-Z_][a-zA-Z0-9_]*)[`]?\)[`]?'
 )
 
 EVIDENCE_TAG_PATTERN = re.compile(
@@ -464,6 +468,35 @@ def verify_symbol_in_file(
     return False
 
 
+
+
+def verify_symbol_in_ast(file_path: Path, symbol: str) -> bool:
+    """Verifies that symbol exists in the python file's AST as a function, class, assignment, or import."""
+    if not file_path.is_file() or not file_path.name.endswith(".py"):
+        return True
+    try:
+        py_content = file_path.read_text(encoding="utf-8")
+        tree = ast.parse(py_content)
+    except Exception:
+        return False
+
+    valid_symbols = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            valid_symbols.add(node.name)
+        elif isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    valid_symbols.add(t.id)
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                valid_symbols.add(alias.asname or alias.name)
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                valid_symbols.add(alias.asname or alias.name)
+
+    return symbol in valid_symbols
+
 def check_markdown_file(md_path: Path) -> tuple[int, int]:
     """Checks a single markdown file for paths, symbols, citations, and terminology."""
     errors = 0
@@ -538,17 +571,31 @@ def check_markdown_file(md_path: Path) -> tuple[int, int]:
                     )
                     errors += 1
 
-            # 6. Full-text path existence check
+        # 6. Full-text path existence check
         for m in FILE_PATH_PATTERN.finditer(line):
-            raw_path = m.group(0).rstrip(":,.;)'\"")
+            raw_path = m.group(1).rstrip(":,.;)'\"")
             norm_path = raw_path.replace("\\", "/")
             target = REPO_ROOT / norm_path
             if not target.exists():
                 if "<!-- planned:" in line or "planned:" in line:
                     continue
-                if md_path.name in {"_findings.md", "_stale_claims.csv"} or "negative" in line.lower() or "不存在" in line:
+                if md_path.name in {"_findings.md", "_stale_claims.csv"} or "negative" in line.lower() or "不存在" in line or "找不到" in line or "未建立" in line:
                     continue
                 print(f"[{rel_md}:{idx}] [ERROR] Cited path does not exist on filesystem: {norm_path}")
+                errors += 1
+
+        # 7. Function / Symbol existence in AST check
+        for m in AST_CITATION_PATTERN.finditer(line):
+            f_rel = m.group(1).replace("\\", "/")
+            l_num = int(m.group(2))
+            sym = m.group(3)
+            target_py = REPO_ROOT / f_rel
+            if not target_py.exists():
+                pass  # Caught by path check
+            elif not verify_symbol_in_ast(target_py, sym):
+                if md_path.name in {"_findings.md", "_stale_claims.csv"} or "negative" in line.lower() or "不存在" in line or "找不到" in line:
+                    continue
+                print(f"[{rel_md}:{idx}] [ERROR] Function/symbol '{sym}' not found in AST of {f_rel}:{l_num}")
                 errors += 1
 
     return errors, warnings
@@ -1248,7 +1295,7 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
     return errors, warnings
 
 
-def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
+def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool = False) -> tuple[int, int]:
     """Scans markdown files and strictly validates evidence, code, cmd, and no-evidence tags."""
     if target_dir is not None:
         if target_dir.is_file():
@@ -1261,7 +1308,10 @@ def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
         if labs_readme.is_file() and labs_readme not in md_files:
             md_files.append(labs_readme)
 
-    print(f"\nValidating evidence & code tags in {len(md_files)} file(s)...\n")
+    if not include_drafts:
+        md_files = [f for f in md_files if "_drafts" not in f.parts]
+
+    print(f"\nValidating evidence & code tags in {len(md_files)} file(s) (include_drafts={include_drafts})...\n")
     errors = 0
     warnings = 0
     total_tags = 0
@@ -1320,8 +1370,10 @@ def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
                 ]
             )
             is_facts_row = md_file.name == "_facts_verified.md" and stripped.startswith("|") and not is_table_header
+            is_draft_claim = ("_drafts" in md_file.parts and not stripped.startswith("#") and not stripped.startswith(">") 
+                              and not stripped.startswith("| :---") and stripped != "---" and not stripped.startswith("<!--"))
             
-            if is_empirical or is_facts_row:
+            if is_empirical or is_facts_row or is_draft_claim:
                 # Check if exempted by no-evidence or cmd
                 has_no_evidence = bool(NO_EVIDENCE_PATTERN.search(line) or (idx < len(lines) and NO_EVIDENCE_PATTERN.search(lines[idx])))
                 has_cmd = bool(CMD_TAG_PATTERN.search(line) or (idx < len(lines) and CMD_TAG_PATTERN.search(lines[idx])) or in_cmd_section)
@@ -1335,10 +1387,16 @@ def check_evidence_tags_all(target_dir: Path | None = None) -> tuple[int, int]:
                     if is_empirical:
                         print(f"[{rel_file}:{idx}] [ERROR] Claim with 【本專案實測】 lacks evidence/code tag: {stripped[:80]}")
                         errors += 1
-                    else:
+                    elif is_facts_row:
                         stmt_nums = extract_numbers_from_text(stripped)
                         if stmt_nums:
                             print(f"[{rel_file}:{idx}] [ERROR] Claim with concrete numbers lacks evidence/code tag: {stripped[:80]}")
+                            errors += 1
+                    elif is_draft_claim:
+                        stmt_nums = extract_numbers_from_text(stripped)
+                        metric_nums = [raw for raw, val in stmt_nums if "%" in raw or "/" in raw or "." in raw or "x" in raw.lower()]
+                        if metric_nums:
+                            print(f"[{rel_file}:{idx}] [ERROR] Draft claim with concrete metric numbers lacks evidence/code tag: {stripped[:80]} (unverified: {metric_nums})")
                             errors += 1
                 else:
                     # Verify numbers against all tags here
@@ -2045,7 +2103,7 @@ def main():
         total_warn += w
     elif args.evidence:
         target = Path(args.path) if args.path else None
-        e, w = check_evidence_tags_all(target)
+        e, w = check_evidence_tags_all(target, include_drafts=args.include_drafts)
         total_err += e
         total_warn += w
     elif args.cards:
