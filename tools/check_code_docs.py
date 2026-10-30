@@ -554,7 +554,35 @@ def check_markdown_file(md_path: Path) -> tuple[int, int]:
     return errors, warnings
 
 
-def check_docs(target_dir: Path | None = None) -> tuple[int, int]:
+GLOSSARY_MD = DOCS_DIR / "08_術語表.md"
+DRAFTS_DIR = DOCS_DIR / "_drafts"
+STRICT_DRAFT_FORBIDDEN = ["證明", "保證", "完美", "100%", "業界最佳"]
+
+
+def check_drafts_strict(drafts_dir: Path | None = None) -> tuple[int, int]:
+    """Validates drafts directory for forbidden words and absolute paths."""
+    d_dir = drafts_dir or DRAFTS_DIR
+    if not d_dir.exists():
+        return 0, 0
+    errors = 0
+    warnings = 0
+    for md_path in sorted(d_dir.glob("*.md")):
+        rel_md = str(md_path.relative_to(REPO_ROOT) if md_path.is_absolute() else md_path).replace("\\", "/")
+        lines = md_path.read_text(encoding="utf-8").splitlines()
+        for idx, line in enumerate(lines, 1):
+            for pat in ABS_PATH_PATTERNS:
+                if pat.search(line):
+                    print(f"[{rel_md}:{idx}] [ERROR] Absolute or user path detected in draft: {line.strip()[:80]}")
+                    errors += 1
+            for word in STRICT_DRAFT_FORBIDDEN:
+                if word in line:
+                    if not any(k in line for k in ["不得使用", "移除", "禁用", "嚴禁", "不得出現", "證*", "保*", "完*", "業界最*"]):
+                        print(f"[{rel_md}:{idx}] [ERROR] Strict draft forbidden word '{word}': {line.strip()[:80]}")
+                        errors += 1
+    return errors, warnings
+
+
+def check_docs(target_dir: Path | None = None, include_drafts: bool = False) -> tuple[int, int]:
     """Scans all markdown files in target directory."""
     check_dir = target_dir or DOCS_DIR
     rel_dir = str(check_dir.relative_to(REPO_ROOT) if check_dir.is_absolute() else check_dir).replace("\\", "/")
@@ -566,8 +594,10 @@ def check_docs(target_dir: Path | None = None) -> tuple[int, int]:
         md_files = [check_dir]
     else:
         md_files = sorted(check_dir.rglob("*.md"))
+        if not include_drafts:
+            md_files = [f for f in md_files if "_drafts" not in f.parts]
 
-    print(f"Checking {len(md_files)} markdown files in {rel_dir}...\n")
+    print(f"Checking {len(md_files)} markdown files in {rel_dir} (include_drafts={include_drafts})...\n")
     total_errors = 0
     total_warnings = 0
 
@@ -575,6 +605,11 @@ def check_docs(target_dir: Path | None = None) -> tuple[int, int]:
         errs, warns = check_markdown_file(md_path)
         total_errors += errs
         total_warnings += warns
+
+    if include_drafts:
+        d_err, d_warn = check_drafts_strict()
+        total_errors += d_err
+        total_warnings += d_warn
 
     print("\n" + "=" * 50)
     print(f"Markdown check completed: {total_errors} error(s), {total_warnings} warning(s).")
@@ -1402,11 +1437,13 @@ def validate_single_command(cmd_str: str, repo_root: Path) -> tuple[bool, str]:
             if len(tokens) < 3:
                 return False, "python -m missing module name"
             mod = tokens[2]
-            if mod in ("pytest", "unittest", "uvicorn", "http.server"):
+            if mod in ("pytest", "unittest", "uvicorn", "http.server", "venv"):
                 return True, f"Standard tool module {mod}"
             rel_path = mod.replace(".", "/") + ".py"
             script_path = resolve_script_path(rel_path, repo_root)
             start_idx = 3
+        elif sub == "-c":
+            return True, "Python inline snippet" 
         else:
             if sub in ("pytest", "unittest"):
                 return True, f"Standard test runner {sub}"
@@ -1842,6 +1879,127 @@ def check_exercises(
     return errors, warnings
 
 
+def check_glossary(glossary_path: Path | None = None) -> tuple[int, int]:
+    """Validates docs/code_learning/08_術語表.md:
+    1. Four required fields in each term: 白話定義, 最小數字例子, 專案中的位置, 第一次講解的導讀或參數卡.
+    2. Location format and verify_symbol_in_file check on code location.
+    3. Linked doc exists on disk.
+    4. Unique term names and total terms >= 40.
+    5. AR definition strictly '預警家數 ÷ 破產家數' (not proportion/percentage).
+    """
+    g_file = glossary_path or GLOSSARY_MD
+    try:
+        rel_g = str(g_file.relative_to(REPO_ROOT)).replace("\\", "/")
+    except ValueError:
+        rel_g = g_file.name
+
+    if not g_file.exists():
+        print(f"[ERROR] Glossary file not found: {rel_g}")
+        return 1, 0
+
+    print(f"\nValidating glossary document: {rel_g}...\n")
+    errors = 0
+    warnings = 0
+
+    lines = g_file.read_text(encoding="utf-8").splitlines()
+    term_header_pat = re.compile(r"^###\s+\d+\.\s+(.*?)(?:\s*\((.*?)\))?\s*$")
+    loc_pat = re.compile(r"[`\[]?([a-zA-Z0-9_/\\.-]+\.py):(\d+)(?:-(\d+))?[`\]]?\s*\([`\"]?([a-zA-Z0-9_]+)[`\"]?\)")
+    link_pat = re.compile(r"\[(.*?)\]\((.*?)\)")
+
+    terms = {}
+    current_term = None
+    current_fields = {}
+
+    for idx, line in enumerate(lines, 1):
+        m = term_header_pat.match(line)
+        if m:
+            if current_term:
+                terms[current_term] = current_fields
+            current_term = m.group(1).strip()
+            if current_term in terms:
+                print(f"[{rel_g}:{idx}] [ERROR] Duplicate term '{current_term}'")
+                errors += 1
+            current_fields = {"line": idx}
+            continue
+        if current_term:
+            if line.startswith("- **白話定義**："):
+                current_fields["def"] = line.split("：", 1)[1].strip()
+            elif line.startswith("- **最小數字例子**："):
+                current_fields["toy"] = line.split("：", 1)[1].strip()
+            elif line.startswith("- **專案中的位置**："):
+                current_fields["loc"] = line.split("：", 1)[1].strip()
+                current_fields["loc_line"] = idx
+            elif line.startswith("- **第一次講解的導讀或參數卡**："):
+                current_fields["doc"] = line.split("：", 1)[1].strip()
+                current_fields["doc_line"] = idx
+
+    if current_term:
+        terms[current_term] = current_fields
+
+    if len(terms) < 40:
+        print(f"[{rel_g}] [ERROR] Total terms ({len(terms)}) less than required 40 terms")
+        errors += 1
+
+    required_keys = [
+        ("def", "白話定義"),
+        ("toy", "最小數字例子"),
+        ("loc", "專案中的位置"),
+        ("doc", "第一次講解的導讀或參數卡"),
+    ]
+    for term, fields in terms.items():
+        t_line = fields.get("line", 1)
+        for k, label in required_keys:
+            if k not in fields:
+                print(f"[{rel_g}:{t_line}] [ERROR] Term '{term}' missing required field '{label}'")
+                errors += 1
+
+        # Location check
+        loc_str = fields.get("loc", "")
+        m_loc = loc_pat.search(loc_str)
+        if not m_loc:
+            print(f"[{rel_g}:{fields.get('loc_line', t_line)}] [ERROR] Term '{term}' invalid location format: {loc_str}")
+            errors += 1
+        else:
+            f_rel = m_loc.group(1).replace("/", "\\")
+            f_path = REPO_ROOT / f_rel
+            s_line = int(m_loc.group(2))
+            e_line = int(m_loc.group(3)) if m_loc.group(3) else s_line
+            sym = m_loc.group(4)
+            if not f_path.exists():
+                print(f"[{rel_g}:{fields.get('loc_line', t_line)}] [ERROR] Term '{term}' code file not found: {f_rel}")
+                errors += 1
+            elif not verify_symbol_in_file(f_path, sym, s_line, e_line, slack=3):
+                print(f"[{rel_g}:{fields.get('loc_line', t_line)}] [ERROR] Term '{term}' symbol '{sym}' not found in {f_rel}:{s_line} (within ±3 lines)")
+                errors += 1
+
+        # Doc link check
+        doc_str = fields.get("doc", "")
+        m_doc = link_pat.search(doc_str)
+        if not m_doc:
+            print(f"[{rel_g}:{fields.get('doc_line', t_line)}] [ERROR] Term '{term}' missing markdown link in doc: {doc_str}")
+            errors += 1
+        else:
+            target_rel = m_doc.group(2)
+            target_file = (g_file.parent / target_rel).resolve()
+            if not target_file.exists():
+                print(f"[{rel_g}:{fields.get('doc_line', t_line)}] [ERROR] Term '{term}' linked doc not found: {target_rel}")
+                errors += 1
+
+        # AR definition check
+        if "預警倍數" in term:
+            d = fields.get("def", "")
+            if "預警家數 ÷ 破產家數" not in d and "預警家數 / 破產家數" not in d and "預警家數相對於真實破產" not in d:
+                print(f"[{rel_g}:{t_line}] [ERROR] AR term '{term}' definition must define AR as '預警家數 ÷ 破產家數'")
+                errors += 1
+            if "比例" in d or "百分比" in d:
+                print(f"[{rel_g}:{t_line}] [ERROR] AR term '{term}' definition must NOT contain '比例' or '百分比'")
+                errors += 1
+
+    print("\n" + "=" * 50)
+    print(f"Glossary check completed: {errors} error(s), {warnings} warning(s). Verified {len(terms)} term(s).")
+    print("=" * 50)
+    return errors, warnings
+
 def main():
     parser = argparse.ArgumentParser(description="Consistency, evidence, and compliance checker.")
     parser.add_argument("path", nargs="?", default=None, help="Specific file or directory to check.")
@@ -1856,12 +2014,20 @@ def main():
     parser.add_argument("--exercises", action="store_true", help="Run exercises, quizzes, and bug scripts check.")
     parser.add_argument("--exercises-file", type=str, default=None, help="Custom exercises markdown file to check.")
     parser.add_argument("--bugs-dir", type=str, default=None, help="Custom bugs directory to check.")
+    parser.add_argument("--glossary", action="store_true", help="Run glossary check.")
+    parser.add_argument("--glossary-file", type=str, default=None, help="Custom glossary markdown file to check.")
+    parser.add_argument("--include-drafts", action="store_true", help="Include _drafts directory in standard markdown checks.")
     args = parser.parse_args()
 
     total_err = 0
     total_warn = 0
 
-    if args.exercises:
+    if args.glossary:
+        g_path = Path(args.glossary_file) if args.glossary_file else (Path(args.path) if args.path else None)
+        e, w = check_glossary(g_path)
+        total_err += e
+        total_warn += w
+    elif args.exercises:
         ex_path = Path(args.exercises_file) if args.exercises_file else (Path(args.path) if args.path else None)
         b_dir = Path(args.bugs_dir) if args.bugs_dir else None
         e, w = check_exercises(exercises_path=ex_path, bugs_dir=b_dir)
@@ -1895,7 +2061,7 @@ def main():
         total_warn += w
     else:
         target = Path(args.path) if args.path else None
-        e, w = check_docs(target)
+        e, w = check_docs(target, include_drafts=args.include_drafts)
         total_err += e
         total_warn += w
 

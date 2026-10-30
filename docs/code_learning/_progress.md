@@ -24,7 +24,8 @@
 | **階段 5-fix** | I1～I8 修正：lab_04 數據口徑與模式查核、S3 措辭校準、lab_05 M3 數理機制與特徵數查核、lab_06 數據口徑與 Standard 模式對照、卡片抽查檔名勘誤、資源耗時標註（無 GPU）、證據標籤擴展至 labs 達 141 個 | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 5-fix - lab_04/05/06 verification, resource claims, evidence scope`) |
 | **階段 6** | `05_動手改程式配方.md`、`check_code_docs.py --recipes` 檢查器模式、7 配方風險總表、沙盒示範 | ✅ 已完成 | `96b9fce` + `40d4715` (6-fix) |
 | **階段 7** | `06_練習題.md`、`06_小測驗.md`、`06_解答.md`、`labs/bugs/`（10 支沙盒除錯腳本）、`check_code_docs.py --exercises` | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 7 - exercises, solutions, bug-hunt sandbox`) |
-| **階段 8** | `00_讀我_學習路線.md`、`07_常見錯誤與除錯.md`、`08_術語表.md`、`09_面試說明稿.md` | ⏸️ 待執行 | — |
+| **階段 7-fix** | lab 管線對齊 (`--pipeline project`)、除錯題 20 次重複量測、配方 3 與 6 修正、檢查器正則與失效清單強化 | ✅ 已完成 | `fcf1531` (`docs(code-learning): stage 7-fix - pipeline parity, bug exercise measurements, recipe corrections, checker hardening`) |
+| **階段 8** | `00_讀我_學習路線.md`、`07_常見錯誤與除錯.md`、`08_術語表.md` (47詞)、`_drafts/09_面試說明稿.draft.md` (隔離草稿)、`--glossary` 與 `--include-drafts` 檢查模式與單元測試 | ✅ 已完成 | 待提交 (`docs(code-learning): stage 8 - reading paths, troubleshooting, glossary (interview draft held in _drafts)`) |
 | **階段 9** | `tools/check_code_docs.py` 與最終驗收 | ⏸️ 待執行 | — |
 
 ### 1.1 過時說法清單統計（`_stale_claims.csv` 統計報告）
@@ -95,8 +96,8 @@
   - 階段 4b & 4b-fix：Lab 結果快照、README 與跨實驗印證、AST 命令檢查器。
   - 階段 5 & 5-fix：實驗操作指南（`04_實驗操作指南.md`）、`--commands` 檢查模式、安全重跑判定表、lab_04/05/06 深入驗證與資源耗時來源標記。
   - 階段 6 & 6-fix：動手改程式配方（`05_動手改程式配方.md`）、`--recipes` 檢查模式、沙盒示範（配方 1、2、3、4、5）與單元測試、7 個配方風險等級總表；6-fix 完成前處理旗標對照表、lab_05 18.38x 機制三層分離、E2a 耗時各折加總校正、危險指令總表與修辭中立化。
-- **當前項目**：階段 7 完成，全套驗證通過。
-- **下一步**：使用者審查通過並放行後，進入階段 8（學習路線、常見錯誤除錯、術語表、面試說明稿）。
+- **當前項目**：階段 8 完成，全套驗證與單元測試 100% 通過。
+- **下一步**：停下等待使用者審閱 09 草稿與 K1～K4 結論變化，絕不擅自進入階段 9。
 
 ---
 
