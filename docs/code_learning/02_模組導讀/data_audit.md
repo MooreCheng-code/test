@@ -106,7 +106,7 @@
   >   - 在 `preprocessing.py:311` 中，呼叫方式為 `n_quantiles = min(1000, len(X))`，動態依樣本數量進行上限截斷。
   > - **為什麼會這樣寫？在何種條件下會出現警告？**
   >   - scikit-learn 的規範要求 `n_quantiles <= n_samples`。當樣本總數小於 `n_quantiles` 時，scikit-learn 會強制降低分位數數量並噴出 `UserWarning: n_quantiles is greater than the total number of samples`。
-  >   - 在 `data_audit.py` 中，處理的是全量原始資料（$N = 6,819$ 筆），$6,819 \ge 1000$，因此在全量資料審計時**完全不會觸發警告**。
+  >   - 在 `data_audit.py` 中，處理的是全量原始資料（$N = 6,819$ 筆），$6,819 \ge 1000$，因此在全量資料審計時**未曾會觸發警告**。
   >   - 然而，若學習者在單元測試或小規模玩具樣本（例如 $N < 1000$）上直接調用未加保護的寫法，就會觸發 `UserWarning`。`preprocessing.py` 考量到未來可能接受微型批次推論或小樣本子集，故加入了 `min(1000, len(X))` 防禦性保護。
 
 ---

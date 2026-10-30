@@ -8,7 +8,7 @@
 - **上游**：接收 `cv.py` 的訓練集切分索引與 `pipelines.py` 的管線生成器。
 - **下游**：
   - E2a 產出的外層 OOF 預測儲存於 `outputs/models/oof/`，供 E3 集成模型尋優權重。
-  - E2b 固化的最佳超參數儲存於 `outputs/models/best_params/M1.json`～`M5.json`，供 E4c 最終模型擬合、E5 特徵解釋與推論使用。
+  - E2b 固化的固化超參數儲存於 `outputs/models/best_params/M1.json`～`M5.json`，供 E4c 最終模型擬合、E5 特徵解釋與推論使用。
 
 ## 輸入 / 輸出（型別、形狀、範例）
 - **輸入**：
@@ -16,7 +16,7 @@
   - `cv_splits`: 15 個外層切分折。
 - **輸出**：
   - 實驗評估報表：`outputs/tables/e2a_nested_tuning_summary.csv`、`outputs/tables/e2a_nested_per_fold.csv`。
-  - 最終最佳超參數：`outputs/models/best_params/M1.json` ～ `M5.json`。
+  - 最終固化超參數：`outputs/models/best_params/M1.json` ～ `M5.json`。
   - Optuna 試驗資料庫：`outputs/logs/optuna_studies/study_*.db`（SQLite 格式）。
 
 ---
@@ -30,7 +30,7 @@
 - **三個工作點定義**：
   1. $r = 0.80$（80% 破產召回率）：風控初篩門檻。
   2. $r = 0.90$（90% 破產召回率）：常態警報基準。
-  3. $r = 0.95$（95% 破產召回率）：專案核心法定防禦線（底線保證）。
+  3. $r = 0.95$（95% 破產召回率）：專案核心法定防禦線（底線確保）。
 - **為什麼要取對數（Log）？**
   - **尺度對齊（Scale Invariance）**：預警倍數具備乘法特徵（例如 2x, 4x, 8x）。在未取 log 時，$r=0.95$ 的 AR（如 8.0x）遠高於 $r=0.80$ 的 AR（如 2.0x），線性平均會導致模型只討好 $r=0.95$ 而徹底放棄 $r=0.80$ 的表現；取對數後，從 2x 降到 1x（改善 50%）與從 8x 降到 4x（改善 50%）的梯度貢獻完全均等。
   - **等價於幾何平均（Geometric Mean）**：極小化對數平均值數學上等價於極小化三個工作點的幾何平均數，對單一極端崩潰點具備懲罰敏感度。
@@ -102,7 +102,7 @@ if remaining_trials > 0:
 | **回答的核心問題** | **「這套調參演算法在未見資料上的泛化效能究竟如何？」** | **「拿全體訓練集訓練即將上線的最終模型，應鎖定哪組超參數？」** |
 | **切分方式** | 外層 5 折 × 3 次重複（15 次外層評估）；每折內層切 3 折 | 全量訓練集（5,455 筆）內部跑 5 折 × 2 次重複（10 次評估） |
 | **試驗次數（`n_trials`）** | M1: 25 次；M2～M5: 各 40 次（每折獨立跑，共 2,775 次） | **1.5 倍 E2a 規模**：M1: 38 次；M2～M5: 各 60 次（全專案僅跑 1 輪） |
-| **為什麼不會洩漏？** | 每個外層驗證折（1,091 筆）在該折調參過程中**完全被物理屏蔽**，調參過程僅能存取外層訓練折（4,364 筆）；外層驗證分數在調參完成後僅計算一次，保證無偏估計。 | E2b 評估分數具有樂觀偏差，因此其分數**絕不用於宣稱模型效能**；其唯一職責是為最終模型產出固定超參數字典。 |
+| **為什麼不會洩漏？** | 每個外層驗證折（1,091 筆）在該折調參過程中**完全被物理屏蔽**，調參過程僅能存取外層訓練折（4,364 筆）；外層驗證分數在調參完成後僅計算一次，確保無偏估計。 | E2b 評估分數具有樂觀偏差，因此其分數**絕不用於宣稱模型效能**；其唯一職責是為最終模型產出固定超參數字典。 |
 
 ---
 
@@ -115,11 +115,11 @@ if remaining_trials > 0:
 | 階段 | M5 是否含 `subsample_freq=1` | 是否含重抽樣 | 證據（檔案:行號） |
 |---|---|---|---|
 | E2a 內層搜尋 | 是 (`subsample_freq=1`) | 是（依 trial 動態抽樣 S0 或 S3） | `bankruptcy/src/tune.py:123, 169` |
-| E2a 外層重擬合 | 是 (`subsample_freq=1`) | 是（依該折最佳參數，5 折選中 S3 含 SMOTE 0.3） | `bankruptcy/src/tune.py:335-336`, `bankruptcy/src/cv.py:270-285` |
+| E2a 外層重擬合 | 是 (`subsample_freq=1`) | 是（依該折固化參數，5 折選中 S3 含 SMOTE 0.3） | `bankruptcy/src/tune.py:335-336`, `bankruptcy/src/cv.py:270-285` |
 | E2b 搜尋 | 是 (`subsample_freq=1`) | 是（全訓練集 60 trials 尋優選定 S3 含 SMOTE 0.3） | `bankruptcy/src/tune.py:169, 894-905` |
 | E3 評估（讀 E2a 快取） | 是 (`subsample_freq=1`) | 是（同 E2a 外層，5 折含 S3 SMOTE，10 折為 S0） | `bankruptcy/src/ensemble.py:406-425` |
 | E4c OOF 參考分布與門檻 | 否 (`subsample_freq=0`) | 是（固化載入 `imbalance="S3"`，包含 SMOTE 0.3） | `bankruptcy/src/thresholding.py:610-615, 774-784`, `bankruptcy/outputs/models/best_params/M5.json` |
-| E5 | 否 (`subsample_freq=0`) | 是（依各折最佳參數執行，部分折含 S3 SMOTE） | `bankruptcy/src/explain.py:462, 670-681` |
+| E5 | 否 (`subsample_freq=0`) | 是（依各折固化參數執行，部分折含 S3 SMOTE） | `bankruptcy/src/explain.py:462, 670-681` |
 | E6（已部署固化元件） | 否 (`subsample_freq=0`) | 是（`model_M5.joblib` 包含 SMOTE 0.3 訓練步驟，推論時自動略過） | `bankruptcy/outputs/models/final/model_M5.joblib`, `bankruptcy/src/final_eval.py:110-145` |
 | E7b | 否 (`subsample_freq=0`) | 是（固定 `imbalance="S3"`，測試 5 組隨機種子對 SMOTE 與 LightGBM 擾動） | `bankruptcy/src/seed_stability.py:63, 107-113` |
 | score_new_data／App | 否 (`subsample_freq=0`) | 是（模型物件內含 SMOTE 步驟，推論 `predict_proba` 自動略過） | `bankruptcy/src/scoring.py:277-330`, `bankruptcy/score_new_data.py:80-120`, `bankruptcy/app/app.py:760-800` |
@@ -141,7 +141,7 @@ if remaining_trials > 0:
 
 ### 5. 最終固化超參數表（來自 `outputs/models/best_params/*.json`）
 
-| 模型 | 最佳採樣 | 固化超參數列表（依 JSON 原文） | 內層三點損失 | 搜尋試驗數 | 來源檔案與行號 |
+| 模型 | 選定採樣 | 固化超參數列表（依 JSON 原文） | 內層三點損失 | 搜尋試驗數 | 來源檔案與行號 |
 |:---:|:---:|---|:---:|:---:|---|
 | **M1** | **S0** | `C=0.11616457722286455`, `penalty="l2"` | **1.7450** | 38 | `outputs/models/best_params/M1.json` |
 | **M2** | **S3** | `n_estimators=300`, `max_depth=12`, `min_samples_leaf=10`, `max_features="sqrt"` | **1.6800** | 60 | `outputs/models/best_params/M2.json` |

@@ -51,7 +51,7 @@
   ```
 - **逐段解說**：
   - `fit()` 嚴格只在訓練集上學習哪幾欄是常數與重複（第 147、157 行），將刪除名單鎖定在 `self.drop_cols_`。
-  - `transform()`（第 174 行）僅呼叫 `X.drop(columns=self.drop_cols_, errors="ignore")`，保證測試集永遠套用訓練集的剔除決策，杜絕標籤或樣本洩漏。
+  - `transform()`（第 174 行）僅呼叫 `X.drop(columns=self.drop_cols_, errors="ignore")`，確保測試集永遠套用訓練集的剔除決策，防範標籤或樣本洩漏。
 
 ---
 

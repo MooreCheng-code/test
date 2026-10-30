@@ -4,40 +4,75 @@
 # 只使用合成資料，不讀取專案資料。
 # ============================================================
 
+from pathlib import Path
 import numpy as np
-from sklearn.datasets import make_classification
-from sklearn.model_selection import StratifiedKFold
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.metrics import average_precision_score
+import pandas as pd
 from scipy import stats
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.metrics import average_precision_score
+from sklearn.model_selection import StratifiedKFold
 
-def run_experiment():
+METRIC_NAME = "p-value"
+
+
+def eval_single(seed: int = 42) -> tuple[float, float]:
     X, y = make_classification(
-        n_samples=600,
-        n_features=12,
-        weights=[0.95, 0.05],
-        random_state=42
+        n_samples=600, n_features=12,
+        weights=[0.95, 0.05], random_state=seed
     )
 
-    skf_a = StratifiedKFold(n_splits=5, shuffle=True, random_state=101)
+    # 1. 實作 A (待檢視)：Model A 與 Model B 切分器隨機種子不同（未對齊切分），直接做成對 t 檢定
+    skf_a = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
     scores_a = []
-    for train_idx, val_idx in skf_a.split(X, y):
-        clf_a = RandomForestClassifier(n_estimators=40, random_state=42)
-        clf_a.fit(X[train_idx], y[train_idx])
-        scores_a.append(average_precision_score(y[val_idx], clf_a.predict_proba(X[val_idx])[:, 1]))
+    for tr, val in skf_a.split(X, y):
+        clf_a = RandomForestClassifier(n_estimators=40, random_state=seed)
+        clf_a.fit(X[tr], y[tr])
+        scores_a.append(average_precision_score(y[val], clf_a.predict_proba(X[val])[:, 1]))
 
-    skf_b = StratifiedKFold(n_splits=5, shuffle=True, random_state=202)
-    scores_b = []
-    for train_idx, val_idx in skf_b.split(X, y):
-        clf_b = GradientBoostingClassifier(n_estimators=40, random_state=42)
-        clf_b.fit(X[train_idx], y[train_idx])
-        scores_b.append(average_precision_score(y[val_idx], clf_b.predict_proba(X[val_idx])[:, 1]))
+    skf_b_unmatched = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed + 999)
+    scores_b_unmatched = []
+    for tr, val in skf_b_unmatched.split(X, y):
+        clf_b = GradientBoostingClassifier(n_estimators=40, random_state=seed)
+        clf_b.fit(X[tr], y[tr])
+        scores_b_unmatched.append(average_precision_score(y[val], clf_b.predict_proba(X[val])[:, 1]))
 
-    t_stat, p_val = stats.ttest_rel(scores_a, scores_b)
+    _, p_val_unmatched = stats.ttest_rel(scores_a, scores_b_unmatched)
 
-    print(f'Model A 均值: {np.mean(scores_a):.4f}')
-    print(f'Model B 均值: {np.mean(scores_b):.4f}')
-    print(f'成對 t 檢定 p-value: {p_val:.4f} (t={t_stat:.2f})')
+    # 2. 正確版：Model A 與 Model B 嚴格在完全相同的折內進行訓練與驗證（對齊切分）
+    scores_b_matched = []
+    for tr, val in skf_a.split(X, y):
+        clf_b = GradientBoostingClassifier(n_estimators=40, random_state=seed)
+        clf_b.fit(X[tr], y[tr])
+        scores_b_matched.append(average_precision_score(y[val], clf_b.predict_proba(X[val])[:, 1]))
 
-if __name__ == '__main__':
+    _, p_val_matched = stats.ttest_rel(scores_a, scores_b_matched)
+
+    return float(p_val_unmatched), float(p_val_matched)
+
+
+def run_experiment():
+    b_val, c_val = eval_single(seed=42)
+    print("=== Bug 09: Unmatched Splits Paired Test ===")
+    print(f"Buggy p-value (unmatched splits ttest_rel): {b_val:.4f}")
+    print(f"Clean p-value (matched splits ttest_rel):   {c_val:.4f}")
+    print(f"Delta: {b_val - c_val:+.4f}")
+
+
+def run_repeats(n_repeats: int = 20):
+    out_dir = Path("labs/outputs/bugs")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_file = out_dir / "bug_09_repeats.csv"
+    rows = []
+    for i in range(n_repeats):
+        s = 100 + i * 17
+        b, c = eval_single(seed=s)
+        rows.append({"seed": s, "buggy": b, "clean": c, "metric": METRIC_NAME})
+    df = pd.DataFrame(rows)
+    df.to_csv(out_file, index=False)
+    print(f"Saved {len(df)} repeats to {out_file.as_posix()}")
+
+
+if __name__ == "__main__":
     run_experiment()
+    run_repeats()

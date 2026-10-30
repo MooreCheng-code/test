@@ -1,4 +1,4 @@
-﻿id,說明,影響階段,相關實驗ID,證據檔案,可調性,合理範圍,範圍來源,備註
+id,說明,影響階段,相關實驗ID,證據檔案,可調性,合理範圍,範圍來源,備註
 CAL_ISOTONIC_OUT_OF_BOUNDS,Isotonic Regression 對超出訓練範圍預測分數之邊界處理策略,機率校準,E4b,bankruptcy/src/thresholding.py:455,固定常數，不建議調整,"['clip', 'nan']",scikit-learn 慣例,設定為 'clip'，超出範圍分數自動截斷於邊界值
 CAL_ISOTONIC_Y_MIN_MAX,Isotonic Regression 校準後後驗機率值域極端邊界上下限,機率校準,E4b,bankruptcy/src/thresholding.py:456,固定常數，不建議調整,"[0.0, 1.0]",機率定義,"機率邊界設為 [0.0, 1.0]，嚴格限制輸出落於有效機率區間"
 CAL_METHOD_SELECTION,E4b 後驗機率校準方法選擇（Platt vs Isotonic）,機率校準,E4b,bankruptcy/src/thresholding.py:763,可在 lab 安全調整,"['Platt', 'Isotonic']",專案實驗驗證,本專案實測（E4b）：選用 Platt Scaling 因其嚴格保持排序且小樣本無斷層
@@ -8,7 +8,7 @@ CFG_BASE_DIR,專案根目錄基礎路徑,系統與路徑,全階段,bankruptcy/co
 CFG_COST_FN,敏感度評估中漏報破產企業之假陰性懲罰成本,評估指標,E4/MVP,bankruptcy/config.py:39,,1.0 ~ 100.0,一般經驗,設定為 20.0，與 COST_FP=1.0 構成 20:1 懲罰比，反映信貸違約之重大損失（專案未記載選擇 20 之特定精算理由）
 CFG_COST_FN_SENSITIVITY_LIST,成本敏感度分析之 FN 懲罰權重掃描清單,評估指標,E4/MVP,bankruptcy/config.py:41,,任意正數清單,程式碼限制,"清單設定為 [10.0, 20.0, 50.0] 三組成本比值情境"
 CFG_COST_FP,敏感度評估中誤報正常企業之假陽性調查成本,評估指標,E4/MVP,bankruptcy/config.py:40,,0.1 ~ 10.0,一般經驗,基準調查成本設定為 1.0
-CFG_CV_FOLDS,外部交叉驗證折數（預設 5 折，每折約 35 筆正樣本）,交叉驗證,E0-E5/E7,bankruptcy/config.py:24,,3 ~ 10,一般經驗,設定為 5 折，保證驗證折平均約有 35 筆正樣本以穩定評估（一般經驗，未經本專案驗證）
+CFG_CV_FOLDS,外部交叉驗證折數（預設 5 折，每折約 35 筆正樣本）,交叉驗證,E0-E5/E7,bankruptcy/config.py:24,,3 ~ 10,一般經驗,設定為 5 折，使驗證折平均約有 35 筆正樣本以穩定評估（一般經驗，未經本專案驗證）
 CFG_CV_REPEATS,外部交叉驗證重複次數（預設 3 次，5 折 × 3 次重複 = 15 次外層評估）,交叉驗證,E0-E5/E7,bankruptcy/config.py:25,,1 ~ 5,一般經驗,設定為 3 次重複，形成 5 折 × 3 次重複 = 15 次外層評估以降低小樣本抽樣變異
 CFG_DATA_DIR,原始數據存放目錄路徑,系統與路徑,全階段,bankruptcy/config.py:7,,不適用,程式碼限制,固定指向 BASE_DIR / 'data'
 CFG_DATA_PATH,主要資料集 CSV 檔案路徑,系統與路徑,全階段,bankruptcy/config.py:8,,不適用,程式碼限制,固定指向 DATA_DIR / 'data.csv'
@@ -43,7 +43,7 @@ ENS_CANDIDATES,E3 評估比較之集成組合候選名冊,模型集成,E3,bankru
 ENS_E3_SELECTION_TOLERANCE,E3 候選模型挑選規則之 Nadeau-Bengio 配對檢定信賴區間水準,模型挑選,E3,bankruptcy/src/ensemble.py:1170,可在 lab 安全調整,0.90 ~ 0.99,統計慣例,設定為 0.95；若 95% CI 跨越 0 則改比折間標準差
 ENS_ECDF_MAP_METHOD,ECDF 百分位數映射之同分點對稱中點插值演算法,模型集成,E3,bankruptcy/src/ensemble.py:86,固定常數，不建議調整,"['midpoint', 'left', 'right']",程式碼實作,採用對稱中點百分位數消除離散同分階梯效應
 ENS_SCORE_COMBINE_METHOD,對齊後百分位數分數之跨模型集成融合聚合方式,模型推論,E3,bankruptcy/src/scoring.py:126,固定常數，不建議調整,['mean'],演算法設計,固定為 'mean' 等權平均，E3 實測顯示等權優於元學習器堆疊
-ENS_SCORE_MODEL_NAMES,"生產環境集成評分模型預設組合名冊（E_A 三成員 M3, M4, M5）",模型推論,E3/E6,bankruptcy/src/scoring.py:56,可在 lab 安全調整,"['M3', 'M4', 'M5']",E3 挑選結果,"預設為 ['M3', 'M4', 'M5']，即 E3 實驗選出之最佳集成 E_A"
+ENS_SCORE_MODEL_NAMES,"生產環境集成評分模型預設組合名冊（E_A 三成員 M3, M4, M5）",模型推論,E3/E6,bankruptcy/src/scoring.py:56,可在 lab 安全調整,"['M3', 'M4', 'M5']",E3 挑選結果,"預設為 ['M3', 'M4', 'M5']，即 E3 實驗選出之基準集成 E_A"
 ENS_SCORE_VAL_METHOD,多模型分數融合前之單一模型機率校準對齊方法,模型推論,E3,bankruptcy/src/scoring.py:91,固定常數，不建議調整,['ecdf'],演算法設計,固定為 'ecdf'，映射至經驗百分位數以解決跨模型分數尺度失衡問題
 ENS_SINGLE_MODELS,E3 評估比較之單一模型候選清單,模型集成,E3,bankruptcy/src/ensemble.py:73,,"['M1', 'M2', 'M3', 'M4', 'M5']",專案搜尋空間,包含線性模型、隨機森林、極端隨機樹與兩大梯度提升（ensemble.py:73）
 ENS_STACKING_C_CANDIDATES,E3c Stacking 元學習器羅吉斯迴歸正規化係數 C 之候選搜尋集合,模型集成,E3c,bankruptcy/src/ensemble.py:497,可在 lab 安全調整,"[0.01, 0.1, 1.0]",搜尋空間定義,"候選值為 [0.01, 0.1, 1.0]，藉內層交叉驗證選擇最佳 C"
@@ -57,7 +57,7 @@ IMB_RESAMPLER_S5,策略 S5 之 BorderlineSMOTE 少數類目標採樣比例,不�
 IMB_RESAMPLER_S6,策略 S6 之 SMOTETomek 內部 SMOTE 採樣比例,不平衡處理,E1a,bankruptcy/src/pipelines.py:126,,0.05 ~ 1.0,專案搜尋空間,設定為 0.3，結合 SMOTE 合成與 Tomek links 邊界清洗（pipelines.py:126）
 IMB_SMOTE_K_NEIGHBORS,SMOTE 重抽樣合成新樣本時之近鄰數量,不平衡處理,E1a,bankruptcy/src/pipelines.py:117,,3 ~ 15,一般經驗,固定設定為 5（scikit-learn/imblearn 標準預設值，一般經驗，未經本專案驗證）
 M1_BEST_IMBALANCE,M1 (Logistic Regression) 最終固化之不平衡策略,模型訓練,E2b,outputs/models/best_params/M1.json:3,,S0 / S3,專案搜尋空間,E2b 尋優選定 S0（不處理，維持原始樣本分佈）
-M1_FIXED_MAX_ITER,M1 羅吉斯迴歸最大求解迭代次數,模型訓練,E2,bankruptcy/src/tune.py:139,,1000 ~ 10000,一般經驗,固定設定為 5000 次以保證收斂（tune.py:139，一般經驗，未經本專案驗證）
+M1_FIXED_MAX_ITER,M1 羅吉斯迴歸最大求解迭代次數,模型訓練,E2,bankruptcy/src/tune.py:139,,1000 ~ 10000,一般經驗,固定設定為 5000 次以促使收斂（tune.py:139，一般經驗，未經本專案驗證）
 M1_FROZEN_C,M1 經 E2b Optuna 搜尋固化之最佳 C（搜尋空間 0.001 ~ 10.0 (log)）,模型訓練/推論,E2b/E3/E6,bankruptcy/outputs/models/best_params/M1.json:5,需重跑固化流程才生效,0.001 ~ 10.0 (log),Optuna 搜尋結果,E2b 調參固化值為 0.11616457722286455；專案在搜尋空間內做貝氏最佳化，未做單變量對照（專案未記載選擇理由）
 M1_FROZEN_PENALTY,"M1 經 E2b Optuna 搜尋固化之最佳 penalty（搜尋空間 ['l2', 'l1']）",模型訓練/推論,E2b/E3/E6,bankruptcy/outputs/models/best_params/M1.json:6,需重跑固化流程才生效,"['l2', 'l1']",Optuna 搜尋結果,"E2b 調參固化值為 ""l2""；專案在搜尋空間內做貝氏最佳化，未做單變量對照（專案未記載選擇理由）"
 M1_SPACE_C,M1 的 C 超參數搜尋空間（Optuna 候選範圍）,超參數調優,E2a/E2b,bankruptcy/src/tune.py:127,可在 lab 安全調整,0.001 ~ 10.0 (log),程式碼限制,搜尋空間定義於 tune.py（0.001 ~ 10.0 (log)）

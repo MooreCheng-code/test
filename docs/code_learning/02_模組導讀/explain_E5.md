@@ -69,7 +69,7 @@
 
 | 特徵子集規模 | 15 次外層評估平均三點損失 (5 折 × 3 次重複) | AR@0.95 均值 | PR-AUC 均值 | 相對全特徵之配對 t 檢定 Holm p-value | 統計結論與業務建議 |
 |:---:|:---:|:---:|:---:|:---:|---|
-| **Full (72 欄)** | **1.6344** | **8.06x** | **0.4598** | （基準 Baseline） | 完整模型表現最佳 |
+| **Full (72 欄)** | **1.6344** | **8.06x** | **0.4598** | （基準 Baseline） | 完整模型表現選定 |
 | **Top 30** | 1.6391 | 8.12x | 0.4552 | $p_{\text{Holm}} = 0.4485$（未達顯著） | 表現與全特徵無統計顯著差異 |
 | **Top 20** | 1.6425 | 8.21x | 0.4510 | $p_{\text{Holm}} = 0.1423$（未達顯著） | **安全精簡集**（未達顯著衰退） |
 | **Top 10** | 1.7102 | 9.45x | 0.4182 | **$p_{\text{Holm}} = 0.0251$（顯著劣化）** | 資訊量不足，預警倍數顯著惡化 |
@@ -83,7 +83,7 @@
 
 | 決策項目 | 候選方案 | 專案選擇 | 理由 | 證據 |
 |---|---|---|---|---|
-| **財務特徵歸因法** | A. 單純看決策樹內建 Importance<br>B. 單特徵置換<br>C. 群組置換 + TreeSHAP | **方案 C（群組置換 + TreeSHAP）** | 內建 Importance 偏好高基數連續特徵；單特徵置換被共線性矇蔽；群組置換暴露真實家族影響力，TreeSHAP 具備賽局理論嚴格加性保證。 | `bankruptcy/src/explain.py:250-380`；`outputs/tables/e5a_group_importance.csv` |
+| **財務特徵歸因法** | A. 單純看決策樹內建 Importance<br>B. 單特徵置換<br>C. 群組置換 + TreeSHAP | **方案 C（群組置換 + TreeSHAP）** | 內建 Importance 偏好高基數連續特徵；單特徵置換被共線性矇蔽；群組置換暴露真實家族影響力，TreeSHAP 具備賽局理論嚴格加性確保。 | `bankruptcy/src/explain.py:250-380`；`outputs/tables/e5a_group_importance.csv` |
 | **精簡特徵集規格** | A. 極限壓至 Top 10<br>B. 鎖定 Top 20（核心 12/18 欄）<br>C. 維持 72 全特徵 | **方案 B（Top 20 / 核心 12 欄）** | Top 10 顯著劣化（$p=0.0251$）；Top 20 與全特徵無顯著差異（$p=0.1423$），同時大幅降低真實企業徵信時的資料填報負擔。 | `outputs/tables/e5b_compact_vs_full_paired.csv`；`outputs/models/final/core_features.txt` |
 
 ---

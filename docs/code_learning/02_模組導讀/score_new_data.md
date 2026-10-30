@@ -46,7 +46,7 @@ flowchart TD
 
 ### 3.1 11 個固化元件的無縫載入 (`scoring.py:86-136`)
 
-推論函式 `load_final_components(final_dir)` 會從 `outputs/models/final/` 目錄嚴格載入生產所需的 11 個固化元件，杜絕推論期動態擬合：
+推論函式 `load_final_components(final_dir)` 會從 `outputs/models/final/` 目錄嚴格載入生產所需的 11 個固化元件，防範推論期動態擬合：
 1. **模型管線檔（3 個）**：`model_M3.joblib`、`model_M4.joblib`、`model_M5.joblib`（包含擬合好的 QuantileTransformer、CorrelationFilter 與分類器）。
 2. **ECDF 參考分佈檔（3 個）**：`reference_M3.npy`、`reference_M4.npy`、`reference_M5.npy`（訓練集 2 次重複交叉驗證產出的 10,910 筆參考分數）。
 3. **門檻配置檔（2 個）**：`thresholds.json`、`thresholds.csv`（記錄 R80～R100 各運作點的精確門檻數值）。

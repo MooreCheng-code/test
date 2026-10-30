@@ -76,7 +76,7 @@
 
 | 設定維度 | E2a 巢狀調參（內層） | E2b 全訓練集調參（內層） | E3 參考分布生成（內層） |
 |---|---|---|---|
-| **用途與目標** | 在各外層訓練折內尋優，產出無偏泛化估計 | 在全量訓練集上尋優，產出最終最佳超參數 | 產生各模型未見樣本的分數分佈，供 ECDF 融合 |
+| **用途與目標** | 在各外層訓練折內尋優，產出無偏泛化估計 | 在全量訓練集上尋優，產出最終固化超參數 | 產生各模型未見樣本的分數分佈，供 ECDF 融合 |
 | **程式碼來源** | `bankruptcy/src/tune.py:206-214`；`cv.py:254` | `bankruptcy/src/tune.py:894-905` | `bankruptcy/src/ensemble.py:417-425` |
 | **切分架構** | 單次 3 折（`StratifiedKFold(n_splits=3)`） | 5 折 × 2 次重複（10 次評估） | 單次 5 折（`StratifiedKFold(n_splits=5)`） |
 | **每次評估之資料筆數** | 訓練折約 2,909 筆；驗證折約 1,455 筆 | 訓練折 4,364 筆；驗證折 1,091 筆 | 訓練折約 3,491 筆；驗證折約 873 筆 |
@@ -94,7 +94,7 @@
   5. `large_value_indicator` (`LargeValueIndicator`，預設關閉)：派生大數值指標特徵。
   6. `scaler` (`QuantileScaler`)：在訓練折學習分位數映射，投影為標準常態分佈。
   7. `corr_filter` (`CorrelationFilter`)：在訓練折計算 Pearson 相關矩陣並貪婪剔除 $|r| > 0.95$ 欄位。
-  8. `resampler` (`_get_resampler`，僅限 S2～S6)：**只在 `pipeline.fit()` 時執行合成重採樣；在 `predict_proba()` 時完全跳過**（杜絕驗證集與測試集被人工樣本污染）。
+  8. `resampler` (`_get_resampler`，僅限 S2～S6)：**只在 `pipeline.fit()` 時執行合成重採樣；在 `predict_proba()` 時完全跳過**（防範驗證集與測試集被人工樣本污染）。
   9. `classifier` (`_get_classifier`)：分類器訓練與推論。
 
 ---
@@ -112,7 +112,7 @@
     ```
 - **最終固化與集成模型採用狀況（重要釐清）**：
   - 此動態加權器**僅在 `imbalance == "S1"` 時啟用**（`bankruptcy/src/pipelines.py:188-190`, `202-204`）；
-  - 在 E2b 全集調參的最佳參數固化結果中，M4 採納 **S0**（無處置，`outputs/models/best_params/M4.json`），M5 採納 **S3**（SMOTE 30%，`outputs/models/best_params/M5.json`）；
+  - 在 E2b 全集調參的固化參數固化結果中，M4 採納 **S0**（無處置，`outputs/models/best_params/M4.json`），M5 採納 **S3**（SMOTE 30%，`outputs/models/best_params/M5.json`）；
   - 由於 M4 與 M5 皆未選用 S1，因此在最終固化模型物件（`outputs/models/final/`）與主力集成模型 $E_A$ 中，**兩者皆未啟用 `AdaptiveScaleWeightClassifier`**。
 - **三個核心問題**：
   - *它解決什麼問題？* 傳統做法常在全資料集算好比例寫死在設定檔（例如 `scale_pos_weight=30.0`），這在嚴格的資料隔離下屬於跨折洩漏。
@@ -159,7 +159,7 @@
 
 | 決策項目 | 候選方案 | 專案選擇 | 理由 | 證據 |
 |---|---|---|---|---|
-| **測試集隔離策略** | A. 信任團隊自律<br>B. 物理搬離硬碟<br>C. 權限鎖與 SHA-256 驗證 | **方案 C（程式碼權限鎖）** | `get_test_data()` 預設直接拋出 `PermissionError`，除非傳入 `i_know_this_is_final_evaluation=True`，否則無法讀取測試集，杜絕開發期無意窺視。 | `bankruptcy/src/cv.py:220-234`；`bankruptcy/tests/test_lock.py` |
+| **測試集隔離策略** | A. 信任團隊自律<br>B. 物理搬離硬碟<br>C. 權限鎖與 SHA-256 驗證 | **方案 C（程式碼權限鎖）** | `get_test_data()` 預設直接拋出 `PermissionError`，除非傳入 `i_know_this_is_final_evaluation=True`，否則無法讀取測試集，防範開發期無意窺視。 | `bankruptcy/src/cv.py:220-234`；`bankruptcy/tests/test_lock.py` |
 | **採樣策略抉擇** | A. 基準推薦 S0，E2 聯合搜尋 S0/S3<br>B. 類別加權 S1<br>C. 全面強制 SMOTE (S2~S6) | **方案 A（E1 推薦 S0，E2 調參納入 S0/S3）** | E1a 對照實驗顯示 S1～S6 之 95% Nadeau-Bengio CI 全數包含 0，依簡約原則推薦基準管線採 S0；E2 調參進一步將 S0/S3 納入 Optuna 搜尋，最終 M1/M3/M4 選定 S0，M2/M5 選定 S3（SMOTE 0.3）。主力集成 $E_A$ 中僅 M5 包含 SMOTE，專案未對 M5 S3 進行單變量對照。 | `bankruptcy/src/run_imbalance.py:560`；`bankruptcy/src/tune.py:123`；`bankruptcy/outputs/models/best_params/M5.json` |
 
 ---
@@ -168,7 +168,7 @@
 
 > **白話概念：分層抽樣（Stratified Splitting）與類別不平衡**
 > - **什麼是分層抽樣？** 破產公司在全市場只有 3.23%（220 家）。若使用普通隨機抽樣，某些折可能抽到 5% 破產，某些折只抽到 1%，導致不同折難易度天差地遠。分層抽樣強迫每一折的破產率都精確錨定在約 3.23%。
-> - **最小例子**：100 間公司中有 4 間破產（4%）。切成 2 折時，分層抽樣保證每一折恰好有 50 間公司、2 間破產（均為 4%），防止資料分佈產生人為偏誤。
+> - **最小例子**：100 間公司中有 4 間破產（4%）。切成 2 折時，分層抽樣確保每一折恰好有 50 間公司、2 間破產（均為 4%），防止資料分佈產生人為偏誤。
 > - **名詞連動**：參見 [08_術語表](../08_術語表.md) 之「分層交叉驗證」與「類別不平衡」。
 
 ---
@@ -182,7 +182,7 @@
 ---
 
 ## 讀碼練習
-1. **練習 1**：在 `cv.py` 中，如果使用者在未執行 `save_splits()` 前直接呼叫 `load_splits()`，程式會發生什麼異常？`save_splits()` 如何保證自身具備冪等性？
+1. **練習 1**：在 `cv.py` 中，如果使用者在未執行 `save_splits()` 前直接呼叫 `load_splits()`，程式會發生什麼異常？`save_splits()` 如何確保自身具備冪等性？
 2. **練習 2**：在 `AdaptiveScaleWeightClassifier.fit()` 中，若訓練集中完全沒有任何正樣本（$N_{\text{pos}} = 0$），程式碼是如何防範 `ZeroDivisionError` 的？
 3. **練習 3**：在 `build_pipeline()` 中，為什麼 SMOTE 重採樣步驟必須排在 `CorrelationFilter` 與 `QuantileScaler` 之後，而不能排在第 1 步？
 

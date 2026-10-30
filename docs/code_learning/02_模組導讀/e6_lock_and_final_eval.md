@@ -6,7 +6,7 @@
 
 如果開發者在調參、挑選門檻、修改前處理時，能夠隨意讀取或評估測試集，就會產生統計學上嚴重的**資料窺探偏誤（Data Snooping Bias）**——即使沒有拿測試集去 `.fit()`，人類大腦會根據測試集分數反覆調整超參數，使測試集退化為實質上的「第二驗證集」。
 
-為了徹底杜絕這種現象，本專案在系統層級實施了嚴格的**防禦性單次解封架構（One-time Defensive Unseal Architecture）**：
+為了嚴格防範這種現象，本專案在系統層級實施了嚴格的**防禦性單次解封架構（One-time Defensive Unseal Architecture）**：
 1. **硬體與權限隔離**：`bankruptcy/src/cv.py:220-234` 的 `get_test_data` 設置檢查點，禁止任何常規實驗讀取測試集。
 2. **8 項飛行前檢查（Preflight Audit）**：在接觸測試集前，必須 100% 通過程式碼一致性、檔案雜湊與單元測試（`bankruptcy/src/preflight.py:59-310`）。
 3. **不可逆鎖定旗標（`E6_LOCK`）**：在正式評估前寫入不可逆的鎖定記錄（`bankruptcy/src/lock_utils.py:45-85`），一旦鎖定，系統永久封鎖再次解封評估。
@@ -56,12 +56,12 @@ flowchart TD
    - 檢查 `outputs/logs/E6_LOCK` 是否已存在。若已存在，代表測試集先前已被解封，拒絕再次執行。
 2. **Check 2：C1 推論一致性檢查 (`preflight.py:87-119`)**
    - 從訓練集中隨機取樣 200 筆樣本，分別透過高階統一函式 `score_dataset` 與底層原始 Scikit-Learn 管線手動計算。
-   - 驗證兩者推論分數的最大絕對誤差（Max Absolute Difference）必須小於 `1e-12`，保證統一介面沒有任何浮點偏差或計算漏洞。
+   - 驗證兩者推論分數的最大絕對誤差（Max Absolute Difference）必須小於 `1e-12`，確保統一介面沒有任何浮點偏差或計算漏洞。
 3. **Check 3：C2 缺失欄位防護檢查 (`preflight.py:121-133`)**
    - 故意從輸入特徵中移除一個欄位，呼叫 `score_dataset`，驗證系統是否確實主動拋出 `ValueError` 而非默默填補或產生不可預期結果。
 4. **Check 4：前處理位元重現與 `reference_y` 檢查 (`preflight.py:135-168`)**
    - 在訓練集上重新擬合 QuantileTransformer 與 CorrelationFilter，與已固化的模型檔案（`model_M3.joblib`、`model_M4.joblib`、`model_M5.joblib`）對比，確認分位數陣列與選取特徵（72 個選取、20 個移除）達到 100% 位元級一致（`np.array_equal`）。
-   - 驗證 `reference_y.npy` 精確等於訓練集標籤重複兩次（對應 2 次重複的交叉驗證參考樣本），證明百分位數映射基底 100% 來自訓練集。
+   - 驗證 `reference_y.npy` 精確等於訓練集標籤重複兩次（對應 2 次重複的交叉驗證參考樣本），支持判定百分位數映射基底 100% 來自訓練集。
 5. **Check 5：訓練／測試索引獨立性與雜湊驗證 (`preflight.py:170-197`)**
    - 載入 `splits.joblib`，計算 `train_idx` 與 `test_idx` 的集合交集（`set.intersection`），驗證交集數為 0（完全互斥）。
    - 計算兩者索引的 SHA-256 雜湊，並與固化的 `index_hashes.json` 核對一致。
@@ -105,7 +105,7 @@ flowchart TD
 > 測試集共有 1,364 筆樣本，其中包含 44 家破產公司（正樣本比率 3.23%）。
 
 ### 4.1 排序能力指標（Ranking Performance）
-下表展示於完全未見過的測試集上，集成模型 $E_A$、單一最優模型 M3 與單一財務指標基準（$- \text{Persistent EPS}$）的表現（括號內為 1,000 次 Bootstrap 抽樣之 95% 信賴區間）：
+下表展示於完全未見過的測試集上，集成模型 $E_A$、單一較佳模型 M3 與單一財務指標基準（$- \text{Persistent EPS}$）的表現（括號內為 1,000 次 Bootstrap 抽樣之 95% 信賴區間）：
 
 | 模型 | PR-AUC (點估計 [95% CI]) | ROC-AUC (點估計 [95% CI]) | AR@R=95% (預警比率 [95% CI]) |
 |---|---|---|---|
@@ -158,6 +158,6 @@ flowchart TD
    - 業界初學者常見的錯誤是「把測試集當作常規單元測試反覆跑」，導致嚴重過擬合。
    - 本專案採用前置稽核（Preflight）、實體鎖定（Lockfile）、權限限制（Guard argument）三道防線，展示嚴格的科研誠信與工程規範。
 2. **推論一致性與元件凍結（Reproducibility & Serialization）**：
-   - 透過 SHA-256 雜湊固化 11 個推論元件，並以 200 筆隨機訓練樣本驗證浮點誤差 $< 10^{-12}$，保證了訓練管線與生產推論管線 100% 對齊。
+   - 透過 SHA-256 雜湊固化 11 個推論元件，並以 200 筆隨機訓練樣本驗證浮點誤差 $< 10^{-12}$，促成了訓練管線與生產推論管線 100% 對齊。
 3. **從排序指標到營運決策（From Metrics to Operations）**：
    - 不僅報告學術界的 PR-AUC / ROC-AUC，更評估實際業務落地時的預警比率（Alert Ratio）與調查負荷，展現將機器學習轉化為商業價值的架構能力。

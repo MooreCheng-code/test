@@ -4,42 +4,64 @@
 # 只使用合成資料，不讀取專案資料。
 # ============================================================
 
+from pathlib import Path
 import numpy as np
+import pandas as pd
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
-def run_experiment():
+METRIC_NAME = "Alerts"
+
+
+def eval_single(seed: int = 42) -> tuple[float, float]:
     X, y = make_classification(
-        n_samples=1000,
-        n_features=10,
-        weights=[0.95, 0.05],
-        random_state=42
+        n_samples=600, n_features=10, n_informative=5,
+        weights=[0.95, 0.05], random_state=seed
     )
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, stratify=y, random_state=42
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X, y, test_size=0.4, stratify=y, random_state=seed
     )
+    # 淺層決策樹會產生大量離散同分
+    clf = DecisionTreeClassifier(max_depth=3, random_state=seed)
+    clf.fit(X_tr, y_tr)
 
-    model = DecisionTreeClassifier(max_depth=3, random_state=42)
-    model.fit(X_train, y_train)
-
-    test_probs = model.predict_proba(X_test)[:, 1]
-    pos_probs = test_probs[y_test == 1]
-
+    prob_te = clf.predict_proba(X_te)[:, 1]
     target_recall = 0.90
-    cutoff = float(np.percentile(pos_probs, (1.0 - target_recall) * 100))
+    pos_scores = prob_te[y_te == 1]
+    cutoff = float(np.percentile(pos_scores, (1.0 - target_recall) * 100.0))
 
-    is_alert = test_probs > cutoff
+    # 1. 實作 A (待檢視)：使用嚴格大於（> cutoff），臨界同分被漏抓，預警數少但召回率失真
+    alerts_buggy = float(np.sum(prob_te > cutoff))
 
-    alerts = np.sum(is_alert)
-    caught = np.sum(is_alert & (y_test == 1))
-    total_pos = np.sum(y_test == 1)
+    # 2. 正確版：使用大於等於（>= cutoff），保守納入臨界同分，確保召回率達標
+    alerts_clean = float(np.sum(prob_te >= cutoff))
 
-    print(f'選定門檻 cutoff: {cutoff:.4f}')
-    print(f'預警數量: {alerts}')
-    print(f'捕獲破產數: {caught}/{total_pos} (召回率: {caught/total_pos:.4f})')
-    print(f'預警倍數 (AR): {alerts/total_pos:.2f}x')
+    return alerts_buggy, alerts_clean
 
-if __name__ == '__main__':
+
+def run_experiment():
+    b_val, c_val = eval_single(seed=42)
+    print("=== Bug 06: Tie Breaking Policy ===")
+    print(f"Buggy Alerts (strict > cutoff, ties excluded):     {b_val:.0f}")
+    print(f"Clean Alerts (conservative >= cutoff, ties included): {c_val:.0f}")
+    print(f"Delta (Alerts Difference): {b_val - c_val:+.0f}")
+
+
+def run_repeats(n_repeats: int = 20):
+    out_dir = Path("labs/outputs/bugs")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_file = out_dir / "bug_06_repeats.csv"
+    rows = []
+    for i in range(n_repeats):
+        s = 100 + i * 17
+        b, c = eval_single(seed=s)
+        rows.append({"seed": s, "buggy": b, "clean": c, "metric": METRIC_NAME})
+    df = pd.DataFrame(rows)
+    df.to_csv(out_file, index=False)
+    print(f"Saved {len(df)} repeats to {out_file.as_posix()}")
+
+
+if __name__ == "__main__":
     run_experiment()
+    run_repeats()

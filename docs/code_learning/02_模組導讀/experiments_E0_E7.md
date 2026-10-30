@@ -3,7 +3,7 @@
 ## 1. 模組定位與設計初衷
 
 機器學習專案絕非「直接丟進演算法跑出一個準確率」就結束。一個具備嚴謹科研規範的專案，必須具備：
-1. **可靠的底線檢驗（Sanity Check / Baselines, E0）**：證明模型確實學到有效訊號，且評估管線沒有特徵洩漏。
+1. **可靠的底線檢驗（Sanity Check / Baselines, E0）**：支持判定模型確實學到有效訊號，且評估管線沒有特徵洩漏。
 2. **科學的假設驗證（Ablation Study, E1）**：在引入複雜的重採樣（SMOTE 等）或複雜前處理前，先驗證它們是否真的帶來顯著改善。
 3. **系統化的實驗遞進結構（E0 ～ E7）**：從基準、特徵與採樣策略、超參數調校、模型集成、門檻固化、可解釋性，到最終測試集評估與敏感度分析，環環相扣。
 
@@ -17,13 +17,13 @@
 |---|---|---|---|---|---|
 | **E0** | **基準模型與管線檢驗**<br>建立隨機猜測、單一特徵與基礎羅吉斯迴歸基準；以標籤隨機打亂檢驗管線洩漏。 | `bankruptcy/src/run_baselines.py`<br>`run_e0_baselines()`<br>`run_label_shuffle_test()` | `outputs/tables/e0_baselines_summary.csv`<br>`outputs/tables/e0_label_shuffle.csv` | - Single Feature (-EPS) PR-AUC = 0.3012<br>- Base LR (S0) PR-AUC = 0.3938<br>- 標籤打亂後 ROC-AUC 回落至 0.47～0.51，PR-AUC 回落至 0.032（無洩漏） | **安全**<br>(耗時約 1～2 分鐘) |
 | **E1** | **不平衡策略與前處理消融**<br>比較 S0～S6 共 7 種採樣策略；針對縮放器、截尾與相關過濾器進行消融實驗。 | `bankruptcy/src/run_imbalance.py`<br>`run_e1_experiments()` | `outputs/tables/e1a_imbalance_comparison.csv`<br>`outputs/tables/e1_selection_recommendation.csv`<br>`outputs/tables/e1b_ablation.csv` | - 複雜過採樣無顯著超越 S0 (Rule 3 簡約原則選 S0)<br>- QuantileTransformer 優於 StandardScaler<br>- 保留相關過濾器 (72 特徵) | **安全**<br>(支援快取，耗時約 5～10 分鐘) |
-| **E2a** | **巢狀交叉驗證超參數調校**<br>在外層無偏環境下，內層 3 折網格尋優，量化單一模型泛化效能。 | `bankruptcy/src/tune.py`<br>`run_e2a_nested_tuning()` | `outputs/tables/e2a_nested_summary.csv`<br>`outputs/logs/e2_cache/*.joblib` | - M3 (ExtraTrees) 三點損失 1.6547，折間標準差 1.348 倍為單模型中最優<br>- 固化各折最佳參數快取 | **安全**<br>(運算量大，耗時約 30～60 分鐘) |
-| **E2b** | **全訓練集超參數最佳化**<br>在全體訓練集（5,455 筆）上搜尋最終模型最佳超參數。 | `bankruptcy/src/tune.py`<br>`run_e2b_full_train_tuning()` | `outputs/models/best_params/M*.json` | - 產出供生產與後續分析使用的全集超參數設定檔 | **安全**<br>(耗時約 10～15 分鐘) |
-| **E3** | **集成策略比選**<br>比對單模型與 4 種集成方式（$E_A$、$E_B$、$E_C$、$E_{\text{trees}}$），驗證異質多樣性效益。 | `bankruptcy/src/ensemble.py`<br>`run_e3_ensemble_selection()` | `outputs/tables/e3_selection.csv` | - $E_A$ (M3+M4+M5 百分位數等權平均) 三點損失 1.6344 最優<br>- 顯著優於單一模型與樹集成 | **安全**<br>(讀取 E2 快取，耗時約 1～2 分鐘) |
+| **E2a** | **巢狀交叉驗證超參數調校**<br>在外層無偏環境下，內層 3 折網格尋優，量化單一模型泛化效能。 | `bankruptcy/src/tune.py`<br>`run_e2a_nested_tuning()` | `outputs/tables/e2a_nested_summary.csv`<br>`outputs/logs/e2_cache/*.joblib` | - M3 (ExtraTrees) 三點損失 1.6547，折間標準差 1.348 倍為單模型中較佳<br>- 固化各折固化參數快取 | **安全**<br>(運算量大，耗時約 30～60 分鐘) |
+| **E2b** | **全訓練集超參數最佳化**<br>在全體訓練集（5,455 筆）上搜尋最終模型固化超參數。 | `bankruptcy/src/tune.py`<br>`run_e2b_full_train_tuning()` | `outputs/models/best_params/M*.json` | - 產出供生產與後續分析使用的全集超參數設定檔 | **安全**<br>(耗時約 10～15 分鐘) |
+| **E3** | **集成策略比選**<br>比對單模型與 4 種集成方式（$E_A$、$E_B$、$E_C$、$E_{\text{trees}}$），驗證異質多樣性效益。 | `bankruptcy/src/ensemble.py`<br>`run_e3_ensemble_selection()` | `outputs/tables/e3_selection.csv` | - $E_A$ (M3+M4+M5 百分位數等權平均) 三點損失 1.6344 較佳<br>- 顯著優於單一模型與樹集成 | **安全**<br>(讀取 E2 快取，耗時約 1～2 分鐘) |
 | **E4** | **機率校準與安全邊際門檻轉移**<br>驗證 OOF 門檻跨折轉移能力，計算安全邊際 $m$，擬合校準器。 | `bankruptcy/src/thresholding.py`<br>`run_e4_pipeline()` | `outputs/tables/e4a_threshold_transfer.csv`<br>`outputs/models/final/thresholds.json`<br>`outputs/models/final/calibrator_*.joblib` | - 建議邊際：R80(0.02)、R90(0.06)、R95(0.04)、R100(0.00)<br>- 達標率 $\ge 80\%$<br>- Platt 校準器 Brier Score 0.0243 | **安全**<br>(耗時約 3～5 分鐘) |
 | **E5** | **模型可解釋性與精簡特徵消融**<br>群組置換重要度、TreeSHAP、精簡特徵集驗證（E5b）。 | `bankruptcy/src/explain.py`<br>`run_e5_explainability()` | `outputs/tables/e5a_group_permutation_importance.csv`<br>`outputs/tables/e5b_reduced_feature_set_ablation.csv` | - 獲利能力（Profitability）為最關鍵群組（48.7%）<br>- 12 特徵精簡集保留 93.4% 排序效能 | **安全**<br>(計算 SHAP 較耗時，約 10～20 分鐘) |
 | **E6** | **獨立測試集單次防禦性評估**<br>不可逆解封測試集，執行單次推論並固化最終效能。 | `bankruptcy/src/final_eval.py`<br>`main() --unseal` | `outputs/e6/e6_operating_points.csv`<br>`outputs/e6/e6_ranking_metrics.csv`<br>`outputs/logs/E6_LOCK` | - $E_A$ 於未見測試集 PR-AUC 0.5676，ROC-AUC 0.9621<br>- R80～R100 全數達標（100% 捕獲目標） | **禁止重跑！**<br>**已於 2026-10-23 鎖定**<br>(僅允許 `--analyze` 離線讀取) |
-| **E7a** | **母體盛行率貝氏敏感度分析**<br>推算市場破產率（0.5%～5.0%）變動時的調查負擔衝擊。 | `bankruptcy/src/prevalence_sensitivity.py`<br>`run_prevalence_sensitivity()` | `outputs/tables/e7a_prevalence_sensitivity.csv` | - 破產率由 3.2% 降至 0.5% 時，調查負擔由 4.5 家暴增至 24.1 家 | **安全**<br>(純統計解析推算，耗時約 10 秒) |
+| **E7a** | **母體盛行率貝氏敏感度分析**<br>推算市場破產率（0.5%～5.0%）變動時的調查負擔衝擊。 | `bankruptcy/src/prevalence_sensitivity.py`<br>`run_prevalence_sensitivity()` | `outputs/tables/e7a_prevalence_sensitivity.csv` | - 破產率由 3.2% 降至 0.5% 時，調查負擔由 4.5 家大幅增加至 24.1 家 | **安全**<br>(純統計解析推算，耗時約 10 秒) |
 | **E7b** | **演算法隨機種子穩定性評估**<br>跨 5 組隨機種子評估模型波動，對比折間抽樣變異。 | `bankruptcy/src/seed_stability.py`<br>`run_seed_stability()` | `outputs/tables/e7b_seed_stability.csv` | - 種子標準差 (PR-AUC 0.0017) 遠小於折間標準誤 (0.0204)<br>- 證實模型架構高度穩健 | **安全**<br>(需擬合 75 個模型，耗時約 10～15 分鐘) |
 
 ---
@@ -54,7 +54,7 @@ E0 建立三個基準層次（`bankruptcy/src/run_baselines.py:102-301`）：
 
 **結論解讀**：
 - 單一每股盈餘指標（-EPS）本身就具備高達 0.8861 的 ROC-AUC 與 0.3012 的 PR-AUC，展現傳統財報指標的強大預測力。
-- 引入多變量羅吉斯迴歸（Base LR）後，PR-AUC 提升至 0.3938，AR@0.95 顯著由 16.11 倍下降至 10.31 倍（調查負擔降低 36%），證明多變量特徵確實具備增量資訊。
+- 引入多變量羅吉斯迴歸（Base LR）後，PR-AUC 提升至 0.3938，AR@0.95 顯著由 16.11 倍下降至 10.31 倍（調查負擔降低 36%），支持判定多變量特徵確實具備增量資訊。
 
 ---
 
@@ -74,7 +74,7 @@ E0 建立三個基準層次（`bankruptcy/src/run_baselines.py:102-301`）：
 | **Seed 999** | 0.4701 | 0.0349 | ROC-AUC = 0.5000, PR-AUC = 0.0323 |
 
 **科學價值**：
-打亂後，ROC-AUC 精確在 0.47～0.51 之間波動，PR-AUC 在 0.032～0.040 之間波動（完全對齊無資訊時的隨機水準）。這鐵證證明：**本專案的前處理與交叉驗證管線完全沒有未來資訊外洩或特徵偷看問題**。
+打亂後，ROC-AUC 精確在 0.47～0.51 之間波動，PR-AUC 在 0.032～0.040 之間波動（完全對齊無資訊時的隨機水準）。這鐵證支持判定：**本專案的前處理與交叉驗證管線完全沒有未來資訊外洩或特徵偷看問題**。
 
 ---
 
@@ -106,6 +106,6 @@ E0 建立三個基準層次（`bankruptcy/src/run_baselines.py:102-301`）：
 ### 4.3 前處理消融數據洞察 (`outputs/tables/e1b_ablation.csv`)
 1. **相關過濾器（Correlation Filter）的作用**：
    - 移除了 20 個共線性特徵（如 `Operating Profit Per Share` 與 `Operating Profit Growth Rate` 等高度共線欄位），保留 72 個核心特徵。
-   - 消融數據顯示，關閉相關過濾器後，M1 的 AR@0.95 由 10.87 倍惡化至 12.00 倍（負擔增加 1.13 倍），證明過濾共線性特徵確實提升了線性模型的泛化穩定性。
+   - 消融數據顯示，關閉相關過濾器後，M1 的 AR@0.95 由 10.87 倍惡化至 12.00 倍（負擔增加 1.13 倍），支持判定過濾共線性特徵確實提升了線性模型的泛化穩定性。
 2. **縮放器選擇（QuantileTransformer）**：
    - 財務比率存在極端厚尾與偏態，QuantileTransformer 將資料映射至均勻分佈，有效消除了極端異常值的干擾，全線優於標準常態化（StandardScaler）。

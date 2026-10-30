@@ -24,6 +24,8 @@ import csv
 import json
 import re
 import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 from pathlib import Path
 from typing import Any
 
@@ -69,18 +71,35 @@ ABS_PATH_PATTERNS = [
 
 # Forbidden exaggerated / absolutist terms
 FORBIDDEN_WORDS = [
-    "完勝",
-    "唯一正道",
-    "唯一正解",
-    "100% 保證",
-    "100%保證",
-    "絕無可能失敗",
-    "嚴格無偏",  # Requested by user in Stage 3 instruction
-    "完美",  # Requested by user in Stage 6-fix
-    "精確吻合 100%",
-    "精確吻合100%",
-    "100% 精確吻合",
-    "100%精確吻合",
+    "證明",
+    "唯一解",
+    "保證",
+    "100% 掌握",
+    "100%掌握",
+    "萬無一失",
+    "若且唯若",
+    "最優",
+    "最佳",
+    "杜絕",
+    "完全排除",
+    "完全不",
+    "暴增",
+    "陡峭",
+    "崩塌",
+    "精確度 100%",
+    "100% 精確度",
+]
+
+ALLOWED_NO_EVIDENCE_REASONS = [
+    "定義",
+    "玩具例子",
+    "一般經驗",
+    "理論推導",
+    "業界通則",
+    "合規要求",
+    "限制說明",
+    "架構描述",
+    "程式規範",
 ]
 
 # Strict 15-fold misnomer (must use 5 折 × 3 次重複 = 15 次外層評估)
@@ -286,6 +305,11 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
     if not file_rel:
         return False, "Missing 'file' attribute in evidence tag", attrs
     
+    # Check directory prefix
+    allowed_prefixes = ("bankruptcy/", "docs/", "labs/", "teaching/")
+    if not any(file_rel.startswith(p) for p in allowed_prefixes):
+        return False, f"Evidence file path missing required directory prefix (must start with 'bankruptcy/', 'docs/', or 'labs/'): '{file_rel}'", attrs
+
     csv_path = repo_root / file_rel
     if not csv_path.exists():
         return False, f"Evidence file does not exist: {file_rel}", attrs
@@ -383,47 +407,86 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
 
 
 def extract_numbers_from_text(text: str) -> list[tuple[str, float]]:
-    """Extracts numbers, percentages, and metrics with units from text for verification."""
+    """Extracts decimals, percentages, multipliers, fractions, and intervals as specified by M3.3."""
     clean = text
     clean = re.sub(r'\[.*?\]\(.*?\)', '', clean)
     clean = re.sub(r'<!--.*?-->', '', clean)
-    # Filter identifiers and findings
+    # Filter identifiers and findings e.g. M1, E6, S0, R90, R95
     clean = re.sub(r'\b[EFMRS]-?\d+[a-z]?\b', '', clean)
     clean = re.sub(r'\b(?:[Ll]ab)[ _]?\d+\b', '', clean)
-    # Filter file line citations e.g. foo.py:123 or :123-145
+    # Filter file citations e.g. foo.py:123 or :123-145
     clean = re.sub(r'[\w/.-]+\.(?:py|csv|json):\d+(?:-\d+)?', '', clean)
     clean = re.sub(r':\d+(?:-\d+)?', '', clean)
-    # Filter list / heading / blockquote numbering
+    # Filter list / heading numbering e.g. 1. or 2.
     clean = re.sub(r'^\s*(?:>\s*)?\d+\.\s*', '', clean)
     clean = re.sub(r'^\s*\|\s*\*\*\d+\.\s*', '| **', clean)
     clean = re.sub(r'^\s*#{1,6}\s+\d+\.', '', clean)
+    # Filter section numbers e.g. 2.1 or 3.2.1
+    clean = re.sub(r'\b\d+\.\d+(?:\.\d+)*\b(?=\s+[\u4e00-\u9fffA-Za-z])', '', clean)
     # Normalize thousands comma
     clean = re.sub(r'(?<=\d),(?=\d{3}\b)', '', clean)
-    matches = re.finditer(r'(?<![A-Za-z0-9_])(\d+(?:\.\d+)?)(%|[xX倍家筆折次])?(?![A-Za-z0-9_])', clean)
+    # Normalize unicode minus − to -
+    clean = clean.replace('−', '-')
+    
     res = []
-    for m in matches:
+    
+    # 1. Fractions like 43/44, 44/44, 40/42, 14/15
+    for m in re.finditer(r'(?<![A-Za-z0-9_])(\d+)/(\d+)(?![A-Za-z0-9_])', clean):
+        num_str = m.group(0)
+        n1 = float(m.group(1))
+        n2 = float(m.group(2))
+        res.append((num_str, n1 / n2 if n2 > 0 else 0.0))
+        res.append((m.group(1), n1))
+        res.append((m.group(2), n2))
+
+    # 2. Intervals like [-0.0099, +0.0123]
+    for m in re.finditer(r'\[\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)\s*\]', clean):
+        res.append((m.group(0), float(m.group(1))))
+        res.append((m.group(1), float(m.group(1))))
+        res.append((m.group(2), float(m.group(2))))
+
+    # 3. Percentages e.g. 24.71%, 95%
+    for m in re.finditer(r'(?<![A-Za-z0-9_])([+-]?\d+(?:\.\d+)?)%', clean):
         num_str = m.group(1)
-        unit = m.group(2)
         val = float(num_str)
-        raw = num_str + (unit if unit else '')
-        if unit == '%':
-            res.append((raw, val))
-            res.append((raw, val / 100.0))
-        else:
-            res.append((raw, val))
-            if val <= 1.0:
-                res.append((raw, val * 100.0))
+        res.append((m.group(0), val))
+        res.append((m.group(0), val / 100.0))
+        res.append((num_str, val))
+        res.append((num_str, val / 100.0))
+
+    # 4. Multipliers e.g. 7.66x, 9.14X, 1.5 倍
+    for m in re.finditer(r'(?<![A-Za-z0-9_])([+-]?\d+(?:\.\d+)?)\s*([xX倍])', clean):
+        num_str = m.group(1)
+        val = float(num_str)
+        raw = num_str + m.group(2)
+        res.append((raw, val))
+        res.append((num_str, val))
+
+    # 5. Decimals e.g. 0.0123, 0.739979, 31.17, 9.99
+    for m in re.finditer(r'(?<![A-Za-z0-9_])([+-]?\d+\.\d+)(?![A-Za-z0-9_%xX倍])', clean):
+        num_str = m.group(1)
+        val = float(num_str)
+        res.append((num_str, val))
+        if abs(val) <= 1.0:
+            res.append((num_str, val * 100.0))
+
     return res
 
 
 def check_statement_numbers(statement: str, expect: float, also_strs: list[str]) -> list[str]:
     """Verifies that all numbers in an empirical statement are tied to evidence tags."""
     valid_nums = [expect, expect * 100.0, round(expect, 2), round(expect * 100.0, 1), round(expect * 100.0, 2)]
-    for a in also_strs:
+    clean_also = [a.strip() for a in also_strs if a.strip()]
+    for a in clean_also:
         try:
-            v = float(a)
-            valid_nums.extend([v, v * 100.0, round(v, 2), round(v * 100.0, 1), round(v * 100.0, 2)])
-        except ValueError:
+            if "/" in a:
+                p1, p2 = a.split("/", 1)
+                v = float(p1) / float(p2)
+                valid_nums.extend([v, v * 100.0, round(v, 2), round(v * 100.0, 1), round(v * 100.0, 2)])
+            else:
+                v = float(a)
+                valid_nums.extend([v, v * 100.0, round(v, 2), round(v * 100.0, 1), round(v * 100.0, 2)])
+        except (ValueError, ZeroDivisionError):
             pass
             
     unverified = []
@@ -434,13 +497,17 @@ def check_statement_numbers(statement: str, expect: float, also_strs: list[str])
         
     for raw_s, cands in raw_candidates.items():
         matched = False
-        for n in cands:
-            for vn in valid_nums:
-                if abs(n - vn) < 0.005 or (abs(vn) > 0 and abs(n - vn) / abs(vn) < 0.01):
-                    matched = True
+        # Direct string match in also list
+        if raw_s in clean_also or raw_s.rstrip('%') in clean_also or raw_s.rstrip('xX倍') in clean_also:
+            matched = True
+        else:
+            for n in cands:
+                for vn in valid_nums:
+                    if abs(n - vn) < 0.005 or (abs(vn) > 0 and abs(n - vn) / abs(vn) < 0.01):
+                        matched = True
+                        break
+                if matched:
                     break
-            if matched:
-                break
         if not matched:
             unverified.append(raw_s)
     return list(dict.fromkeys(unverified))
@@ -518,9 +585,12 @@ def check_markdown_file(md_path: Path) -> tuple[int, int]:
 
         # 2. Forbidden words
         for word in FORBIDDEN_WORDS:
-            if word in line:
+            line_check = line
+            if word == "最佳":
+                line_check = line.replace("最佳化", "").replace("最優化", "")
+            if word in line_check:
                 # Allow quoting the forbidden word in negative check instructions or findings
-                if "不得使用" not in line and "移除" not in line and md_path.name != "_findings.md":
+                if "不得使用" not in line and "移除" not in line and md_path.name not in {"_findings.md", "_progress.md"}:
                     print(f"[{rel_md}:{idx}] [ERROR] Forbidden term '{word}': {line.strip()[:80]}")
                     errors += 1
 
@@ -732,7 +802,12 @@ def check_param_registry(registry_path: Path | None = None) -> tuple[int, int]:
                     print(f"[{param_id}] [ERROR] Absolute path in column '{k}': {val}")
                     errors += 1
             for word in FORBIDDEN_WORDS:
-                if word in val:
+                val_check = val
+                if word == "最佳":
+                    val_check = val.replace("最佳化", "").replace("最優化", "")
+                    if any(p in val_check for p in ["固化之最佳", "固化最佳", "最佳超參數", "最佳 C", "最佳 penalty", "最佳 subsample", "選最佳", "組合最佳", "各模型最佳"]):
+                        continue
+                if word in val_check:
                     print(f"[{param_id}] [ERROR] Forbidden word '{word}' in column '{k}': {val}")
                     errors += 1
 
@@ -974,7 +1049,12 @@ def check_param_registry(registry_path: Path | None = None) -> tuple[int, int]:
                             print(f"[param_notes:{pid}] [ERROR] Absolute path in column '{k}': {val}")
                             errors += 1
                     for word in FORBIDDEN_WORDS:
-                        if word in val:
+                        val_check = val
+                        if word == "最佳":
+                            val_check = val.replace("最佳化", "").replace("最優化", "")
+                            if any(p in val_check for p in ["固化之最佳", "固化最佳", "最佳超參數", "最佳 C", "最佳 penalty", "最佳 subsample", "選最佳", "組合最佳", "各模型最佳"]):
+                                continue
+                        if word in val_check:
                             print(f"[param_notes:{pid}] [ERROR] Forbidden word '{word}' in column '{k}': {val}")
                             errors += 1
 
@@ -1296,7 +1376,7 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
 
 
 def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool = False) -> tuple[int, int]:
-    """Scans markdown files and strictly validates evidence, code, cmd, and no-evidence tags."""
+    """Scans markdown files and strictly validates evidence, code, cmd, and no-evidence tags across all docs and drafts."""
     if target_dir is not None:
         if target_dir.is_file():
             md_files = [target_dir]
@@ -1315,12 +1395,13 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
     errors = 0
     warnings = 0
     total_tags = 0
+    no_evidence_counts: dict[str, int] = {}
 
     for md_file in md_files:
         try:
-            rel_file = md_file.relative_to(REPO_ROOT)
+            rel_file = md_file.relative_to(REPO_ROOT).as_posix()
         except ValueError:
-            rel_file = md_file
+            rel_file = str(md_file)
         content = md_file.read_text(encoding="utf-8")
         lines = content.splitlines()
         
@@ -1351,75 +1432,111 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
                 else:
                     line_tags.setdefault(idx, []).append(("code", attrs))
 
-        # Check empirical claims and verified facts numbers
+        # Check empirical claims, table rows, and draft numbers
         in_cmd_section = False
+        in_code_block = False
+        is_direct_target = (target_dir is not None and target_dir.is_file())
+        
         for idx, line in enumerate(lines, 1):
             stripped = line.strip()
+            
+            # Code block tracking
+            if stripped.startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            if in_code_block:
+                continue
+
             if stripped.startswith("## "):
                 in_cmd_section = False
             if CMD_TAG_PATTERN.search(line):
                 in_cmd_section = True
                 
-            # If claim requires evidence:
-            is_empirical = "【本專案實測" in stripped and not stripped.startswith(">") and "代表" not in stripped and not stripped.startswith("- 證據等級：") and not stripped.startswith("- **【本專案實測")
-            
+            # Skip headings, separators, comments, blockquote alerts
+            if stripped.startswith("#") or stripped == "---" or stripped.startswith("<!--") or stripped.startswith("> [!"):
+                continue
+                
             is_table_header = stripped.startswith("| :---") or any(
                 stripped.startswith(h) for h in [
-                    "| 事實項目", "| 漏斗步驟", "| 模型代號", "| 模型 |", "| 實驗階段",
-                    "| 項目 |", "| 模型組別", "| 測試檔案路徑"
+                    "| 題號", "| 步驟", "| 候選模型", "| 模型 |", "| 階梯",
+                    "| 折 |", "| 策略編號", "| 檔案路徑", "| 參數名稱", "| 檢驗項目",
+                    "| 模型組別", "| 模型類別", "| 模型代號", "| 指標名稱", "| 欄位名稱", "| 策略名稱", "| 項目", "| 編號"
                 ]
             )
-            is_facts_row = md_file.name == "_facts_verified.md" and stripped.startswith("|") and not is_table_header
-            is_draft_claim = ("_drafts" in md_file.parts and not stripped.startswith("#") and not stripped.startswith(">") 
+            if is_table_header or stripped.startswith("| :---"):
+                continue
+
+            is_empirical = "【專案實證】" in stripped and not stripped.startswith(">") and "概念" not in stripped and not stripped.startswith("- 證據標籤：") and not stripped.startswith("- **【專案實證】")
+            is_facts_row = md_file.name == "_facts_verified.md" and stripped.startswith("|")
+            is_draft_claim = ("_drafts" in md_file.parts and not stripped.startswith("#") and not stripped.startswith("> [!") 
                               and not stripped.startswith("| :---") and stripped != "---" and not stripped.startswith("<!--"))
             
-            if is_empirical or is_facts_row or is_draft_claim:
-                # Check if exempted by no-evidence or cmd
-                has_no_evidence = bool(NO_EVIDENCE_PATTERN.search(line) or (idx < len(lines) and NO_EVIDENCE_PATTERN.search(lines[idx])))
-                has_cmd = bool(CMD_TAG_PATTERN.search(line) or (idx < len(lines) and CMD_TAG_PATTERN.search(lines[idx])) or in_cmd_section)
+            should_check = is_empirical or is_facts_row or is_draft_claim or is_direct_target
+            if not should_check:
+                continue
+
+            # Extract numbers from line
+            stmt_nums = extract_numbers_from_text(stripped)
+            if not stmt_nums:
+                continue
                 
-                if has_no_evidence or has_cmd:
-                    continue
-                    
-                # Collect tags on this line, previous lines (slack=2), or next line
-                tags_here = line_tags.get(idx - 2, []) + line_tags.get(idx - 1, []) + line_tags.get(idx, []) + line_tags.get(idx + 1, [])
-                if not tags_here:
-                    if is_empirical:
-                        print(f"[{rel_file}:{idx}] [ERROR] Claim with 【本專案實測】 lacks evidence/code tag: {stripped[:80]}")
-                        errors += 1
-                    elif is_facts_row:
-                        stmt_nums = extract_numbers_from_text(stripped)
-                        if stmt_nums:
-                            print(f"[{rel_file}:{idx}] [ERROR] Claim with concrete numbers lacks evidence/code tag: {stripped[:80]}")
-                            errors += 1
-                    elif is_draft_claim:
-                        stmt_nums = extract_numbers_from_text(stripped)
-                        metric_nums = [raw for raw, val in stmt_nums if "%" in raw or "/" in raw or "." in raw or "x" in raw.lower()]
-                        if metric_nums:
-                            print(f"[{rel_file}:{idx}] [ERROR] Draft claim with concrete metric numbers lacks evidence/code tag: {stripped[:80]} (unverified: {metric_nums})")
-                            errors += 1
+            # If line has numbers, verify whether exempted or tagged
+            m_no_ev = NO_EVIDENCE_PATTERN.search(line)
+            if not m_no_ev and idx < len(lines):
+                m_no_ev = NO_EVIDENCE_PATTERN.search(lines[idx])
+            
+            if m_no_ev:
+                reason = m_no_ev.group(1).strip()
+                matched_allowed = any(allowed in reason for allowed in ALLOWED_NO_EVIDENCE_REASONS)
+                if not matched_allowed:
+                    print(f"[{rel_file}:{idx}] [ERROR] Invalid no-evidence reason '{reason}'. Allowed reasons are: {ALLOWED_NO_EVIDENCE_REASONS}")
+                    errors += 1
                 else:
-                    # Verify numbers against all tags here
-                    all_expect: list[float] = []
-                    all_also: list[str] = []
-                    for t_type, t_attrs in tags_here:
-                        try:
-                            all_expect.append(float(t_attrs.get("expect", "0")))
-                        except ValueError:
-                            pass
-                        also_raw = t_attrs.get("also", "")
-                        where_raw = t_attrs.get("where", "")
-                        where_nums = [str(n) for _, n in extract_numbers_from_text(where_raw)]
-                        all_also.extend([a.strip() for a in also_raw.split(",") if a.strip()] + where_nums)
-                    
-                    if all_expect:
-                        unv = check_statement_numbers(stripped, all_expect[0], all_also + [str(e) for e in all_expect[1:]])
-                        if unv:
-                            print(f"[{rel_file}:{idx}] [ERROR] Unverified number(s) in claim: {unv}")
-                            errors += 1
+                    for allowed in ALLOWED_NO_EVIDENCE_REASONS:
+                        if allowed in reason:
+                            no_evidence_counts[allowed] = no_evidence_counts.get(allowed, 0) + 1
+                            break
+                continue
+                
+            has_cmd = bool(CMD_TAG_PATTERN.search(line) or (idx < len(lines) and CMD_TAG_PATTERN.search(lines[idx])) or in_cmd_section)
+            if has_cmd:
+                continue
+                
+            # Collect tags on this line, previous lines (slack=2), or next line
+            tags_here = line_tags.get(idx - 2, []) + line_tags.get(idx - 1, []) + line_tags.get(idx, []) + line_tags.get(idx + 1, [])
+            if not tags_here:
+                unv_raw = list(dict.fromkeys([raw for raw, _ in stmt_nums]))
+                if stripped.startswith("|"):
+                    print(f"[{rel_file}:{idx}] [ERROR] Table row with concrete numbers lacks evidence/code tag: {stripped[:80]} (unverified: {unv_raw})")
+                else:
+                    print(f"[{rel_file}:{idx}] [ERROR] Claim with unverified numbers lacks evidence/code tag: {stripped[:80]} (unverified: {unv_raw})")
+                errors += 1
+            else:
+                # Verify numbers against all tags here
+                all_expect: list[float] = []
+                all_also: list[str] = []
+                for t_type, t_attrs in tags_here:
+                    try:
+                        all_expect.append(float(t_attrs.get("expect", "0")))
+                    except ValueError:
+                        pass
+                    also_raw = t_attrs.get("also", "")
+                    where_raw = t_attrs.get("where", "")
+                    where_nums = [str(n) for _, n in extract_numbers_from_text(where_raw)]
+                    all_also.extend([a.strip() for a in also_raw.split(",") if a.strip()] + where_nums)
+                
+                if all_expect:
+                    unv = check_statement_numbers(stripped, all_expect[0], all_also + [str(e) for e in all_expect[1:]])
+                    if unv:
+                        print(f"[{rel_file}:{idx}] [ERROR] Unverified number(s) in claim: {unv}")
+                        errors += 1
 
     print("\n" + "=" * 50)
     print(f"Evidence & code tags check completed: {errors} error(s), {warnings} warning(s). Total tags verified: {total_tags}")
+    if no_evidence_counts:
+        print("No-evidence reasons verified:")
+        for r_name, cnt in sorted(no_evidence_counts.items()):
+            print(f"  - {r_name}: {cnt} times")
     print("=" * 50)
     return errors, warnings
 
@@ -1561,7 +1678,7 @@ def check_commands_in_docs(target_path: Path | None = None) -> tuple[int, int]:
     print(f"\nValidating commands & arguments AST in {len(md_files)} file(s)...")
 
     for md_file in md_files:
-        rel_file = md_file.relative_to(REPO_ROOT) if md_file.is_relative_to(REPO_ROOT) else md_file
+        rel_file = md_file.relative_to(REPO_ROOT).as_posix() if md_file.is_relative_to(REPO_ROOT) else md_file
         try:
             content = md_file.read_text(encoding="utf-8")
         except Exception as e:
@@ -1663,7 +1780,7 @@ def check_recipes(target_path: Optional[Path] = None) -> tuple[int, int]:
 
     for md_file in md_files:
         try:
-            rel_file = md_file.relative_to(REPO_ROOT)
+            rel_file = md_file.relative_to(REPO_ROOT).as_posix()
         except ValueError:
             rel_file = md_file
         try:
@@ -1805,7 +1922,7 @@ def check_exercises(
         print(f"[ERROR] Exercises document not found: {ex_file}")
         return 1, 0
 
-    rel_ex = ex_file.relative_to(REPO_ROOT) if ex_file.is_relative_to(REPO_ROOT) else ex_file
+    rel_ex = (ex_file.relative_to(REPO_ROOT) if ex_file.is_relative_to(REPO_ROOT) else ex_file).as_posix()
     print(f"\nValidating exercises document: {rel_ex}")
 
     try:
@@ -1873,14 +1990,15 @@ def check_exercises(
 
     # 2. Validate labs/bugs/*.py
     b_dir = bugs_dir if bugs_dir else (REPO_ROOT / "labs" / "bugs")
+    rel_b_dir = (b_dir.relative_to(REPO_ROOT) if b_dir.is_relative_to(REPO_ROOT) else b_dir).as_posix()
     if not b_dir.exists():
-        print(f"[ERROR] Bugs directory not found: {b_dir}")
+        print(f"[ERROR] Bugs directory not found: {rel_b_dir}")
         return errors + 1, warnings
 
     bug_scripts = sorted(b_dir.glob("*.py"))
-    print(f"Validating {len(bug_scripts)} sandbox bug script(s) in {b_dir}...")
+    print(f"Validating {len(bug_scripts)} sandbox bug script(s) in {rel_b_dir}...")
     if not bug_scripts:
-        print(f"[{b_dir}] [ERROR] No bug scripts found in sandbox.")
+        print(f"[{rel_b_dir}] [ERROR] No bug scripts found in sandbox.")
         errors += 1
 
     required_header_lines = [
@@ -1895,7 +2013,7 @@ def check_exercises(
     forbidden_tokens = ["data.csv", "get_train_data", "import bankruptcy", "from bankruptcy"]
 
     for bug_file in bug_scripts:
-        rel_bug = bug_file.relative_to(REPO_ROOT) if bug_file.is_relative_to(REPO_ROOT) else bug_file
+        rel_bug = (bug_file.relative_to(REPO_ROOT) if bug_file.is_relative_to(REPO_ROOT) else bug_file).as_posix()
         try:
             b_text = bug_file.read_text(encoding="utf-8")
         except Exception as e:
