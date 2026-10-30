@@ -50,6 +50,55 @@ BEST_PARAMS_DIR = REPO_ROOT / "bankruptcy" / "outputs" / "models" / "best_params
 TABLES_DIR = REPO_ROOT / "bankruptcy" / "outputs" / "tables"
 
 
+def get_project_pipeline_flags() -> dict[str, Any]:
+    """Extract project pipeline flags from tune.py AST.
+
+    Reads tune.py AST and extracts kwargs passed to build_pipeline.
+    Returns:
+        dict: {'scaler': 'quantile', 'use_winsorizer': False, 'use_corr_filter': True, 'use_large_indicator': False}
+    """
+    import ast
+    tune_file = REPO_ROOT / "bankruptcy" / "src" / "tune.py"
+    if not tune_file.is_file():
+        raise FileNotFoundError(f"tune.py not found at {tune_file}")
+
+    with open(tune_file, "r", encoding="utf-8") as f:
+        tree = ast.parse(f.read())
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            func_name = getattr(node.func, "id", getattr(node.func, "attr", ""))
+            if func_name == "build_pipeline":
+                kw_map = {}
+                for kw in node.keywords:
+                    if kw.arg in ("scaler", "use_winsorizer", "use_corr_filter", "use_large_indicator"):
+                        kw_map[kw.arg] = ast.literal_eval(kw.value)
+                if len(kw_map) == 4:
+                    return kw_map
+    raise RuntimeError("Failed to extract project pipeline flags from tune.py AST")
+
+
+def get_pipeline_flags(pipeline_mode: str = "project") -> dict[str, Any]:
+    """Get preprocessing flags for pipeline construction.
+
+    Args:
+        pipeline_mode: 'project' (matches final M3/M4/M5 without winsorizer)
+                       or 'teaching' (build_pipeline default with winsorizer).
+    """
+    if pipeline_mode == "project":
+        return get_project_pipeline_flags()
+    elif pipeline_mode == "teaching":
+        return {
+            "scaler": "quantile",
+            "use_winsorizer": True,
+            "use_corr_filter": True,
+            "use_large_indicator": False,
+        }
+    else:
+        raise ValueError(f"Unknown pipeline_mode: '{pipeline_mode}'. Expected 'project' or 'teaching'.")
+
+
+
 def assert_train_data_guard(X: pd.DataFrame, y: Sequence | pd.Series | np.ndarray) -> None:
     """Strict guard assertion to guarantee train-only data is accessed.
 
@@ -311,8 +360,10 @@ def generate_inner_oof(
     y_train_fold: pd.Series,
     n_inner_splits: int = 3,
     inner_seed: int = 42,
+    pipeline_mode: str = "project",
 ) -> tuple[np.ndarray, np.ndarray]:
     """Generate inner out-of-fold probability predictions on a training fold (for lab_06)."""
+    flags = get_pipeline_flags(pipeline_mode)
     skf = StratifiedKFold(n_splits=n_inner_splits, shuffle=True, random_state=inner_seed)
     oof_scores = np.zeros(len(y_train_fold))
     for inner_train_idx, inner_val_idx in skf.split(X_train_fold, y_train_fold):
@@ -325,6 +376,7 @@ def generate_inner_oof(
             imbalance=imbalance,
             model_params=model_params,
             seed=inner_seed,
+            **flags,
         )
         pipe.fit(X_it, y_it)
         oof_scores[inner_val_idx] = get_score(pipe, X_iv)

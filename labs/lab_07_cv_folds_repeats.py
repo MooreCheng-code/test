@@ -41,6 +41,8 @@ from scipy.stats import beta
 from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold, StratifiedShuffleSplit
 
 from labs._common import (
+    get_pipeline_flags,
+    get_pipeline_flags,
     SNAPSHOT_DIR,
     build_pipeline,
     evaluate_fold_predictions,
@@ -240,6 +242,7 @@ def plot_cv_effects(df_matrix: pd.DataFrame, df_ladder: pd.DataFrame, out_path: 
 def main():
     parser = argparse.ArgumentParser(description="Lab 07: CV Folds and Repeats Effects")
     parser.add_argument("--mode", choices=["quick", "standard", "full"], default="quick")
+    parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
 
     start_time = time.time()

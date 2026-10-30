@@ -28,6 +28,7 @@ import pandas as pd
 
 from bankruptcy.src.pipelines import build_pipeline, get_score
 from labs._common import (
+    get_pipeline_flags,
     LABS_OUTPUTS_DIR,
     evaluate_fold_predictions,
     get_cv_splitter,
@@ -62,7 +63,8 @@ PARAMS: dict[str, Any] = {
 }
 
 
-def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, Path, Path]:
+def run_lab(mode: str = "quick", pipeline: str = "project") -> tuple[pd.DataFrame, Path, Path]:
+    pipe_flags = get_pipeline_flags(pipeline)
     """Execute lab_02 forest hyperparameters scan."""
     start_time = time.time()
     setup_chinese_font()
@@ -136,6 +138,7 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, Path, Path]:
                 imbalance=imbalance,
                 model_params=cfg_params,
                 seed=seed + fold_idx,
+                **pipe_flags,
             )
             pipe.fit(X_tr, y_tr)
             score_val = get_score(pipe, X_val)
@@ -311,6 +314,7 @@ if __name__ == "__main__":
     parser.add_argument("--full", action="store_true", help="執行完整模式 (15折)")
     parser.add_argument("--standard", action="store_true", help="執行標準模式 (5折, 完整掃描清單)")
     parser.add_argument("--quick", action="store_true", default=False, help="執行快速模式 (5折, 精簡清單, <=1.5分鐘, 預設)")
+    parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
 
     if args.full:
@@ -320,4 +324,4 @@ if __name__ == "__main__":
     else:
         exec_mode = "quick"
 
-    run_lab(mode=exec_mode)
+    run_lab(mode=exec_mode, pipeline=args.pipeline)

@@ -31,6 +31,7 @@ import pandas as pd
 
 from bankruptcy.src.pipelines import build_pipeline, get_score
 from labs._common import (
+    get_pipeline_flags,
     LABS_OUTPUTS_DIR,
     TABLES_DIR,
     evaluate_fold_predictions,
@@ -66,7 +67,10 @@ PARAMS: dict[str, Any] = {
 }
 
 
-def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, Path, Path]:
+def run_lab(mode: str = "quick", pipeline: str = "project") -> tuple[pd.DataFrame, Path, Path]:
+    base_flags = get_pipeline_flags(pipeline)
+    base_win = base_flags["use_winsorizer"]
+    base_scaler = base_flags["scaler"]
     """Execute lab_05 preprocessing ablation study."""
     start_time = time.time()
     setup_chinese_font()
@@ -196,24 +200,24 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, Path, Path]:
         for th in corr_threshs:
             use_c = th is not None
             s_name = "關閉過濾" if th is None else f"門檻={th}"
-            eval_pipeline_setting(m_code, "corr_filter", s_name, use_c, th, True, "quantile", splitter)
+            eval_pipeline_setting(m_code, "corr_filter", s_name, use_c, th, base_win, base_scaler, splitter)
 
         # 2.2 截尾開關掃描 (基準: Corr=0.95, Scaler='quantile')
         print("  [B] 截尾開關 (Winsorizer) 掃描...")
         for w in winsor_opts:
             s_name = "截尾開啟" if w else "截尾關閉"
-            eval_pipeline_setting(m_code, "winsorizer", s_name, True, 0.95, w, "quantile", splitter)
+            eval_pipeline_setting(m_code, "winsorizer", s_name, True, 0.95, w, base_scaler, splitter)
 
         # 2.3 縮放器比較 (基準: Corr=0.95, Winsorizer=True)
         print("  [C] 縮放器 (Scaler) 掃描...")
         for sc in scaler_opts:
             s_name = f"Scaler={sc}"
-            eval_pipeline_setting(m_code, "scaler", s_name, True, 0.95, True, sc, splitter)
+            eval_pipeline_setting(m_code, "scaler", s_name, True, 0.95, base_win, sc, splitter)
 
         # 2.4 雜訊參照：以基準設定換切分種子 (seed=100)
         print("  [D] 切分種子雜訊參照評估...")
         rec_noise = eval_pipeline_setting(
-            m_code, "noise_ref", "基準設定_種子100", True, 0.95, True, "quantile", splitter_noise, tag="noise_ref"
+            m_code, "noise_ref", "基準設定_種子100", True, 0.95, base_win, base_scaler, splitter_noise, tag="noise_ref"
         )
 
     df_results = pd.DataFrame(records)
@@ -317,6 +321,7 @@ if __name__ == "__main__":
     parser.add_argument("--full", action="store_true", help="執行完整模式 (15折)")
     parser.add_argument("--standard", action="store_true", help="執行標準模式 (5折, 完整門檻)")
     parser.add_argument("--quick", action="store_true", default=True, help="執行快速模式 (5折, 3門檻, <=1.5分鐘, 預設)")
+    parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
 
     if args.full:
@@ -326,4 +331,4 @@ if __name__ == "__main__":
     else:
         exec_mode = "quick"
 
-    run_lab(mode=exec_mode)
+    run_lab(mode=exec_mode, pipeline=args.pipeline)

@@ -33,6 +33,7 @@ import pandas as pd
 
 from bankruptcy.src.pipelines import build_pipeline, get_score
 from labs._common import (
+    get_pipeline_flags,
     LABS_OUTPUTS_DIR,
     TABLES_DIR,
     evaluate_fold_predictions,
@@ -61,7 +62,8 @@ PARAMS: dict[str, Any] = {
 }
 
 
-def run_lab(quick: bool = True) -> tuple[pd.DataFrame, Path, Path]:
+def run_lab(quick: bool = True, pipeline: str = "project") -> tuple[pd.DataFrame, Path, Path]:
+    pipe_flags = get_pipeline_flags(pipeline)
     """Execute lab_04 imbalance strategies scan and calibration shift study."""
     start_time = time.time()
     setup_chinese_font()
@@ -282,7 +284,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Lab 04: 不平衡處理策略實驗")
     parser.add_argument("--full", action="store_true", help="執行完整模式")
     parser.add_argument("--quick", action="store_true", default=True, help="執行快速模式 (預設)")
+    parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
 
     is_quick = not args.full
-    run_lab(quick=is_quick)
+    run_lab(quick=is_quick, pipeline=args.pipeline)

@@ -174,6 +174,46 @@ class TestRecipesChecker(unittest.TestCase):
         self.assertIn("invalidation section must specify actual artifacts", out)
         print("\n[Negative Test 3 Passed] Caught high-risk missing invalidation details:\n", out.strip())
 
+    def test_negative_margins_wrong_location_and_nonexistent_artifact(self):
+        """Negative test 4: Catches config.py:30 (MARGINS) wrong location and nonexistent operating_thresholds.json."""
+        doc = """# 配方手冊
+
+## 配方 3：修改目標召回率與邊際（以新增 R=0.85 為例）
+
+- 目標：在專案中新增 R=0.85 目標召回率
+- 前置知識：閱讀門檻模組
+- 風險等級：【高】會使固化產物或 E6 結果不可比
+- 需要修改的位置：
+  - `bankruptcy/config.py:30` (`MARGINS`，例如改為 (0.0, 0.02, 0.04))
+- 步驟：
+  1. 修改 config
+- 必補的單元測試：
+  - test_threshold
+- 防洩漏檢查：
+  - 獨立折內
+- 驗證方式：
+  - pytest
+- 常見的坑：
+  - 坑
+- 如何復原：
+  - git checkout
+- 這個修改會讓哪些固化產物失效或需要重建：
+  - `outputs/models/final/operating_thresholds.json` 需要重建
+"""
+        test_file = self.test_dir / "margins_negative_recipe.md"
+        test_file.write_text(doc, encoding="utf-8")
+
+        f = io.StringIO()
+        with redirect_stdout(f):
+            errs, warns = check_recipes(test_file)
+        out = f.getvalue()
+
+        self.assertGreater(errs, 0, "Expected errors for wrong symbol location and nonexistent artifact!")
+        self.assertIn("Symbol 'MARGINS' not found in bankruptcy/config.py:30", out)
+        self.assertIn("Invalidated artifact file not found: 'outputs/models/final/operating_thresholds.json'", out)
+        print("\n[Negative Test 4 Passed] Caught config.py:30 (MARGINS) and operating_thresholds.json:\n", out.strip())
+
 
 if __name__ == "__main__":
     unittest.main()
+

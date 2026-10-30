@@ -45,6 +45,8 @@ import pandas as pd
 from sklearn.model_selection import StratifiedKFold
 
 from labs._common import (
+    get_pipeline_flags,
+    get_pipeline_flags,
     SNAPSHOT_DIR,
     build_pipeline,
     evaluate_fold_predictions,
@@ -219,6 +221,7 @@ def plot_seed_variance_decomposition(df_summary: pd.DataFrame, out_path: str):
 def main():
     parser = argparse.ArgumentParser(description="Lab 08: Seed Stability and Variance Decomposition")
     parser.add_argument("--mode", choices=["quick", "standard", "full"], default="quick")
+    parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
 
     start_time = time.time()

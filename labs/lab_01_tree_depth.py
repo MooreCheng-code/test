@@ -37,6 +37,7 @@ from bankruptcy.src.preprocessing import (
     Winsorizer,
 )
 from labs._common import (
+    get_pipeline_flags,
     LABS_OUTPUTS_DIR,
     evaluate_fold_predictions,
     get_cv_splitter,
@@ -74,13 +75,14 @@ PARAMS: dict[str, Any] = {
 }
 
 
-def build_decision_tree_pipeline(max_depth: int | None, seed: int = 42) -> Pipeline:
+def build_decision_tree_pipeline(max_depth: int | None, seed: int = 42, pipeline: str = "project") -> Pipeline:
+    flags = get_pipeline_flags(pipeline)
     """Build preprocessing + single DecisionTreeClassifier pipeline."""
     return Pipeline([
         ("drop_const_dup", DropConstantAndDuplicate()),
-        ("winsorizer", Winsorizer()),
-        ("scaler", QuantileScaler()),
-        ("corr_filter", CorrelationFilter()),
+        ("winsorizer", Winsorizer(enabled=flags["use_winsorizer"])),
+        ("scaler", QuantileScaler(kind=flags["scaler"])),
+        ("corr_filter", CorrelationFilter(enabled=flags["use_corr_filter"])),
         ("classifier", DecisionTreeClassifier(
             max_depth=max_depth,
             random_state=seed,
@@ -89,7 +91,8 @@ def build_decision_tree_pipeline(max_depth: int | None, seed: int = 42) -> Pipel
     ])
 
 
-def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]:
+def run_lab(mode: str = "quick", pipeline: str = "project") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]:
+    pipe_flags = get_pipeline_flags(pipeline)
     """Execute lab_01 tree depth scan."""
     start_time = time.time()
     setup_chinese_font()
@@ -144,7 +147,7 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path
             X_tr, y_tr = X_train.iloc[tr_idx], y_train.iloc[tr_idx]
             X_val, y_val = X_train.iloc[val_idx], y_train.iloc[val_idx]
 
-            pipe = build_decision_tree_pipeline(max_depth=depth, seed=seed + fold_idx)
+            pipe = build_decision_tree_pipeline(max_depth=depth, seed=seed + fold_idx, pipeline=pipeline)
             pipe.fit(X_tr, y_tr)
 
             # 訓練折評估
@@ -217,6 +220,7 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path
                     imbalance=imb,
                     model_params=model_params,
                     seed=seed + fold_idx,
+                    **pipe_flags,
                 )
                 pipe.fit(X_tr, y_tr)
                 score_val = get_score(pipe, X_val)
@@ -368,6 +372,7 @@ if __name__ == "__main__":
     parser.add_argument("--full", action="store_true", help="執行完整模式 (5折x3重複, 300棵樹)")
     parser.add_argument("--standard", action="store_true", help="執行標準模式 (5折x1重複, 80棵樹, 8個深度)")
     parser.add_argument("--quick", action="store_true", default=False, help="執行快速模式 (5折x1重複, 40棵樹, 5個深度, 預設)")
+    parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
 
     if args.full:
@@ -377,4 +382,4 @@ if __name__ == "__main__":
     else:
         exec_mode = "quick"
 
-    run_lab(mode=exec_mode)
+    run_lab(mode=exec_mode, pipeline=args.pipeline)

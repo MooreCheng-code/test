@@ -1622,6 +1622,26 @@ def check_recipes(target_path: Optional[Path] = None) -> tuple[int, int]:
                         print(f"[{rel_file}:{recipe_start_line}] [ERROR] High-risk Recipe {recipe_num} ('{recipe_title}') invalidation section must specify actual artifacts (got '{inv_text[:40]}').")
                         errors += 1
 
+            # Invalidation artifacts existence check (all recipes)
+            inv_sec_m = re.search(r"-\s*這個修改會讓哪些固化產物失效或需要重建[：:](.*?)(?=\n-\s*|\n##|\Z)", block, re.DOTALL)
+            if inv_sec_m:
+                inv_text_all = inv_sec_m.group(1)
+                for inv_line in inv_text_all.splitlines():
+                    inv_line_clean = inv_line.strip()
+                    if not inv_line_clean or "<!-- planned:" in inv_line_clean or "<!-- planned -->" in inv_line_clean:
+                        continue
+                    # Match paths with common artifact extensions (.json, .csv, .py, .joblib, .npz, .txt, .png, .html)
+                    cand_paths = re.findall(r"`?([a-zA-Z0-9_\-/\\]+\.(?:json|csv|py|joblib|npz|txt|png|html))`?", inv_line_clean)
+                    for cand in cand_paths:
+                        c_norm = cand.replace("\\", "/").strip()
+                        if c_norm.endswith(".md"):
+                            continue
+                        p1 = REPO_ROOT / c_norm
+                        p2 = REPO_ROOT / "bankruptcy" / c_norm
+                        if not p1.exists() and not p2.exists():
+                            print(f"[{rel_file}:{recipe_start_line}] [ERROR] Invalidated artifact file not found: '{c_norm}' in Recipe {recipe_num} (use '<!-- planned: -->' if this is a planned future file)")
+                            errors += 1
+
             # 3. Location and symbol verification
             loc_m = re.search(r"-\s*需要修改的位置[：:](.*?)(?=\n-\s*步驟[：:]|\n-\s*|\n##|\Z)", block, re.DOTALL)
             if loc_m:
@@ -1637,7 +1657,7 @@ def check_recipes(target_path: Optional[Path] = None) -> tuple[int, int]:
                         e_line = int(fl_m.group(3)) if fl_m.group(3) else s_line
 
                         rem = line_str[fl_m.end():]
-                        sym_m = re.search(r"\(\s*[`]?([a-zA-Z0-9_]+)[`]?\s*\)|[`]([a-zA-Z0-9_]+)[`]", rem)
+                        sym_m = re.search(r"\(\s*`?([a-zA-Z_]\w*)`?|`([a-zA-Z_]\w*)`", rem)
                         symbol = (sym_m.group(1) or sym_m.group(2)) if sym_m else None
 
                         abs_path = REPO_ROOT / f_path_str

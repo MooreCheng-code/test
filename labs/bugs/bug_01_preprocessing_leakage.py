@@ -7,27 +7,29 @@
 import numpy as np
 from sklearn.datasets import make_classification
 from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import QuantileTransformer
+from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score
 
 def run_experiment():
     X, y = make_classification(
-        n_samples=600,
-        n_features=20,
-        n_informative=8,
-        weights=[0.95, 0.05],
+        n_samples=300,
+        n_features=80,
+        n_informative=5,
+        n_redundant=0,
+        weights=[0.90, 0.10],
         random_state=42
     )
 
-    scaler = QuantileTransformer(n_quantiles=100, random_state=42)
-    X_transformed = scaler.fit_transform(X)
+    # Feature selection
+    selector = SelectKBest(score_func=f_classif, k=10)
+    X_selected = selector.fit_transform(X, y)
 
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     scores = []
 
-    for fold, (train_idx, val_idx) in enumerate(skf.split(X_transformed, y)):
-        X_train, X_val = X_transformed[train_idx], X_transformed[val_idx]
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X_selected, y)):
+        X_train, X_val = X_selected[train_idx], X_selected[val_idx]
         y_train, y_val = y[train_idx], y[val_idx]
 
         model = LogisticRegression(random_state=42)

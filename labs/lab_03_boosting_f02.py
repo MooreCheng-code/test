@@ -33,6 +33,7 @@ from scipy.stats import pearsonr, spearmanr, t
 
 from bankruptcy.src.pipelines import build_pipeline, get_score
 from labs._common import (
+    get_pipeline_flags,
     LABS_OUTPUTS_DIR,
     evaluate_fold_predictions,
     get_cv_splitter,
@@ -94,7 +95,8 @@ def compute_confidence_intervals(diffs: np.ndarray, alpha: float = 0.05) -> dict
     }
 
 
-def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]:
+def run_lab(mode: str = "quick", pipeline: str = "project") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path]:
+    pipe_flags = get_pipeline_flags(pipeline)
     """Execute lab_03 boosting grid and F-02 empirical investigation."""
     start_time = time.time()
     setup_chinese_font()
@@ -163,6 +165,7 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path
                             imbalance=imb,
                             model_params=cfg,
                             seed=split_seed + fold_idx,
+                            **pipe_flags,
                         )
                         pipe.fit(X_tr, y_tr)
                         score_val = get_score(pipe, X_val)
@@ -209,8 +212,8 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path
     f02_records: list[dict[str, Any]] = []
 
     # 驗證實際生效之參數
-    test_pipe_freq0 = build_pipeline("M5", m5_imb, model_params={**m5_frozen_params, "subsample_freq": 0}, seed=42)
-    test_pipe_freq1 = build_pipeline("M5", m5_imb, model_params={**m5_frozen_params, "subsample_freq": 1}, seed=42)
+    test_pipe_freq0 = build_pipeline("M5", m5_imb, model_params={**m5_frozen_params, "subsample_freq": 0}, seed=42, **pipe_flags)
+    test_pipe_freq1 = build_pipeline("M5", m5_imb, model_params={**m5_frozen_params, "subsample_freq": 1}, seed=42, **pipe_flags)
     test_pipe_freq0.fit(X_train.iloc[:200], y_train.iloc[:200])
     test_pipe_freq1.fit(X_train.iloc[:200], y_train.iloc[:200])
 
@@ -237,7 +240,7 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path
             # 設定 A: subsample_freq=0 (LightGBM 官方規格：不啟用 bagging，subsample 實質被忽略)
             cfg_a = m5_frozen_params.copy()
             cfg_a["subsample_freq"] = 0
-            pipe_a = build_pipeline("M5", m5_imb, model_params=cfg_a, seed=m_seed)
+            pipe_a = build_pipeline("M5", m5_imb, model_params=cfg_a, seed=m_seed, **pipe_flags)
             pipe_a.fit(X_tr, y_tr)
             score_a = get_score(pipe_a, X_val)
             m_a = evaluate_fold_predictions(y_val, score_a)
@@ -245,7 +248,7 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path
             # 設定 B: subsample_freq=1 (LightGBM 每輪隨機抽樣 60.7% 樣本)
             cfg_b = m5_frozen_params.copy()
             cfg_b["subsample_freq"] = 1
-            pipe_b = build_pipeline("M5", m5_imb, model_params=cfg_b, seed=m_seed)
+            pipe_b = build_pipeline("M5", m5_imb, model_params=cfg_b, seed=m_seed, **pipe_flags)
             pipe_b.fit(X_tr, y_tr)
             score_b = get_score(pipe_b, X_val)
             m_b = evaluate_fold_predictions(y_val, score_b)
@@ -259,7 +262,7 @@ def run_lab(mode: str = "quick") -> tuple[pd.DataFrame, pd.DataFrame, Path, Path
             cfg_c = m5_frozen_params.copy()
             cfg_c["subsample"] = 1.0
             cfg_c["subsample_freq"] = 0
-            pipe_c = build_pipeline("M5", m5_imb, model_params=cfg_c, seed=m_seed)
+            pipe_c = build_pipeline("M5", m5_imb, model_params=cfg_c, seed=m_seed, **pipe_flags)
             pipe_c.fit(X_tr, y_tr)
             score_c = get_score(pipe_c, X_val)
             m_c = evaluate_fold_predictions(y_val, score_c)
@@ -492,6 +495,7 @@ if __name__ == "__main__":
     parser.add_argument("--standard", action="store_true", help="執行標準模式 (3x3網格, 3種子)")
     parser.add_argument("--full", action="store_true", help="執行完整模式")
     parser.add_argument("--quick", action="store_true", default=False, help="執行快速模式 (2x2網格, 2種子, <=1.5分鐘, 預設)")
+    parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
 
     if args.f02_extended:
@@ -503,4 +507,4 @@ if __name__ == "__main__":
     else:
         exec_mode = "quick"
 
-    run_lab(mode=exec_mode)
+    run_lab(mode=exec_mode, pipeline=args.pipeline)

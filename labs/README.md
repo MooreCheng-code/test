@@ -22,16 +22,20 @@
   | 模組 | `scaler` | `use_winsorizer` | `use_corr_filter` | `use_large_indicator` | 與專案最終管線（E2b/E3/E4c）之差異說明 |
   | :--- | :---: | :---: | :---: | :---: | :--- |
   | **專案最終模型** | `quantile` | `False` | `True` (0.95) | `False` | 基準正式管線（折內保留 70～73 欄，全訓練集 72 欄）。 |
-  | `lab_01` (樹深度) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（同 E1a 基準，保留 74～77 欄）。 |
-  | `lab_02` (隨機森林) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（保留 74～77 欄）。 |
-  | `lab_03` (梯度提升) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（保留 74～77 欄）。 |
-  | `lab_04` (不平衡策略) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（同 E1a 基準）。 |
-  | `lab_05` (前處理消融) | 消融比較 | 消融比較 | 消融比較 | `False` | **專門消融比較** `winsorizer` 開 vs 關與 `scaler` 差異。 |
-  | `lab_06` (召回預警曲線) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（門檻轉移達標率與 E4a 均為 100%）。 |
-  | `lab_07` (CV折數重複) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（評估切分方差與樣本規模階梯）。 |
-  | `lab_08` (種子穩定性) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 函式預設（評估純演算法種子雜訊）。 |
-- **為何 Lab 沿用 `use_winsorizer=True`**：
-  專案在 E1a 階段建立基準管線時，預設開啟截尾（`use_winsorizer=True`，`pipelines.py:214`）。在 E1b 消融確認截尾對樹模型增益不顯著後，E2b/E3/E4c 為了精簡依賴顯式傳入 `use_winsorizer=False`。各 Lab 為維持獨立教學實驗的自洽性與標準函式接口，直接呼叫 `build_pipeline`。兩者差異在於折內特徵保留數（74～77 欄 vs 70～73 欄），對特徵排序能力與核心結論完全一致。
+  | **Labs 預設** (`--pipeline project`) | `quantile` | `False` | `True` (0.95) | `False` | **與專案最終管線一致（無差異）**，折內保留 70～73 欄。 |
+  | **Labs 教學模式** (`--pipeline teaching`) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 宣告預設值（開啟 Winsorizer，折內保留 74～77 欄）。 |
+  | `lab_05` (前處理消融) | 消融比較 | 消融比較 | 消融比較 | `False` | **專門消融比較**「截尾開 vs 關」與各縮放器之敏感度差異。 |
+- **專案關閉截尾之決策依據查核**：
+  1. 查核 `bankruptcy/outputs/tables/e1b_ablation.csv` 與 `e1b_paired_vs_default.csv` 顯示：E1b 實際僅對 M1（邏輯迴歸）與 M2（隨機森林）評估過關閉截尾（`winsorizer_off`）：
+     - M1: 預警倍數由 10.87x 變為 11.06x（差 +0.20x, 95% CI [-3.54, 3.93], $p_{	ext{NB}}=0.92$）；
+     - M2: 預警倍數由 9.07x 變為 8.25x（差 -0.82x, 95% CI [-2.78, 1.14], $p_{	ext{NB}}=0.44$）。
+     - M3、M4、M5 在 E1b 中**未進行個別的截尾消融**。
+  2. `PROJECT_STATE.md:68` 記載：「消融確認關閉 Winsorizer 對尾端預警無害，保留 CorrelationFilter 可安全去冗餘。**固化前處理：Winsorizer 關、CorrFilter 開、LargeValueIndicator 關、quantile 縮放、imbalance ∈ {S0, S3}**」。專案將 M1/M2 之消融結論直接推廣至所有模型。
+  3. **【誠實宣告】專案原始文件中未記載針對 M3、M4、M5 個別關閉截尾的實證依據**。
+- **Lab 實測結果客觀呈現（兩者並非「完全一致」）**：
+  在 `lab_05` 的消融對照中，M3 在關閉截尾（專案最終管線，Quantile + 不截尾）下，5 折平均 PR-AUC 為 0.4363，但 AR@0.95 為 13.20x（因 Fold 3 發生離散粗階梯同分，單折預警數達 1,091 家、單折 AR=31.17x）；而在開啟截尾（教學基準，Quantile + 截尾）下 5 折平均 AR@0.95 為 9.14x。這說明雖然全域 PR-AUC 趨勢相近，但關閉截尾在特定折的離散同分門檻上具備敏感度，因此依實測數據客觀敘述，不得寫為「完全一致」。
+- **lab_05 之 M3 參數來源說明**：
+  在 `--standard` 模式下，lab_05 直接載入固化的 `outputs/models/best_params/M3.json`（`n_estimators=600, max_features=0.3, min_samples_leaf=2, max_depth=None`），與專案最終設定完全一致；在 `--quick` 模式下，僅將 `n_estimators` 截斷為 80 棵以確保在 2 分鐘內執行完畢。
 
 ---
 
@@ -101,6 +105,8 @@ python labs/test_common.py
 
 ## 3. lab_01：決策樹與樹集成深度掃描 (`max_depth`)
 
+- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
+
 ### 3.1 實驗目的
 直觀觀察單棵決策樹（`DecisionTreeClassifier`）與樹集成模型（M2 RandomForest、M3 ExtraTrees、M4 XGBoost）隨著樹深度（`max_depth`）增加時，**訓練折分數與驗證折分數的背離現象（過擬合軌跡）**，理解為何單棵決策樹不可用，而集成模型能藉由平均與正則化約束馴服深度方差。
 
@@ -115,17 +121,17 @@ python labs/test_common.py
 ### 3.4 假設與實際觀察
 - **假設**：隨著單樹深度加深，訓練折 PR-AUC 會逼近 1.0（高度擬合訓練資料），但驗證折 PR-AUC 會在深度 3～4 達到頂點後大幅下滑，產生巨大的過擬合差距；而隨機森林與極端隨機樹即使深度為 None，驗證折 PR-AUC 仍能維持在 0.38 以上。
 - **實際觀察**：
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='4'" col=val_pr_auc_mean expect=0.269229 tolerance=0.001 -->
-  - 單棵決策樹在深度 4 時達到驗證 PR-AUC 最高峰 0.2692（訓練 PR-AUC 0.5220，差距 +0.2527）。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='4'" col=val_pr_auc_mean expect=0.256910 tolerance=0.001 -->
+  - 單棵決策樹在深度 4 時達到驗證 PR-AUC 最高峰 0.2569（訓練 PR-AUC 0.5341，差距 +0.2772）。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='None (無限制)'" col=train_pr_auc_mean expect=1.000000 tolerance=0.0001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='None (無限制)'" col=val_pr_auc_mean expect=0.106602 tolerance=0.001 -->
-  - 當單樹深度無限制（`None`）時，訓練折 PR-AUC 達到 1.0000（完全擬合），但驗證折 PR-AUC 崩跌至 0.1066，過擬合差距高達 +0.8934。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='4'" col=val_ar95_mean expect=30.964286 tolerance=0.01 -->
-  - **單樹粗階梯同分機制**：單棵樹的驗證折預警倍數（AR@0.95）始終高達約 30.96 倍（接近全折樣本比例 $N/P \approx 31.00\text{x}$）。這是因為單樹葉節點少（例如無深度限制時僅有 0.0 與 1.0 兩個唯一機率值），機率呈粗階梯分佈。在悲觀同分規則（`score >= thr`）下，為了達到 95% 召回率，門檻被迫納入龐大的同分葉節點，使全折樣本幾乎全數被納入預警名單（$Alerts = N$），導致預警倍數退化至 $N/P$。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='M2' and max_depth=='12'" col=val_pr_auc_mean expect=0.392631 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='M3' and max_depth=='12'" col=val_pr_auc_mean expect=0.413149 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='None (無限制)'" col=val_pr_auc_mean expect=0.119414 tolerance=0.001 -->
+  - 當單樹深度無限制（`None`）時，訓練折 PR-AUC 達到 1.0000（完全擬合），但驗證折 PR-AUC 崩跌至 0.1194，過擬合差距高達 +0.8806。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='DT' and max_depth=='4'" col=val_ar95_mean expect=30.981429 tolerance=0.01 -->
+  - **單樹粗階梯同分機制**：單棵樹的驗證折預警倍數（AR@0.95）始終高達約 30.98 倍（接近全折樣本比例 $N/P \approx 31.00\text{x}$）。這是因為單樹葉節點少（例如無深度限制時僅有 0.0 與 1.0 兩個唯一機率值），機率呈粗階梯分佈。在悲觀同分規則（`score >= thr`）下，為了達到 95% 召回率，門檻被迫納入龐大的同分葉節點，使全折樣本幾乎全數被納入預警名單（$Alerts = N$），導致預警倍數退化至 $N/P$。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='M2' and max_depth=='12'" col=val_pr_auc_mean expect=0.399925 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='M3' and max_depth=='12'" col=val_pr_auc_mean expect=0.437545 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_01_tree_depth_snapshot.csv where="model_name=='M4' and max_depth=='2'" col=val_pr_auc_mean expect=0.402685 tolerance=0.001 -->
-  - 相對地，集成模型展現出極強的泛化保護：M2 在深度 12 時 PR-AUC 為 0.3926（AR@0.95 約 9.46 倍）；M3 在深度 12 時 PR-AUC 為 0.4131（AR@0.95 約 9.38 倍）；M4 在深度 2 時 PR-AUC 達 0.4027（AR@0.95 約 10.30 倍）。
+  - 相對地，集成模型展現出極強的泛化保護：M2 在深度 12 時 PR-AUC 為 0.3999（AR@0.95 約 13.10 倍）；M3 在深度 12 時 PR-AUC 為 0.4375（AR@0.95 約 8.10 倍）；M4 在深度 2 時 PR-AUC 達 0.4033（AR@0.95 約 8.46 倍）。
 
 ### 3.5 解讀與正式實驗對照
 - **解讀**：單樹深度增加時，方差（Variance）急遽暴增；而隨機森林與極端隨機樹透過「Bagging（樣本自助抽樣）+ Random Subspace（特徵隨機抽樣）」將多棵高方差的深樹平均，有效抵消了方差。
@@ -134,6 +140,8 @@ python labs/test_common.py
 ---
 
 ## 4. lab_02：森林樹數、特徵抽樣與葉約束 (`M2`, `M3`)
+
+- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
 
 ### 4.1 實驗目的
 以隨機森林（M2）與極端隨機樹（M3）為對象，進行單變量超參數掃描：
@@ -166,6 +174,8 @@ python labs/test_common.py
 ---
 
 ## 5. lab_03：提升法網格與 F-02 深入對照 (`M4`, `M5`)
+
+- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異，M5 關閉 Winsorizer）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
 
 ### 5.1 實驗目的
 1. **網格掃描**：探索 XGBoost（M4）與 LightGBM（M5）在 `learning_rate` $\times$ `n_estimators` 網格下的互補消長關係。
@@ -202,6 +212,8 @@ python labs/test_common.py
 ---
 
 ## 6. lab_04：不平衡策略與機率校準偏移 (`M1`, `M3`)
+
+- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
 
 ### 6.1 實驗目的
 固定模型（M1 與 M3），在訓練折內嚴格執行 S0～S6 全體 7 組策略，觀察排序指標與機率校準偏移。
@@ -248,6 +260,8 @@ python labs/test_common.py
 ---
 
 ## 7. lab_05：前處理消融實驗 (`M1`, `M3`)
+
+- **與專案最終管線的差異：本實驗為前處理消融專項，明確對照「截尾開 vs 關（Winsorizer on/off）」與各縮放器之敏感度差異，基準設定依 `--pipeline` 參數可切換為 project 或 teaching。**
 
 ### 7.1 實驗目的
 以線性模型（M1）與樹集成（M3）為對象，在訓練折內消融三大前處理步驟：
@@ -300,6 +314,8 @@ python labs/test_common.py
 ---
 
 ## 8. lab_06：召回率與預警率權衡曲線與門檻轉移實驗 (`M3`)
+
+- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
 
 ### 8.1 實驗目的
 1. 繪製 Recall 在 $[0.80, 1.00]$ 區間之 Recall–AR 權衡曲線，並標定隨機猜測基準線。
@@ -356,6 +372,8 @@ python labs/test_common.py
 
 ## 9. lab_07：交叉驗證折數與重複次數效應 (`M1`)
 
+- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
+
 ### 9.1 實驗目的
 1. 探索 $K \in \{3, 5, 10\} \times R \in \{1, 3\}$ 交叉驗證矩陣之折內正樣本數、評估標準差與計算時間。
 2. 訓練集內部樣本稀少度實驗：分層子抽樣保留比例 $\{0.1, 0.2, 0.3\}$，評估正樣本稀少帶來的評估變異放大與 Clopper-Pearson 95% 寬度。
@@ -386,6 +404,8 @@ python labs/test_common.py
 ---
 
 ## 10. lab_08：種子穩定性與隨機性分解 (`M3`)
+
+- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
 
 ### 10.1 實驗目的
 將模型評估的變異來源進行正交分解，比較三種實驗條件：

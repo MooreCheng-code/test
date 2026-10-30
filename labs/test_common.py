@@ -29,6 +29,8 @@ import pandas as pd
 from labs._common import (
     assert_train_data_guard,
     get_cv_splitter,
+    get_pipeline_flags,
+    get_project_pipeline_flags,
     load_best_params,
     load_train_data,
     save_manifest,
@@ -148,6 +150,85 @@ class TestLabCommon(unittest.TestCase):
             skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
             pos_counts = [int(y_dummy[val_idx].sum()) for _, val_idx in skf.split(np.zeros(len(y_dummy)), y_dummy)]
             self.assertLessEqual(max(pos_counts) - min(pos_counts), 1)
+
+    def test_pipeline_flags_ast_extraction(self) -> None:
+        """Verify get_project_pipeline_flags extracts exact flags from tune.py AST."""
+        flags = get_project_pipeline_flags()
+        expected = {
+            "scaler": "quantile",
+            "use_winsorizer": False,
+            "use_corr_filter": True,
+            "use_large_indicator": False,
+        }
+        self.assertEqual(flags, expected)
+
+    def test_pipeline_flags_modes(self) -> None:
+        """Verify project and teaching mode flags."""
+        proj_flags = get_pipeline_flags("project")
+        self.assertFalse(proj_flags["use_winsorizer"])
+        self.assertEqual(proj_flags["scaler"], "quantile")
+        self.assertTrue(proj_flags["use_corr_filter"])
+        self.assertFalse(proj_flags["use_large_indicator"])
+
+        teach_flags = get_pipeline_flags("teaching")
+        self.assertTrue(teach_flags["use_winsorizer"])
+        self.assertEqual(teach_flags["scaler"], "quantile")
+        self.assertTrue(teach_flags["use_corr_filter"])
+        self.assertFalse(teach_flags["use_large_indicator"])
+
+        with self.assertRaises(ValueError):
+            get_pipeline_flags("invalid_mode")
+
+    def test_pipeline_parity_with_thresholding_and_best_params(self) -> None:
+        """Verify pipeline flags match thresholding.py AST and best_params instantiation."""
+        import ast
+        from bankruptcy.src.pipelines import build_pipeline
+
+        # Verify thresholding.py AST build_pipeline flags
+        th_file = REPO_ROOT / "bankruptcy" / "src" / "thresholding.py"
+        with open(th_file, "r", encoding="utf-8") as f:
+            th_tree = ast.parse(f.read())
+
+        th_flags = None
+        for node in ast.walk(th_tree):
+            if isinstance(node, ast.Call):
+                func_name = getattr(node.func, "id", getattr(node.func, "attr", ""))
+                if func_name == "build_pipeline":
+                    kw_map = {}
+                    for kw in node.keywords:
+                        if kw.arg in ("scaler", "use_winsorizer", "use_corr_filter", "use_large_indicator"):
+                            kw_map[kw.arg] = ast.literal_eval(kw.value)
+                    if len(kw_map) == 4:
+                        th_flags = kw_map
+                        break
+
+        proj_flags = get_project_pipeline_flags()
+        self.assertEqual(th_flags, proj_flags, "tune.py flags and thresholding.py flags must match exactly!")
+
+        # Verify pipeline construction with best_params for M3, M4, M5
+        for m in ["M3", "M4", "M5"]:
+            bp_data = load_best_params(m)
+            pipe = build_pipeline(
+                model_name=m,
+                imbalance=bp_data["imbalance"],
+                model_params=bp_data["best_params"],
+                **proj_flags,
+            )
+            step_names = [step[0] for step in pipe.steps]
+            # Winsorizer step exists but enabled must be False
+            self.assertIn("winsorizer", step_names)
+            self.assertFalse(pipe.named_steps["winsorizer"].enabled, f"Model {m} project pipeline winsorizer must be disabled")
+            # LargeValueIndicator step exists but enabled must be False
+            self.assertIn("large_value_indicator", step_names)
+            self.assertFalse(pipe.named_steps["large_value_indicator"].enabled, f"Model {m} project pipeline large_indicator must be disabled")
+            # QuantileScaler must have kind == 'quantile'
+            self.assertIn("scaler", step_names)
+            self.assertEqual(pipe.named_steps["scaler"].kind, "quantile")
+            # CorrelationFilter must be enabled
+            self.assertIn("corr_filter", step_names)
+            self.assertTrue(pipe.named_steps["corr_filter"].enabled, f"Model {m} project pipeline corr_filter must be enabled")
+
+
 
 
 if __name__ == "__main__":

@@ -515,3 +515,30 @@
    - `06_練習題.md` 無解答關鍵詞、所有模組/實驗連結存在、預測題引用 lab 在 `lab_map.csv` 狀態為「已完成」。
    - `labs/bugs/*.py` 存在必要警語標頭、無專案資料 import、無 `# BUG` 洩漏註解。
 2. **單元與負向測試**：在 `tools/test_exercises_checker.py` 實作 7 項測試（含 6 項負向測試：解答字樣洩漏、不存在檔案連結、未完成 lab 引用、缺安全標頭、forbidden token 存取、洩漏答案註解；以及 1 項全量正式文件正向測試），全部通過。
+
+
+## 階段 7-fix 發現（管線對齊、沙盒量測、配方查核與檢查器強化）
+
+### L1. lab 與專案最終前處理管線對齊與 E1b 決策記載查核
+1. **事實查核**：透過 AST 解析與 `best_params/*.json` 查證，專案最終模型（M3、M4、M5）的前處理旗標為 `scaler="quantile"`, `use_winsorizer=False`, `use_corr_filter=True(0.95)`, `use_large_indicator=False`。
+2. **E1b 決策依據查核**：
+   - 查閱 `bankruptcy/outputs/tables/e1b_ablation.csv` 與 `e1b_paired_vs_default.csv`，確認專案 E1b 僅針對 M1（Logistic Regression）與 M2（Random Forest）評估了 `winsorizer_off`。
+   - `PROJECT_STATE.md:68` 雖記錄「Winsorizer 關閉」，但專案歷史文件中**並未記載針對 M3、M4、M5 個別關閉截尾之獨立實證依據**。
+3. **lab_05 實測折間敏感度客觀揭露**：
+   - 在 `lab_05` 實測中，對照組 C（Quantile + 不截尾，即專案最終管線設定）Fold 3 的預警倍數高達 31.17x（因離散粗階梯同分，門檻被迫包含整批樣本），五折平均 AR@0.95 為 13.20x；而基準組（Quantile + 截尾）為 9.14x。
+   - 刪除過去宣稱「兩者完全一致」之措辭，客觀呈現兩者在折間分佈敏感度上的差異。
+4. **雙軌管線支援架構**：
+   - 在 `labs/_common.py` 實作 AST 解析函式 `get_project_pipeline_flags()`，`lab_01`～`lab_08` 全數新增 `--pipeline {project, teaching}` 命令列引數（預設為 `project`），並在文檔中對齊專案最終管線。
+
+### L2. 沙盒除錯題庫 20 次種子重複實驗量測
+1. **Bug 01 題幹重構**：改為有監督特徵選擇洩漏（`SelectKBest(f_classif, k=10)` 在切分前 vs 切分後），單次 PR-AUC 0.6239 vs 0.4314（虛增 +0.1925），20 次均值差 **+0.1305**（100% 正偏差）。移除題幹中洩漏答案的註解。
+2. **20 次種子重複實驗量測**：
+   - 對 10 支除錯題進行 20 次不同隨機種子重複實驗，在 `06_解答.md` 彙總量測總表與各題詳解，提供客觀數理機制與經驗分佈，避免單次抽樣特異值之誤導。
+
+### L3. 配方 3、6 與檢查器強化
+1. **配方 3 修正**：引用位置修正為 `bankruptcy/src/thresholding.py:67` (`MARGINS`)，型別標明為 `list`；固化檔名修正為 `thresholds.json` 與 `thresholds.csv`。
+2. **配方 6 修正**：補齊 9 大核心要素（欄位對映、時間結構與公司 ID 隔離限制、盛行率變化與 E7a 玩具計算、特徵漂移與 PSI、scoring.py 20% 缺失率、重建固化產物清單、失效假設、新測試集物理鎖定、外部驗證尚未做之誠實宣告）。
+3. **檢查器漏洞修復**：
+   - 修復括號內符號比對漏洞（擴充正則支援 `\(\s*`?([a-zA-Z_]\w*)`?`），有效抓出 `config.py:30 (MARGINS)` 誤植。
+   - 強化失效清單所有副檔名檔案之實體存在性檢查，未標註 `<!-- planned: -->` 且檔案不存在者嚴格報錯。
+   - 在 `tools/test_recipes_checker.py` 新增負向測試 4，確保檢查器能攔截此類漏洞。
