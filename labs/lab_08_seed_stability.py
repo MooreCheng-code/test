@@ -46,7 +46,6 @@ from sklearn.model_selection import StratifiedKFold
 
 from labs._common import (
     get_pipeline_flags,
-    get_pipeline_flags,
     SNAPSHOT_DIR,
     build_pipeline,
     evaluate_fold_predictions,
@@ -72,8 +71,10 @@ def run_single_condition(
     model_seeds: list[int],
     model_code: str = "M3",
     n_splits: int = 5,
+    pipeline: str = "project",
 ) -> pd.DataFrame:
     """執行特定條件下 5 次實驗並收集 CV 指標平均。"""
+    pipe_flags = get_pipeline_flags(pipeline)
     cfg = load_best_params(model_code)
     m_params = cfg.get("best_params", {})
     imb = cfg.get("imbalance", "S0")
@@ -87,7 +88,7 @@ def run_single_condition(
             X_tr, y_tr = X_train.iloc[tr_idx], y_train.iloc[tr_idx]
             X_val, y_val = X_train.iloc[val_idx], y_train.iloc[val_idx]
 
-            pipe = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=m_seed)
+            pipe = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=m_seed, **pipe_flags)
             pipe.fit(X_tr, y_tr)
             score_val = get_score(pipe, X_val)
             m = evaluate_fold_predictions(y_val, score_val)
@@ -114,6 +115,7 @@ def run_variance_decomposition(
     y_train: pd.Series,
     model_code: str = "M3",
     n_splits: int = 5,
+    pipeline: str = "project",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """執行三種正交條件之變異分解。"""
     fixed_seed = 42
@@ -126,6 +128,7 @@ def run_variance_decomposition(
         model_seeds=SEED_LIST,
         model_code=model_code,
         n_splits=n_splits,
+        pipeline=pipeline,
     )
 
     print(f"\n[條件 2] 資料抽樣變異 (固定模型種子={fixed_seed}，改變切分種子)...")
@@ -136,6 +139,7 @@ def run_variance_decomposition(
         model_seeds=[fixed_seed] * len(SEED_LIST),
         model_code=model_code,
         n_splits=n_splits,
+        pipeline=pipeline,
     )
 
     print(f"\n[條件 3] 複合變異 (同時改變切分種子與模型種子)...")
@@ -146,6 +150,7 @@ def run_variance_decomposition(
         model_seeds=SEED_LIST,
         model_code=model_code,
         n_splits=n_splits,
+        pipeline=pipeline,
     )
 
     df_all_runs = pd.concat([df_c1, df_c2, df_c3], ignore_index=True)
@@ -221,8 +226,11 @@ def plot_seed_variance_decomposition(df_summary: pd.DataFrame, out_path: str):
 def main():
     parser = argparse.ArgumentParser(description="Lab 08: Seed Stability and Variance Decomposition")
     parser.add_argument("--mode", choices=["quick", "standard", "full"], default="quick")
+    parser.add_argument("--quick", action="store_true", help="執行快速模式")
     parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
+    if getattr(args, "quick", False):
+        args.mode = "quick"
 
     start_time = time.time()
     print("=" * 80)
@@ -233,7 +241,7 @@ def main():
 
     n_splits = 3 if args.mode == "quick" else 5
     df_runs, df_summary = run_variance_decomposition(
-        X_train, y_train, model_code="M3", n_splits=n_splits
+        X_train, y_train, model_code="M3", n_splits=n_splits, pipeline=args.pipeline
     )
 
     out_csv = os.path.join(OUTPUT_DIR, "seed_stability.csv")

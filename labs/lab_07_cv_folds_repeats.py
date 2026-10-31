@@ -42,7 +42,6 @@ from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold, St
 
 from labs._common import (
     get_pipeline_flags,
-    get_pipeline_flags,
     SNAPSHOT_DIR,
     build_pipeline,
     evaluate_fold_predictions,
@@ -84,8 +83,10 @@ def run_cv_matrix_experiment(
     k_list: list[int] = [3, 5, 10],
     r_list: list[int] = [1, 3],
     random_state: int = 42,
+    pipeline: str = "project",
 ) -> pd.DataFrame:
     """執行 K x R 交叉驗證矩陣實驗。"""
+    pipe_flags = get_pipeline_flags(pipeline)
     cfg = load_best_params(model_code)
     m_params = cfg.get("best_params", {})
     imb = cfg.get("imbalance", "S0")
@@ -101,7 +102,7 @@ def run_cv_matrix_experiment(
                 X_tr, y_tr = X_train.iloc[tr_idx], y_train.iloc[tr_idx]
                 X_val, y_val = X_train.iloc[val_idx], y_train.iloc[val_idx]
 
-                pipe = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state)
+                pipe = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state, **pipe_flags)
                 pipe.fit(X_tr, y_tr)
                 scores = get_score(pipe, X_val)
                 m = evaluate_fold_predictions(y_val, scores)
@@ -142,11 +143,13 @@ def run_sample_size_ladder_experiment(
     subsample_ratios: list[float] = [0.1, 0.2, 0.3],
     n_iterations: int = 50,
     random_state: int = 42,
+    pipeline: str = "project",
 ) -> pd.DataFrame:
     """
     在訓練集內部以不同子抽樣比例評估正樣本稀少帶來的評估變異放大。
     嚴格防護：僅在訓練集內部切分，不碰任何測試資料。
     """
+    pipe_flags = get_pipeline_flags(pipeline)
     cfg = load_best_params(model_code)
     m_params = cfg.get("best_params", {})
     imb = cfg.get("imbalance", "S0")
@@ -162,7 +165,7 @@ def run_sample_size_ladder_experiment(
             X_tr, y_tr = X_train.iloc[eval_tr_idx], y_train.iloc[eval_tr_idx]
             X_val, y_val = X_train.iloc[eval_val_idx], y_train.iloc[eval_val_idx]
 
-            pipe = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state + seed_idx)
+            pipe = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state + seed_idx, **pipe_flags)
             pipe.fit(X_tr, y_tr)
             scores = get_score(pipe, X_val)
             m = evaluate_fold_predictions(y_val, scores)
@@ -242,8 +245,11 @@ def plot_cv_effects(df_matrix: pd.DataFrame, df_ladder: pd.DataFrame, out_path: 
 def main():
     parser = argparse.ArgumentParser(description="Lab 07: CV Folds and Repeats Effects")
     parser.add_argument("--mode", choices=["quick", "standard", "full"], default="quick")
+    parser.add_argument("--quick", action="store_true", help="執行快速模式")
     parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
+    if getattr(args, "quick", False):
+        args.mode = "quick"
 
     start_time = time.time()
     print("=" * 80)
@@ -263,7 +269,7 @@ def main():
     k_list = [3, 5, 10]
     r_list = [1, 3] if args.mode != "quick" else [1, 2]
     df_matrix = run_cv_matrix_experiment(
-        X_train, y_train, model_code="M1", k_list=k_list, r_list=r_list, random_state=42
+        X_train, y_train, model_code="M1", k_list=k_list, r_list=r_list, random_state=42, pipeline=args.pipeline
     )
     matrix_csv = os.path.join(OUTPUT_DIR, "cv_matrix.csv")
     df_matrix.to_csv(matrix_csv, index=False)

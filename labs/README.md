@@ -19,16 +19,14 @@
 
 ### 0.2 Labs（lab_01～lab_09）前處理旗標與管線支援說明
 - **各 Lab 對 `--pipeline` 旗標之支援狀況**：
-  1. **完整傳遞支援（`lab_01`～`lab_05`）**：腳本支援 `--pipeline {project,teaching}` 旗標並明確傳遞至 `build_pipeline(..., **pipe_flags)`。在 `--pipeline project` 下關閉 Winsorizer（折內保留 70～73 欄，與專案最終管線一致）；在 `--pipeline teaching` 下開啟 Winsorizer（折內保留 74～77 欄，沿用教學預設值）。
-  2. **維持教學管線（`lab_06`～`lab_08`）**：腳本未將 `--pipeline` 傳遞至底層 `build_pipeline` 調用，維持使用教學管線（開啟 Winsorizer 截尾），專注於其本身評估主題（門檻轉移、CV 折數效應、種子穩定性），故兩種模式之量測指標維持一致。
-  3. **專案管線固化（`lab_09`）**：樹數消融實驗直接採用專案正式管線（`--pipeline project`，關閉 Winsorizer），專門評估 ExtraTrees 樹數與分數空隙退化機制。
+  1. **全體 Lab 完整傳遞支援（`lab_01`～`lab_09`）**：所有 Lab 腳本均支援 `--pipeline {project,teaching}` 旗標並明確傳遞至 `build_pipeline(..., **pipe_flags)`。在 `--pipeline project`（預設）下關閉 Winsorizer（折內保留 70～73 欄，與專案最終管線一致）；在 `--pipeline teaching` 下開啟 Winsorizer（折內保留 74～77 欄，沿用教學預設值）。
+  2. **`lab_05`（前處理消融）**：專門針對相關性過濾、截尾開關（Winsorizer on vs off）與各縮放器進行單變量消融對照，以 `--pipeline` 設定值作為基準前處理旗標。
 - **旗標對照總表**：
   | 模組 | `scaler` | `use_winsorizer` | `use_corr_filter` | `use_large_indicator` | 與專案最終管線（E2b/E3/E4c）之差異說明 |
   | :--- | :---: | :---: | :---: | :---: | :--- |
   | **專案最終模型** | `quantile` | `False` | `True` (0.95) | `False` | 基準正式管線（折內保留 70～73 欄，全訓練集 72 欄）。 |
-  | **Labs (lab_01～lab_05, lab_09)** (`--pipeline project`) | `quantile` | `False` | `True` (0.95) | `False` | **與專案最終管線一致（無差異）**，折內保留 70～73 欄。 |
-  | **Labs (lab_01～lab_05)** (`--pipeline teaching`) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 宣告預設值（開啟 Winsorizer，折內保留 74～77 欄）。 |
-  | **Labs (lab_06～lab_08)** | `quantile` | `True` | `True` (0.95) | `False` | 維持教學管線（開啟 Winsorizer，未傳遞 pipeline 旗標至底層構建）。 |
+  | **Labs (lab_01～lab_09)** (`--pipeline project`, 預設) | `quantile` | `False` | `True` (0.95) | `False` | **與專案最終管線一致（無差異）**，折內保留 70～73 欄。 |
+  | **Labs (lab_01～lab_09)** (`--pipeline teaching`) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 宣告預設值（開啟 Winsorizer，折內保留 74～77 欄）。 |
   | `lab_05` (前處理消融) | 消融比較 | 消融比較 | 消融比較 | `False` | **專門消融比較**「截尾開 vs 關」與各縮放器之敏感度差異。 |
 - **專案關閉截尾之決策依據查核**：
   1. 查核 `bankruptcy/outputs/tables/e1b_ablation.csv` 與 `e1b_paired_vs_default.csv` 顯示：E1b 實際僅對 M1（邏輯迴歸）與 M2（隨機森林）評估過關閉截尾（`winsorizer_off`）：
@@ -232,35 +230,37 @@ python labs/test_common.py
 
 ### 6.4 假設與實際觀察
 - **實際觀察**：
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S0'" col=mean_proba_mean expect=0.032688 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S1'" col=mean_proba_mean expect=0.171587 tolerance=0.001 -->
-  - **M1 的 class_weight 機率膨脹機制**：M1 在 S0 下平均預測機率為 0.0327（與真實盛行率 0.0323 一致）；採用 S1（`class_weight='balanced'`）時大幅上升至 0.1716（膨脹 5.3 倍，Brier 惡化至 0.0883）。這是因為線性模型中 class_weight 等價於在 Log-odds 上平移 $\ln(w_1/w_0) \approx +3.4$。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M3' and strategy=='S0'" col=mean_proba_mean expect=0.033100 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M3' and strategy=='S1'" col=mean_proba_mean expect=0.040200 tolerance=0.001 -->
-  - **M3 的 class_weight 膨脹緩和**：M3 在 S0 下為 0.0331，S1 下僅微升至 0.0402（僅 1.2 倍）。因為樹模型中 class_weight 僅改變分裂時的不純度計算，葉節點仍按樣本比例計算，多數葉節點仍為純負樣本（機率 0.0）。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S3'" col=pr_auc_mean expect=0.388301 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S6'" col=pr_auc_mean expect=0.388301 tolerance=0.001 -->
-  - **M1 S3 vs S6 數值完全相同根因**：S3 為 `SMOTE(0.3)`，S6 為 `SMOTETomek(SMOTE(0.3))`。在 QuantileScaler 將 76 維特徵縮放至均勻分佈後，高維空間中幾無跨類別最近鄰邊界對，TomekLinks 剔除 0 筆樣本，故 S6 輸出與 S3 完全相同。此現象與專案正式 E1a 表格（`e1a_imbalance_comparison.csv`）中 M1 的 S3 與 S6 共享完全相同的 `alert_ratio@recall_0.95_mean = 10.865926` 一致。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S0'" col=mean_proba_mean expect=0.032544 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S1'" col=mean_proba_mean expect=0.171719 tolerance=0.001 -->
+  - **M1 的 class_weight 機率膨脹機制**：M1 在 S0 下平均預測機率為 0.0325（與真實盛行率 0.0323 一致）；採用 S1（`class_weight='balanced'`）時大幅上升至 0.1717（膨脹 5.3 倍，Brier 惡化至 0.0893）。這是因為線性模型中 class_weight 等價於在 Log-odds 上平移 $\ln(w_1/w_0) \approx +3.4$。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M3' and strategy=='S0'" col=mean_proba_mean expect=0.033400 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M3' and strategy=='S1'" col=mean_proba_mean expect=0.039128 tolerance=0.001 -->
+  - **M3 的 class_weight 膨脹緩和**：M3 在 S0 下為 0.0334，S1 下僅微升至 0.0391（僅 1.2 倍）。因為樹模型中 class_weight 僅改變分裂時的不純度計算，葉節點仍按樣本比例計算，多數葉節點仍為純負樣本（機率 0.0）。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S3'" col=pr_auc_mean expect=0.387373 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S6'" col=pr_auc_mean expect=0.387230 tolerance=0.001 -->
+  - **M1 S3 vs S6 數值在不同管線下的表現與 Tomek 剔除實測**：
+    - 在 **teaching 管線（Winsorizer 啟用）** 下：QuantileScaler 將 76 維特徵縮放至均勻分佈且無極端長尾值，TomekLinks 跨 5 折每折剔除 0 筆樣本，故數值完全相同（PR-AUC 均為 0.3883，AR@0.95 均為 11.70x）。專案正式 E1a 表格（`e1a_imbalance_comparison.csv`，採 teaching 口徑）中 M1 的 S3 與 S6 亦共享完全相同的 `alert_ratio@recall_0.95_mean = 10.865926`。
+    - 在 **project 管線（Winsorizer 關閉，預設）** 下：極端值使第 2 折 TomekLinks 實際剔除了 2 筆邊界樣本（5,489 筆降至 5,487 筆，5 折平均每折剔除 0.4 筆），S3 與 S6 數值微幅不同（S3 PR-AUC 0.3874、AR@0.95 8.95x 對比 S6 PR-AUC 0.3872、AR@0.95 9.00x，PR-AUC 差距 0.000143，AR 差距 0.0457x）。
 
-#### M3（ExtraTrees）全策略實測對照表（`--quick` 模式，5 折 × 1 次重複）：
+#### M3（ExtraTrees）全策略實測對照表（`--quick --pipeline project` 模式，5 折 × 1 次重複，註：正式 E1a 無 M3，數據為 Lab 04 實測）：
 
 > [!NOTE]
-> **執行模式標註**：本表數據來自 `--quick` 模式（5 折 × 1 次重複，種子 42）。不同模式（quick vs standard vs full）之數據嚴格禁止並列混用。快照檔案與磁碟原始 CSV 內容完全一致。
+> **執行模式標註**：本表數據來自 `--quick --pipeline project` 模式（5 折 × 1 次重複，種子 42）。快照檔案與磁碟原始 CSV 內容完全一致。
 
 | 策略代號 | 策略名稱與實作方法 | 驗證 PR-AUC (Mean) | 驗證 AR@0.95 (Mean) | 平均預測機率 (Mean Proba) | Brier 分數 | 與 S0 差距及雜訊判定（PR-AUC 雜訊 Std: 0.0053，AR@0.95 雜訊 Std: 1.04x） |
 | :---: | :--- | :---: | :---: | :---: | :---: | :--- |
-| **S0** | 基準線（不進行任何重抽樣） | **0.4402** | **8.54x** | 0.0331 | 0.0232 | 基準線（最精簡無介入） |
-| **S1** | `class_weight='balanced'` | **0.4412** | **8.77x** | 0.0402 | 0.0234 | PR-AUC 差 `+0.0010`（**未超出雜訊**，差異在種子變異內）；AR 差 `+0.23x`（未超出雜訊） |
-| **S2** | SMOTE (`sampling_strategy=0.1`) | **0.4265** | **9.55x** | 0.0477 | 0.0241 | PR-AUC 差 `-0.0137`（超出雜訊）；AR@0.95 惡化至 9.55x（差 `+1.01x`） |
-| **S3** | SMOTE (`sampling_strategy=0.3`) | **0.4157** | **7.95x** | 0.0639 | 0.0270 | PR-AUC 差 `-0.0245`（顯著超出雜訊）；S3 的 AR@0.95 較低，但差異未超出種子雜訊（約 1.04x），且 PR-AUC 低於 S0，不能據此判定 S3 較好 |
-| **S4** | SMOTE (`sampling_strategy=0.5`) | **0.4080** | **7.87x** | 0.0710 | 0.0287 | PR-AUC 差 `-0.0322`（超出雜訊），過多合成樣本導致邊際精度下降，機率失真加劇 |
-| **S5** | BorderlineSMOTE (`sampling_strategy=0.3`) | **0.4173** | **8.47x** | 0.0547 | 0.0259 | 與 S3 差異在雜訊內（PR-AUC 差 `+0.0016`），機率偏移略小於一般 SMOTE |
-| **S6** | SMOTETomek (`sampling_strategy=0.3`) | **0.4157** | **7.94x** | 0.0639 | 0.0270 | 與 S3 實質等價（PR-AUC 差 `0.000019`，**未超出雜訊**，Tomek 剔除 0 筆樣本） |
+| **S0** | 基準線（不進行任何重抽樣） | **0.4341** | **13.20x** | 0.0334 | 0.0233 | 基準線（最精簡無介入） |
+| **S1** | `class_weight='balanced'` | **0.4067** | **13.63x** | 0.0391 | 0.0240 | PR-AUC 差 `-0.0274`（超出雜訊）；AR@0.95 差 `+0.43x`（未超出雜訊） |
+| **S2** | SMOTE (`sampling_strategy=0.1`) | **0.4181** | **8.23x** | 0.0476 | 0.0244 | PR-AUC 差 `-0.0160`（超出雜訊）；AR@0.95 改善至 8.23x（差 `-4.97x`） |
+| **S3** | SMOTE (`sampling_strategy=0.3`) | **0.4075** | **7.37x** | 0.0643 | 0.0273 | PR-AUC 差 `-0.0266`（超出雜訊）；AR@0.95 降至 7.37x（差 `-5.83x`） |
+| **S4** | SMOTE (`sampling_strategy=0.5`) | **0.4057** | **9.47x** | 0.0717 | 0.0293 | PR-AUC 差 `-0.0284`（超出雜訊），過多合成樣本導致邊際精度下降，機率失真加劇 |
+| **S5** | BorderlineSMOTE (`sampling_strategy=0.3`) | **0.4142** | **8.38x** | 0.0547 | 0.0256 | PR-AUC 差 `-0.0199`（超出雜訊），AR@0.95 為 8.38x |
+| **S6** | SMOTETomek (`sampling_strategy=0.3`) | **0.4051** | **7.30x** | 0.0642 | 0.0273 | 與 S3 微幅差異（PR-AUC 差 `-0.0024`，Tomek 在第 2 折剔除 2 筆樣本） |
 
 > [!NOTE]
 > **數據查證與歷史成因說明**：
 > 1. **回報誤植成因**：先前 Markdown 手動整理表格時，曾誤將 S3 之 `mean_proba_mean` 寫為 0.0347（磁碟 CSV 實為 0.063861）、S0 Brier 寫為 0.0267（磁碟 CSV 實為 0.023185）。磁碟上之原始 CSV `labs/outputs/lab_04/lab_04_imbalance_strategies.csv` 與快照 CSV 本身自始至終完全一致且正確無誤。
-> 2. **S3 vs S6 在 M3 上等價機制**：經單獨驗證 5 個訓練折中 TomekLinks 實際剔除筆數，5 折剔除樣本數全數為 0 筆（Fold 0～4 均為 0 筆）。因此 S6（SMOTETomek）與 S3（SMOTE）產生的訓練矩陣完全相同，僅極微小的隨機浮點誤差造成 0.000019 的 PR-AUC 差異，兩者在工程與統計上完全等價。
+> 2. **S3 vs S6 等價成立條件**：在 teaching 管線（Winsorizer 啟用）下 TomekLinks 剔除 0 筆樣本故數值完全相同；在 project 管線下每折剔除 0.4 筆（第 2 折剔除 2 筆，其餘 0 筆），數值微幅不同（M1 PR-AUC 差距 0.000143，M3 PR-AUC 差距 0.002660）。
 > 3. **雜訊標註標準**：依據 `lab_08` 測得之 M3 演算法隨機種子標準差（PR-AUC Std: 0.0053，AR@0.95 Std: 1.04x），凡差異未超出雜訊者，嚴格標註為「未超出雜訊」，不得隨意使用「基準」或「勝出」等定性字眼。
 
 ---

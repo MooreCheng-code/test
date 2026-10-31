@@ -38,7 +38,6 @@ from sklearn.model_selection import StratifiedKFold
 
 from labs._common import (
     get_pipeline_flags,
-    get_pipeline_flags,
     SNAPSHOT_DIR,
     build_pipeline,
     evaluate_fold_predictions,
@@ -84,8 +83,10 @@ def run_recall_alert_tradeoff_curve(
     model_code: str = "M3",
     n_splits: int = 5,
     random_state: int = 42,
+    pipeline: str = "project",
 ) -> tuple[pd.DataFrame, float]:
     """計算 Recall [0.80, 1.00] 與 AR 的實測權衡曲線。"""
+    pipe_flags = get_pipeline_flags(pipeline)
     cfg = load_best_params(model_code)
     m_params = cfg.get("best_params", {})
     imb = cfg.get("imbalance", "S0")
@@ -99,7 +100,7 @@ def run_recall_alert_tradeoff_curve(
     # 預先擬合各折取得驗證預測分數
     fold_scores = []
     for tr_idx, val_idx in skf.split(X_train, y_train):
-        pipe = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state)
+        pipe = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state, **pipe_flags)
         pipe.fit(X_train.iloc[tr_idx], y_train.iloc[tr_idx])
         val_s = get_score(pipe, X_train.iloc[val_idx])
         fold_scores.append((y_train.iloc[val_idx].to_numpy(), val_s))
@@ -152,8 +153,10 @@ def run_threshold_transfer_experiment(
     margins: list[float] = [0.0, 0.02, 0.04, 0.06],
     target_recalls: list[float] = [0.80, 0.90, 0.95],
     random_state: int = 42,
+    pipeline: str = "project",
 ) -> pd.DataFrame:
     """模擬 E4a 門檻轉移協定：訓練折內層 3 折 OOF 導出门檻，外層驗證折評估達標率。"""
+    pipe_flags = get_pipeline_flags(pipeline)
     cfg = load_best_params(model_code)
     m_params = cfg.get("best_params", {})
     imb = cfg.get("imbalance", "S0")
@@ -173,12 +176,12 @@ def run_threshold_transfer_experiment(
         inner_oof_scores = np.zeros(len(X_tr), dtype=float)
 
         for in_tr_idx, in_val_idx in inner_skf.split(X_tr, y_tr):
-            pipe_inner = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state)
+            pipe_inner = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state, **pipe_flags)
             pipe_inner.fit(X_tr.iloc[in_tr_idx], y_tr.iloc[in_tr_idx])
             inner_oof_scores[in_val_idx] = get_score(pipe_inner, X_tr.iloc[in_val_idx])
 
         # 2. 全外層訓練折擬合以取得外層驗證折分數
-        pipe_outer = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state)
+        pipe_outer = build_pipeline(model_code, imbalance=imb, model_params=m_params, seed=random_state, **pipe_flags)
         pipe_outer.fit(X_tr, y_tr)
         val_scores = get_score(pipe_outer, X_val)
 
@@ -314,8 +317,11 @@ def print_formal_e4a_comparison():
 def main():
     parser = argparse.ArgumentParser(description="Lab 06: Recall-Alert Curve & Threshold Transfer")
     parser.add_argument("--mode", choices=["quick", "standard", "full"], default="quick")
+    parser.add_argument("--quick", action="store_true", help="執行快速模式")
     parser.add_argument("--pipeline", choices=["project", "teaching"], default="project", help="前處理旗標 (project 關閉截尾, teaching 開啟截尾, 預設 project)")
     args = parser.parse_args()
+    if getattr(args, "quick", False):
+        args.mode = "quick"
 
     start_time = time.time()
     print("=" * 80)
@@ -336,7 +342,7 @@ def main():
     print("\n[2/3] 計算 Recall [0.80, 1.00] 權衡曲線...")
     n_splits = 3 if args.mode == "quick" else 5
     df_curve, random_guess_ar = run_recall_alert_tradeoff_curve(
-        X_train, y_train, model_code="M3", n_splits=n_splits, random_state=42
+        X_train, y_train, model_code="M3", n_splits=n_splits, random_state=42, pipeline=args.pipeline
     )
     curve_csv = os.path.join(OUTPUT_DIR, "recall_alert_curve.csv")
     df_curve.to_csv(curve_csv, index=False)
@@ -356,6 +362,7 @@ def main():
         margins=[0.0, 0.02, 0.04, 0.06],
         target_recalls=[0.80, 0.90, 0.95],
         random_state=42,
+        pipeline=args.pipeline,
     )
     transfer_csv = os.path.join(OUTPUT_DIR, "threshold_transfer.csv")
     df_transfer.to_csv(transfer_csv, index=False)

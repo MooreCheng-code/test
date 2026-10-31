@@ -142,6 +142,10 @@
 | **S5** | 邊界 SMOTE | `BorderlineSMOTE(sampling_strategy=0.3, k_neighbors=5)` | ❌ 未採用 |
 | **S6** | 混合採樣 | `SMOTETomek(sampling_strategy=0.3)` | ❌ 未採用 |
 
+> **S3 與 S6（TomekLinks）之等價性與管線敏感度**：
+> - 在 **teaching 管線（Winsorizer 啟用）** 下：高維分位數空間無孤立極端值，TomekLinks 跨 5 折每折剔除 0 筆樣本，S3 與 S6 數值完全相同（M1 PR-AUC 均為 0.3883，AR@0.95 均為 11.70x）。專案正式 E1a 表格（`e1a_imbalance_comparison.csv`）亦呈現相同的 `alert_ratio@recall_0.95_mean = 10.865926`。
+> - 在 **project 管線（Winsorizer 關閉，預設）** 下：長尾極端值使第 2 折 TomekLinks 實際剔除 2 筆邊界樣本（5,489 筆降至 5,487 筆，5 折平均每折剔除 0.4 筆），S3 與 S6 數值微幅不同（M1 S3 PR-AUC 0.3874、AR@0.95 8.95x 對比 S6 PR-AUC 0.3872、AR@0.95 9.00x，PR-AUC 差距 0.000143，AR 差距 0.0457x）。
+
 #### 基準與候選模型清單（`bankruptcy/src/pipelines.py:131-210`）
 
 | 模型代碼 | 分類器類別 | 實作套件 | 預設超參數要點 | 最終集成模型 $E_A$ 角色 |

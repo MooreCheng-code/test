@@ -113,6 +113,7 @@ def run_lab(quick: bool = True, pipeline: str = "project") -> tuple[pd.DataFrame
                     imbalance=strat,
                     model_params=base_params,
                     seed=seed + fold_idx,
+                    **pipe_flags,
                 )
                 pipe.fit(X_tr, y_tr)
                 score_val = get_score(pipe, X_val)
@@ -157,47 +158,102 @@ def run_lab(quick: bool = True, pipeline: str = "project") -> tuple[pd.DataFrame
 
     df_results = pd.DataFrame(records)
 
-    # 3. 讀取專案正式 E1a 結果進行對照
+    # 3. 讀取專案正式 E1a 結果進行對照 (僅對 E1a 存在之模型對照，其餘填空並註明「E1a 無此模型」)
     e1a_file = TABLES_DIR / "e1a_imbalance_comparison.csv"
     if e1a_file.is_file():
-        df_e1a = pd.read_csv(e1a_file)
-        # 篩選出 M1 與 M3 的 quantile scaler
-        e1a_sub = df_e1a[
-            (df_e1a["model"].isin(["M1", "M3"])) & (df_e1a["scaler"] == "quantile")
-        ][["model", "strategy", "pr_auc_mean", "alert_ratio@recall_0.95_mean"]].rename(
-            columns={
-                "pr_auc_mean": "e1a_formal_pr_auc",
-                "alert_ratio@recall_0.95_mean": "e1a_formal_ar95",
-            }
-        )
-        df_results = df_results.merge(
-            e1a_sub,
-            left_on=["model_code", "strategy"],
-            right_on=["model", "strategy"],
-            how="left",
-        ).drop(columns=["model"], errors="ignore")
+        try:
+            df_e1a = pd.read_csv(e1a_file)
+            e1a_models = set(df_e1a["model"].unique()) if "model" in df_e1a.columns else set()
+            models_in_e1a = [m for m in model_list if m in e1a_models]
 
-        # 計算策略在 Lab 與正式 E1a 中的排名 (PR-AUC 越高越優、AR@0.95 越低越優)
-        df_results["lab_pr_rank"] = df_results.groupby("model_code")["pr_auc_mean"].rank(ascending=False).astype(int)
-        df_results["lab_ar95_rank"] = df_results.groupby("model_code")["ar95_mean"].rank(ascending=True).astype(int)
-        df_results["e1a_pr_rank"] = df_results.groupby("model_code")["e1a_formal_pr_auc"].rank(ascending=False).astype(int)
-        df_results["e1a_ar95_rank"] = df_results.groupby("model_code")["e1a_formal_ar95"].rank(ascending=True).astype(int)
+            # 初始化欄位
+            df_results["e1a_formal_pr_auc"] = np.nan
+            df_results["e1a_formal_ar95"] = np.nan
+            df_results["lab_pr_rank"] = pd.Series(dtype="Int64")
+            df_results["lab_ar95_rank"] = pd.Series(dtype="Int64")
+            df_results["e1a_pr_rank"] = pd.Series(dtype="Int64")
+            df_results["e1a_ar95_rank"] = pd.Series(dtype="Int64")
 
-        print("\n" + "=" * 70)
-        print("Lab 與正式 E1a 策略排名對照 (口徑差異說明：Lab 為 5折x1次重複，E1a 為 5折x3次重複):")
-        print("=" * 70)
-        for m_code in model_list:
-            sub = df_results[df_results["model_code"] == m_code]
-            print(f"\n[{m_code}] 策略對照表:")
-            print(f"{'策略':<4} | {'Lab PR':<8} {'E1a PR':<8} {'PR秩差':<6} | {'Lab AR95':<10} {'E1a AR95':<10} {'AR秩差':<6} | {'機率偏移':<8}")
-            print("-" * 70)
-            for _, r in sub.iterrows():
-                pr_rank_diff = r["lab_pr_rank"] - r["e1a_pr_rank"]
-                ar_rank_diff = r["lab_ar95_rank"] - r["e1a_ar95_rank"]
-                print(
-                    f"{r['strategy']:<4} | {r['pr_auc_mean']:<8.4f} {r['e1a_formal_pr_auc']:<8.4f} {pr_rank_diff:+2d}     | "
-                    f"{r['ar95_mean']:<10.2f} {r['e1a_formal_ar95']:<10.2f} {ar_rank_diff:+2d}     | {r['proba_shift_ratio']:<8.1f}x"
+            # 計算 Lab 內部排名 (每個模型獨立排名，method='min' 處理平手)
+            for m_code in model_list:
+                m_mask = df_results["model_code"] == m_code
+                df_results.loc[m_mask, "lab_pr_rank"] = (
+                    df_results.loc[m_mask, "pr_auc_mean"].rank(ascending=False, method="min").astype(int)
                 )
+                df_results.loc[m_mask, "lab_ar95_rank"] = (
+                    df_results.loc[m_mask, "ar95_mean"].rank(ascending=True, method="min").astype(int)
+                )
+
+            if models_in_e1a:
+                e1a_sub = df_e1a[
+                    (df_e1a["model"].isin(models_in_e1a)) & (df_e1a["scaler"] == "quantile")
+                ][["model", "strategy", "pr_auc_mean", "alert_ratio@recall_0.95_mean"]].rename(
+                    columns={
+                        "model": "model_code",
+                        "pr_auc_mean": "e1a_formal_pr_auc_val",
+                        "alert_ratio@recall_0.95_mean": "e1a_formal_ar95_val",
+                    }
+                )
+                df_results = df_results.merge(
+                    e1a_sub,
+                    on=["model_code", "strategy"],
+                    how="left",
+                )
+                if "e1a_formal_pr_auc_val" in df_results.columns:
+                    df_results["e1a_formal_pr_auc"] = df_results["e1a_formal_pr_auc_val"]
+                    df_results.drop(columns=["e1a_formal_pr_auc_val"], inplace=True)
+                if "e1a_formal_ar95_val" in df_results.columns:
+                    df_results["e1a_formal_ar95"] = df_results["e1a_formal_ar95_val"]
+                    df_results.drop(columns=["e1a_formal_ar95_val"], inplace=True)
+
+                # 計算 E1a 排名 (僅針對 models_in_e1a)
+                for m_code in models_in_e1a:
+                    m_mask = (df_results["model_code"] == m_code) & df_results["e1a_formal_pr_auc"].notna()
+                    if m_mask.any():
+                        df_results.loc[m_mask, "e1a_pr_rank"] = (
+                            df_results.loc[m_mask, "e1a_formal_pr_auc"].rank(ascending=False, method="min").astype(int)
+                        )
+                        df_results.loc[m_mask, "e1a_ar95_rank"] = (
+                            df_results.loc[m_mask, "e1a_formal_ar95"].rank(ascending=True, method="min").astype(int)
+                        )
+
+            print("\n" + "=" * 70)
+            print("Lab 與正式 E1a 策略排名對照 (口徑差異說明：Lab 為 5折x1次重複，E1a 為 5折x3次重複):")
+            print("=" * 70)
+            for m_code in model_list:
+                sub = df_results[df_results["model_code"] == m_code]
+                if m_code not in models_in_e1a:
+                    print(f"\n[{m_code}] 策略對照表: (E1a 無此模型，僅列出 Lab 實測數據)")
+                    print(f"{'策略':<4} | {'Lab PR':<8} | {'Lab AR95':<10} | {'機率偏移':<8} | {'Brier':<8}")
+                    print("-" * 55)
+                    for _, r in sub.iterrows():
+                        print(
+                            f"{r['strategy']:<4} | {r['pr_auc_mean']:<8.4f} | "
+                            f"{r['ar95_mean']:<10.2f} | {r['proba_shift_ratio']:<8.1f}x | {r['brier_mean']:<8.4f}"
+                        )
+                else:
+                    print(f"\n[{m_code}] 策略對照表:")
+                    print(f"{'策略':<4} | {'Lab PR':<8} {'E1a PR':<8} {'PR秩差':<6} | {'Lab AR95':<10} {'E1a AR95':<10} {'AR秩差':<6} | {'機率偏移':<8}")
+                    print("-" * 70)
+                    for _, r in sub.iterrows():
+                        pr_e1a = f"{r['e1a_formal_pr_auc']:<8.4f}" if pd.notna(r['e1a_formal_pr_auc']) else "N/A     "
+                        ar_e1a = f"{r['e1a_formal_ar95']:<10.2f}" if pd.notna(r['e1a_formal_ar95']) else "N/A       "
+                        pr_rank_diff = (
+                            f"{int(r['lab_pr_rank'] - r['e1a_pr_rank']):+2d}    "
+                            if pd.notna(r["lab_pr_rank"]) and pd.notna(r["e1a_pr_rank"])
+                            else "N/A   "
+                        )
+                        ar_rank_diff = (
+                            f"{int(r['lab_ar95_rank'] - r['e1a_ar95_rank']):+2d}    "
+                            if pd.notna(r["lab_ar95_rank"]) and pd.notna(r["e1a_ar95_rank"])
+                            else "N/A   "
+                        )
+                        print(
+                            f"{r['strategy']:<4} | {r['pr_auc_mean']:<8.4f} {pr_e1a} {pr_rank_diff} | "
+                            f"{r['ar95_mean']:<10.2f} {ar_e1a} {ar_rank_diff} | {r['proba_shift_ratio']:<8.1f}x"
+                        )
+        except Exception as e:
+            print(f"[警告] E1a 對照過程發生非預期錯誤，略過對照不中斷: {e}")
 
     # 4. 輸出儲存
     out_dir = LABS_OUTPUTS_DIR / "lab_04"
