@@ -1,0 +1,235 @@
+"""labs/test_common.py - Unit tests for labs/_common.py.
+
+Verifies:
+1. Guard assertion halts on full data (6,819 rows) or invalid shapes.
+2. Training data loader respects safe 5,455 rows and 176 positives.
+3. 5-fold CV splits have ~35-36 positives per fold.
+4. load_best_params() successfully loads frozen JSON files read-only.
+5. save_manifest() creates valid JSON with Git HEAD and package versions.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+# Ensure repository root is on sys.path
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+import numpy as np
+import pandas as pd
+
+from labs._common import (
+    assert_train_data_guard,
+    get_cv_splitter,
+    get_pipeline_flags,
+    get_project_pipeline_flags,
+    load_best_params,
+    load_train_data,
+    save_manifest,
+)
+
+
+class TestLabCommon(unittest.TestCase):
+    """Test suite for lab common infrastructure and safety guards."""
+
+    def test_guard_success_on_valid_train_data(self) -> None:
+        """Verify that valid 5455 rows and 176 positives pass the guard."""
+        X_mock = pd.DataFrame(np.zeros((5455, 10)))
+        y_mock = pd.Series([1] * 176 + [0] * (5455 - 176))
+        # Should not raise
+        assert_train_data_guard(X_mock, y_mock)
+
+    def test_guard_failure_on_full_dataset(self) -> None:
+        """Negative test: Passing 6,819 rows must trigger RuntimeError."""
+        X_full = pd.DataFrame(np.zeros((6819, 10)))
+        y_full = pd.Series([1] * 220 + [0] * (6819 - 220))
+        with self.assertRaises(RuntimeError) as ctx:
+            assert_train_data_guard(X_full, y_full)
+        self.assertIn("GUARD FAILURE", str(ctx.exception))
+        self.assertIn("6819 rows", str(ctx.exception))
+
+    def test_guard_failure_on_wrong_row_count(self) -> None:
+        """Negative test: Passing wrong row count (e.g. 5000) must trigger RuntimeError."""
+        X_wrong = pd.DataFrame(np.zeros((5000, 10)))
+        y_wrong = pd.Series([1] * 176 + [0] * (5000 - 176))
+        with self.assertRaises(RuntimeError) as ctx:
+            assert_train_data_guard(X_wrong, y_wrong)
+        self.assertIn("GUARD FAILURE", str(ctx.exception))
+        self.assertIn("5455", str(ctx.exception))
+
+    def test_guard_failure_on_wrong_positives(self) -> None:
+        """Negative test: Passing wrong positive count (e.g. 150) must trigger RuntimeError."""
+        X_mock = pd.DataFrame(np.zeros((5455, 10)))
+        y_mock = pd.Series([1] * 150 + [0] * (5455 - 150))
+        with self.assertRaises(RuntimeError) as ctx:
+            assert_train_data_guard(X_mock, y_mock)
+        self.assertIn("GUARD FAILURE", str(ctx.exception))
+        self.assertIn("176", str(ctx.exception))
+
+    def test_load_train_data_real(self) -> None:
+        """Verify real load_train_data() call returns exact train shape."""
+        X, y = load_train_data(check_guard=True)
+        self.assertEqual(len(X), 5455)
+        self.assertEqual(len(y), 5455)
+        self.assertEqual(int(y.sum()), 176)
+
+    def test_cv_splits_positive_counts(self) -> None:
+        """Verify 5-fold CV on 5455 train samples yields ~35-36 positives per fold."""
+        X, y = load_train_data(check_guard=True)
+        skf = get_cv_splitter(n_splits=5, n_repeats=1, seed=42)
+        pos_counts = []
+        for train_idx, val_idx in skf.split(X, y):
+            val_pos = int(y.iloc[val_idx].sum())
+            pos_counts.append(val_pos)
+            self.assertEqual(len(val_idx), len(X) // 5 + (1 if len(val_idx) > len(X) // 5 else 0))
+            self.assertIn(val_pos, [35, 36])
+        self.assertEqual(sum(pos_counts), 176)
+
+    def test_load_best_params_all_models(self) -> None:
+        """Verify read-only loading of best_params for M1-M5."""
+        for m in ["M1", "M2", "M3", "M4", "M5"]:
+            data = load_best_params(m)
+            self.assertEqual(data["model"], m)
+            self.assertIn("best_params", data)
+            self.assertIn("imbalance", data)
+
+    def test_save_manifest(self) -> None:
+        """Verify run_manifest.json contains required metadata fields."""
+        temp_dir = Path(tempfile.mkdtemp())
+        try:
+            params = {"lr": 0.05, "n_est": 100}
+            manifest_file = save_manifest(
+                output_dir=temp_dir,
+                lab_id="test_lab",
+                params=params,
+                elapsed_seconds=1.23,
+                seed=42,
+            )
+            self.assertTrue(manifest_file.is_file())
+            with open(manifest_file, "r", encoding="utf-8") as f:
+                content = json.load(f)
+            self.assertEqual(content["lab_id"], "test_lab")
+            self.assertEqual(content["seed"], 42)
+            self.assertIn("git_head", content)
+            self.assertIn("git_dirty", content)
+            self.assertIn("git_dirty_labs", content)
+            self.assertIn("git_dirty_other_count", content)
+            self.assertIsInstance(content["git_dirty_labs"], bool)
+            self.assertIsInstance(content["git_dirty_other_count"], int)
+            self.assertIn("packages", content)
+            self.assertEqual(content["params"], params)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_pessimistic_tie_breaking_toy_data(self) -> None:
+        """Verify that when all samples share identical scores, pessimistic AR equals N/P."""
+        from bankruptcy.src.metrics import alert_ratio_at_recall
+
+        # 20 samples: 2 positive, 18 negative (P=2, N=20). All have identical score 0.5
+        y_toy = np.array([1, 1] + [0] * 18)
+        scores_toy = np.array([0.5] * 20)
+
+        # To capture 95% of positives (needs 2/2), all 20 tied samples must be alerted
+        ar = alert_ratio_at_recall(y_toy, scores_toy, target_recall=0.95)
+        expected_ar = 20 / 2  # 10.0
+        self.assertAlmostEqual(ar, expected_ar, places=5)
+
+    def test_stratification_balance_max_diff(self) -> None:
+        """Verify that StratifiedKFold maintains positive balance across folds with max diff <= 1."""
+        from sklearn.model_selection import StratifiedKFold
+        y_dummy = np.array([1] * 35 + [0] * (1000 - 35))
+        for k in [3, 5, 10]:
+            skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
+            pos_counts = [int(y_dummy[val_idx].sum()) for _, val_idx in skf.split(np.zeros(len(y_dummy)), y_dummy)]
+            self.assertLessEqual(max(pos_counts) - min(pos_counts), 1)
+
+    def test_pipeline_flags_ast_extraction(self) -> None:
+        """Verify get_project_pipeline_flags extracts exact flags from tune.py AST."""
+        flags = get_project_pipeline_flags()
+        expected = {
+            "scaler": "quantile",
+            "use_winsorizer": False,
+            "use_corr_filter": True,
+            "use_large_indicator": False,
+        }
+        self.assertEqual(flags, expected)
+
+    def test_pipeline_flags_modes(self) -> None:
+        """Verify project and teaching mode flags."""
+        proj_flags = get_pipeline_flags("project")
+        self.assertFalse(proj_flags["use_winsorizer"])
+        self.assertEqual(proj_flags["scaler"], "quantile")
+        self.assertTrue(proj_flags["use_corr_filter"])
+        self.assertFalse(proj_flags["use_large_indicator"])
+
+        teach_flags = get_pipeline_flags("teaching")
+        self.assertTrue(teach_flags["use_winsorizer"])
+        self.assertEqual(teach_flags["scaler"], "quantile")
+        self.assertTrue(teach_flags["use_corr_filter"])
+        self.assertFalse(teach_flags["use_large_indicator"])
+
+        with self.assertRaises(ValueError):
+            get_pipeline_flags("invalid_mode")
+
+    def test_pipeline_parity_with_thresholding_and_best_params(self) -> None:
+        """Verify pipeline flags match thresholding.py AST and best_params instantiation."""
+        import ast
+        from bankruptcy.src.pipelines import build_pipeline
+
+        # Verify thresholding.py AST build_pipeline flags
+        th_file = REPO_ROOT / "bankruptcy" / "src" / "thresholding.py"
+        with open(th_file, "r", encoding="utf-8") as f:
+            th_tree = ast.parse(f.read())
+
+        th_flags = None
+        for node in ast.walk(th_tree):
+            if isinstance(node, ast.Call):
+                func_name = getattr(node.func, "id", getattr(node.func, "attr", ""))
+                if func_name == "build_pipeline":
+                    kw_map = {}
+                    for kw in node.keywords:
+                        if kw.arg in ("scaler", "use_winsorizer", "use_corr_filter", "use_large_indicator"):
+                            kw_map[kw.arg] = ast.literal_eval(kw.value)
+                    if len(kw_map) == 4:
+                        th_flags = kw_map
+                        break
+
+        proj_flags = get_project_pipeline_flags()
+        self.assertEqual(th_flags, proj_flags, "tune.py flags and thresholding.py flags must match exactly!")
+
+        # Verify pipeline construction with best_params for M3, M4, M5
+        for m in ["M3", "M4", "M5"]:
+            bp_data = load_best_params(m)
+            pipe = build_pipeline(
+                model_name=m,
+                imbalance=bp_data["imbalance"],
+                model_params=bp_data["best_params"],
+                **proj_flags,
+            )
+            step_names = [step[0] for step in pipe.steps]
+            # Winsorizer step exists but enabled must be False
+            self.assertIn("winsorizer", step_names)
+            self.assertFalse(pipe.named_steps["winsorizer"].enabled, f"Model {m} project pipeline winsorizer must be disabled")
+            # LargeValueIndicator step exists but enabled must be False
+            self.assertIn("large_value_indicator", step_names)
+            self.assertFalse(pipe.named_steps["large_value_indicator"].enabled, f"Model {m} project pipeline large_indicator must be disabled")
+            # QuantileScaler must have kind == 'quantile'
+            self.assertIn("scaler", step_names)
+            self.assertEqual(pipe.named_steps["scaler"].kind, "quantile")
+            # CorrelationFilter must be enabled
+            self.assertIn("corr_filter", step_names)
+            self.assertTrue(pipe.named_steps["corr_filter"].enabled, f"Model {m} project pipeline corr_filter must be enabled")
+
+
+
+
+if __name__ == "__main__":
+    unittest.main()
