@@ -100,13 +100,17 @@ FORBIDDEN_WORDS = [
 ALLOWED_NO_EVIDENCE_REASONS = [
     "定義",
     "玩具例子",
+    "例子",
     "一般經驗",
     "理論推導",
     "業界通則",
+    "業界常規",
     "合規要求",
+    "規格要求",
     "限制說明",
     "架構描述",
     "程式規範",
+    "假設情境",
 ]
 
 # Strict 15-fold misnomer (must use 5 折 × 3 次重複 = 15 次外層評估)
@@ -447,6 +451,16 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
         return False, f"Column '{col_name}' not found in {file_rel}", attrs
         
     if where_expr:
+        # Strict AST column verification
+        try:
+            tree = ast.parse(where_expr, mode='eval')
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name):
+                    if node.id not in {'True', 'False', 'None'} and node.id not in df.columns:
+                        return False, f"where expression references non-existent column '{node.id}' in {file_rel} (available columns: {list(df.columns)})", attrs
+        except Exception as e:
+            return False, f"Failed to parse where expression '{where_expr}': {e}", attrs
+
         try:
             filtered = df.query(where_expr)
         except Exception as e:
@@ -460,7 +474,7 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
     if rows_req:
         n_rows = int(rows_req)
         if len(filtered) != n_rows:
-            return False, f"Query returned {len(filtered)} rows, expected {n_rows}", attrs
+            return False, f"Query returned {len(filtered)} rows in {file_rel}, expected {n_rows}", attrs
         if agg_method == "mean":
             actual_val = filtered[col_name].mean()
         elif agg_method == "min":
@@ -470,8 +484,10 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
         else:
             return False, f"Unknown agg method '{agg_method}'", attrs
     else:
-        if len(filtered) != 1:
-            return False, f"Query returned {len(filtered)} rows, expected exactly 1 (use rows=N and agg=... for multiple rows)", attrs
+        if len(filtered) == 0:
+            return False, f"Query returned 0 rows in {file_rel} for where='{where_expr}'", attrs
+        elif len(filtered) > 1:
+            return False, f"Query returned {len(filtered)} rows in {file_rel} for where='{where_expr}', expected exactly 1 (use rows=N and agg=... for multiple rows)", attrs
         actual_val = filtered[col_name].iloc[0]
         
     try:
@@ -617,6 +633,19 @@ def extract_numbers_from_text(text: str) -> list[tuple[str, float]]:
         if abs(val) <= 1.0:
             res.append((num_str, val * 100.0))
 
+    # 6. Integers with units: 家、筆、欄、次、折、項、個、檔
+    for m in re.finditer(r'(?<![A-Za-z0-9_])(\d+)\s*([家筆欄次折項個檔])', clean):
+        raw = m.group(0)
+        val = float(m.group(1))
+        res.append((raw, val))
+        res.append((m.group(1), val))
+
+    # 7. Pure integers >= 3 digits (e.g. 1091, 1320, 294)
+    for m in re.finditer(r'(?<![A-Za-z0-9_.-])(\d{3,})(?![A-Za-z0-9_.-])', clean):
+        raw = m.group(1)
+        val = float(raw)
+        res.append((raw, val))
+
     return res
 
 
@@ -648,7 +677,7 @@ def check_statement_numbers(statement: str, verified_nums: list[Any]) -> list[st
         
     for raw_s, cands in raw_candidates.items():
         matched = False
-        clean_s = raw_s.rstrip("%").rstrip("xX倍").strip()
+        clean_s = re.sub(r'[家筆欄次折項個檔%xX倍\s]', '', raw_s)
         if clean_s in clean_str_candidates or raw_s in clean_str_candidates:
             matched = True
         else:
@@ -1496,20 +1525,23 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
 
             # Check evidence tags
             if stripped.startswith("<!-- evidence"):
-                ev_match = EVIDENCE_TAG_PATTERN.search(stripped)
-                if ev_match:
+                all_verified_list = []
+                for ev_match in EVIDENCE_TAG_PATTERN.finditer(stripped):
                     ok, msg, attrs = verify_evidence_tag(ev_match.group(1), REPO_ROOT)
                     if not ok:
                         print(f"[{rel_path}:{idx}] [ERROR] Evidence verification failed: {msg}")
                         errors += 1
                     else:
-                        # Check unverified numbers in current_claim_line
-                        if current_claim_line:
-                            verified_list = attrs.get("_verified_nums", [attrs.get("expect", "0")])
-                            unv = check_statement_numbers(current_claim_line, verified_list)
-                            if unv:
-                                print(f"[{rel_path}:{idx}] [WARNING] Unverified number(s) in empirical claim: {unv}")
-                                warnings += 1
+                        all_verified_list.extend(attrs.get("_verified_nums", [attrs.get("expect", "0")]))
+                
+                # Check unverified numbers in current_claim_line
+                if current_claim_line:
+                    # Check if exempted by no-evidence tag on claim line or evidence line
+                    if not (NO_EVIDENCE_PATTERN.search(current_claim_line) or NO_EVIDENCE_PATTERN.search(stripped)):
+                        unv = check_statement_numbers(current_claim_line, all_verified_list)
+                        if unv:
+                            print(f"[{rel_path}:{idx}] [WARNING] Unverified number(s) in empirical claim: {unv}")
+                            warnings += 1
                 current_claim_line = ""
                 continue
 
@@ -1575,6 +1607,24 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
         content = md_file.read_text(encoding="utf-8")
         lines = content.splitlines()
         
+        # Global file scan for no-evidence tags to record all reasons and validate them
+        for idx, line in enumerate(lines, 1):
+            for m in NO_EVIDENCE_PATTERN.finditer(line):
+                reason = m.group(1).strip() if m.group(1) else ""
+                if not reason:
+                    print(f"[{rel_file}:{idx}] [ERROR] Missing reason in no-evidence tag")
+                    errors += 1
+                else:
+                    matched_allowed = any(allowed in reason for allowed in ALLOWED_NO_EVIDENCE_REASONS)
+                    if not matched_allowed:
+                        print(f"[{rel_file}:{idx}] [ERROR] Invalid no-evidence reason '{reason}'. Allowed reasons are: {ALLOWED_NO_EVIDENCE_REASONS}")
+                        errors += 1
+                    else:
+                        for allowed in ALLOWED_NO_EVIDENCE_REASONS:
+                            if allowed in reason:
+                                no_evidence_counts[allowed] = no_evidence_counts.get(allowed, 0) + 1
+                                break
+
         # Track tags on lines
         line_tags: dict[int, list[tuple[str, dict[str, Any]]]] = {}
         for idx, line in enumerate(lines, 1):
@@ -1656,16 +1706,6 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
                 m_no_ev = NO_EVIDENCE_PATTERN.search(lines[idx])
             
             if m_no_ev:
-                reason = m_no_ev.group(1).strip()
-                matched_allowed = any(allowed in reason for allowed in ALLOWED_NO_EVIDENCE_REASONS)
-                if not matched_allowed:
-                    print(f"[{rel_file}:{idx}] [ERROR] Invalid no-evidence reason '{reason}'. Allowed reasons are: {ALLOWED_NO_EVIDENCE_REASONS}")
-                    errors += 1
-                else:
-                    for allowed in ALLOWED_NO_EVIDENCE_REASONS:
-                        if allowed in reason:
-                            no_evidence_counts[allowed] = no_evidence_counts.get(allowed, 0) + 1
-                            break
                 continue
                 
             has_cmd = bool(CMD_TAG_PATTERN.search(line) or (idx < len(lines) and CMD_TAG_PATTERN.search(lines[idx])) or in_cmd_section)
@@ -2355,6 +2395,7 @@ def main():
     parser.add_argument("--glossary", action="store_true", help="Run glossary check.")
     parser.add_argument("--glossary-file", type=str, default=None, help="Custom glossary markdown file to check.")
     parser.add_argument("--include-drafts", action="store_true", help="Include _drafts directory in standard markdown checks.")
+    parser.add_argument("--strict", action="store_true", help="Enable strict evidence checking.")
     args = parser.parse_args()
 
     total_err = 0
@@ -2381,7 +2422,7 @@ def main():
         e, w = check_commands_in_docs(target)
         total_err += e
         total_warn += w
-    elif args.evidence:
+    elif args.evidence or args.strict:
         target = Path(args.path) if args.path else None
         e, w = check_evidence_tags_all(target, include_drafts=args.include_drafts)
         total_err += e
