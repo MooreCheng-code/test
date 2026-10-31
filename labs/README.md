@@ -1,6 +1,6 @@
 # 《企業破產預測》互動式參數實驗室 (Labs)
 
-本目錄提供 8 支可獨立執行的參數實驗腳本（`lab_01`～`lab_08` 全數完成），專門設計給學習者以「動手實作（Hands-on）」方式直觀觀察超參數對模型行為、預警指標與泛化差距的影響。
+本目錄提供 9 支可獨立執行的參數實驗腳本（`lab_01`～`lab_09` 全數完成），專門設計給學習者以「動手實作（Hands-on）」方式直觀觀察超參數對模型行為、預警指標與泛化差距的影響。
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### 0.1 專案最終模型（M3、M4、M5）前處理旗標清單（附行號）
 在專案原始碼中，最終模型所採納的前處理配置如下：
-- `bankruptcy/src/tune.py:897`（E2b 最佳參數固化訓練）：
+- `bankruptcy/src/tune.py:897`（E2b 固化參數訓練）：
   `scaler="quantile"`, `use_winsorizer=False`, `use_corr_filter=True`, `use_large_indicator=False`, `use_imputer=False`
 - `bankruptcy/src/ensemble.py:159`（E3 集成候選模型評估）：
   `scaler="quantile"`, `use_winsorizer=False`, `use_corr_filter=True`, `use_large_indicator=False`, `use_imputer=False`
@@ -17,13 +17,18 @@
 - `bankruptcy/src/pipelines.py:212-218`（`build_pipeline` 函式宣告預設值）：
   `scaler="quantile"`, `use_winsorizer=True`, `use_corr_filter=True`, `use_large_indicator=False`, `use_imputer=False`
 
-### 0.2 Labs（lab_01～lab_08）前處理旗標與專案管線之差異說明
+### 0.2 Labs（lab_01～lab_09）前處理旗標與管線支援說明
+- **各 Lab 對 `--pipeline` 旗標之支援狀況**：
+  1. **完整傳遞支援（`lab_01`～`lab_05`）**：腳本支援 `--pipeline {project,teaching}` 旗標並明確傳遞至 `build_pipeline(..., **pipe_flags)`。在 `--pipeline project` 下關閉 Winsorizer（折內保留 70～73 欄，與專案最終管線一致）；在 `--pipeline teaching` 下開啟 Winsorizer（折內保留 74～77 欄，沿用教學預設值）。
+  2. **維持教學管線（`lab_06`～`lab_08`）**：腳本未將 `--pipeline` 傳遞至底層 `build_pipeline` 調用，維持使用教學管線（開啟 Winsorizer 截尾），專注於其本身評估主題（門檻轉移、CV 折數效應、種子穩定性），故兩種模式之量測指標維持一致。
+  3. **專案管線固化（`lab_09`）**：樹數消融實驗直接採用專案正式管線（`--pipeline project`，關閉 Winsorizer），專門評估 ExtraTrees 樹數與分數空隙退化機制。
 - **旗標對照總表**：
   | 模組 | `scaler` | `use_winsorizer` | `use_corr_filter` | `use_large_indicator` | 與專案最終管線（E2b/E3/E4c）之差異說明 |
   | :--- | :---: | :---: | :---: | :---: | :--- |
   | **專案最終模型** | `quantile` | `False` | `True` (0.95) | `False` | 基準正式管線（折內保留 70～73 欄，全訓練集 72 欄）。 |
-  | **Labs 預設** (`--pipeline project`) | `quantile` | `False` | `True` (0.95) | `False` | **與專案最終管線一致（無差異）**，折內保留 70～73 欄。 |
-  | **Labs 教學模式** (`--pipeline teaching`) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 宣告預設值（開啟 Winsorizer，折內保留 74～77 欄）。 |
+  | **Labs (lab_01～lab_05, lab_09)** (`--pipeline project`) | `quantile` | `False` | `True` (0.95) | `False` | **與專案最終管線一致（無差異）**，折內保留 70～73 欄。 |
+  | **Labs (lab_01～lab_05)** (`--pipeline teaching`) | `quantile` | `True` | `True` (0.95) | `False` | 沿用 `build_pipeline` 宣告預設值（開啟 Winsorizer，折內保留 74～77 欄）。 |
+  | **Labs (lab_06～lab_08)** | `quantile` | `True` | `True` (0.95) | `False` | 維持教學管線（開啟 Winsorizer，未傳遞 pipeline 旗標至底層構建）。 |
   | `lab_05` (前處理消融) | 消融比較 | 消融比較 | 消融比較 | `False` | **專門消融比較**「截尾開 vs 關」與各縮放器之敏感度差異。 |
 - **專案關閉截尾之決策依據查核**：
   1. 查核 `bankruptcy/outputs/tables/e1b_ablation.csv` 與 `e1b_paired_vs_default.csv` 顯示：E1b 實際僅對 M1（邏輯迴歸）與 M2（隨機森林）評估過關閉截尾（`winsorizer_off`）：
@@ -51,13 +56,14 @@
 | **lab_06** | 召回率權衡與門檻轉移達標 | 目標召回率曲線、隨機猜測基準線、安全邊際 $m$、達標率 | **已完成** | `python labs/lab_06_recall_alert_curve.py --mode quick` | 約 36 秒 | `labs/outputs/lab_06/` | `lab_06_threshold_transfer_snapshot.csv` |
 | **lab_07** | CV 折數、重複次數與樣本量效應 | CV 折數 $K$、重複次數 $R$、折內正樣本數、階梯化不確定性 | **已完成** | `python labs/lab_07_cv_folds_repeats.py --mode quick` | 約 185 秒 | `labs/outputs/lab_07/` | `lab_07_cv_matrix_snapshot.csv` |
 | **lab_08** | 種子穩定性與隨機性分解 | 演算法隨機種子、切分隨機種子、方差分解 | **已完成** | `python labs/lab_08_seed_stability.py --mode quick` | 約 144 秒 | `labs/outputs/lab_08/` | `lab_08_seed_variance_summary_snapshot.csv` |
+| **lab_09** | ExtraTrees 樹數消融與分數空隙退化機制 | `n_estimators`、樹數消融、分數空隙、唯一分數、同分門檻 | **已完成** | `python labs/lab_09_tree_count_ablation.py --pipeline project` | 約 75 秒 | `labs/outputs/lab_09/` | `lab_09_tree_count_ablation_snapshot.csv` |
 
 ---
 
 ## 2. 環境需求與執行指南
 
 ### 2.1 環境與相依套件
-本實驗室直接使用專案現有 Python 環境，**完全不需安裝任何額外套件**：
+本實驗室直接使用專案現有 Python 環境，**無須安裝任何額外套件**：
 - Python $\ge 3.10$
 - `numpy`、`pandas`、`scipy`、`scikit-learn`、`imbalanced-learn`
 - `lightgbm`、`xgboost`、`optuna`
@@ -67,8 +73,8 @@
 每支 Lab 腳本均提供檔頭集中參數字典 `PARAMS`，並支援三種執行模式：
 - **快速模式（預設 `--quick` 或 `--mode quick`）**：在訓練集上採用縮減網格或折數，確保每支腳本於 $\le 3$ 分鐘內跑完。
 - **標準模式（`--standard` 或 `--mode standard`）**：採用 5 折 $\times$ 1 次重複，使用標準搜尋網格。
-- **完整模式（`--full` 或 `--mode full`）**：採用 5 折 $\times$ 3 次重複（共 15 折），使用完整搜尋網格與專案正式超參數。
-- **F-02 專用擴大模式（`--f02-extended`）**：專為 `lab_03` 設計之 45 組配對深入檢定模式（15 折 $\times$ 3 模型種子）。
+- **完整模式（`--full` 或 `--mode full`）**：採用 5 折 $\times$ 3 次重複（5 折 × 3 次重複 = 15 次外層評估），使用完整搜尋網格與專案正式超參數。
+- **F-02 專用擴大模式（`--f02-extended`）**：專為 `lab_03` 設計之 45 組配對深入檢定模式（15 次外層評估 $\times$ 3 模型種子）。
 
 ```powershell
 # 執行單一 Lab（快速模式，均在 3 分鐘內跑完）
@@ -98,7 +104,7 @@ python labs/test_common.py
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **快速模式**<br>(`quick`) | `--quick`<br>或 `--mode quick` | 3 折或 5 折 $\times$ 1 次重複 | 網格點數精簡至 2～4 點 | 樹數縮減至 50～100 棵；精簡代表性模型 | **冒煙測試專用**：用於快速驗證腳本與演算法管線能正常執行（每支腳本 $\le 3$ 分鐘）。<br>⚠️ **【重要聲明】quick 模式結論品質低於 standard，不能拿來下正式科學結論，僅用於確認程式可跑。** |
 | **標準模式**<br>(`standard`) | `--standard`<br>或 `--mode standard` | 5 折 $\times$ 1 次重複 | 標準網格（涵蓋主要關鍵候選值） | 樹數 100～200 棵；評估完整模型列表 | **教學探索與參數敏感度觀察**：指標趨勢具備代表性，可作為課堂討論與超參數行為分析基礎。 |
-| **完整模式**<br>(`full`) | `--full`<br>或 `--mode full` | 5 折 $\times$ 3 次重複<br>（共 15 折外層評估） | 完整細緻網格（與正式實驗對齊） | 樹數 400～600 棵（依固化參數設定） | **高精度重現分析**：消除抽樣隨機性，方差與 E1～E4 正式實驗完全對齊，計算耗時較長。 |
+| **完整模式**<br>(`full`) | `--full`<br>或 `--mode full` | 5 折 $\times$ 3 次重複<br>（5 折 × 3 次重複 = 15 次外層評估） | 完整細緻網格（與正式實驗對齊） | 樹數 400～600 棵（依固化參數設定） | **高精度重現分析**：消除抽樣隨機性，方差與 E1～E4 正式實驗完全對齊，計算耗時較長。 |
 | **F-02 擴充檢定** | `--f02-extended` | 5 折 $\times$ 3 次重複 $\times$ 3 種子<br>（共 45 組配對） | 鎖定特定關鍵超參數組合（A vs B） | LightGBM 固化參數 | **假設驗證專用**：針對單一爭議參數（如 F-02）進行配對統計檢定與雜訊對照。 |
 
 ---
@@ -134,8 +140,8 @@ python labs/test_common.py
   - 相對地，集成模型展現出極強的泛化保護：M2 在深度 12 時 PR-AUC 為 0.3999（AR@0.95 約 13.10 倍）；M3 在深度 12 時 PR-AUC 為 0.4375（AR@0.95 約 8.10 倍）；M4 在深度 2 時 PR-AUC 達 0.4033（AR@0.95 約 8.46 倍）。
 
 ### 3.5 解讀與正式實驗對照
-- **解讀**：單樹深度增加時，方差（Variance）急遽暴增；而隨機森林與極端隨機樹透過「Bagging（樣本自助抽樣）+ Random Subspace（特徵隨機抽樣）」將多棵高方差的深樹平均，有效抵消了方差。
-- **正式實驗對照**：專案 E2b 固化參數中，M4（XGBoost）最佳深度選為 2（極淺樹以避免 Boosting 累加過擬合），而 M2 最佳深度選為 12、M3 最佳深度選為 `None`（深樹配合低樣本葉節點，由 600 棵樹的集成平均消除方差）。本實驗重現了此設計取捨。
+- **解讀**：單樹深度增加時，方差（Variance）顯著擴大；而隨機森林與極端隨機樹透過「Bagging（樣本自助抽樣）+ Random Subspace（特徵隨機抽樣）」將多棵高方差的深樹平均，有效抵消了方差。
+- **正式實驗對照**：專案 E2b 固化參數中，M4（XGBoost）選用深度為 2（極淺樹以避免 Boosting 累加過擬合），而 M2 選用深度為 12、M3 選用深度為 `None`（深樹配合低樣本葉節點，由 600 棵樹的集成平均消除方差）。本實驗重現了此設計取捨。
 
 ---
 
@@ -179,11 +185,11 @@ python labs/test_common.py
 
 ### 5.1 實驗目的
 1. **網格掃描**：探索 XGBoost（M4）與 LightGBM（M5）在 `learning_rate` $\times$ `n_estimators` 網格下的互補消長關係。
-2. **F-02 擴大實證對照（45 組配對檢定）**：以專案 M5 固化參數（含 `subsample=0.607169...` 與 S3 SMOTE）為基底，固定外層 15 折切分（5 折 $\times$ 3 次重複），跨 3 組模型種子（42, 123, 2025）嚴格對照設定 A（`subsample_freq=0`）與設定 B（`subsample_freq=1`）。
+2. **F-02 擴大實證對照（45 組配對檢定）**：以專案 M5 固化參數（含 `subsample=0.607169...` 與 S3 SMOTE）為基底，固定 5 折 × 3 次重複 = 15 次外層評估切分（5 折 $\times$ 3 次重複），跨 3 組模型種子（42, 123, 2025）嚴格對照設定 A（`subsample_freq=0`）與設定 B（`subsample_freq=1`）。
 
 ### 5.2 參數範圍與設定
 - 網格：`learning_rate ∈ [0.01, 0.05, 0.15]`，`n_estimators ∈ [40, 80]`（快速模式）
-- F-02 基底：讀取 `best_params/M5.json`，45 組配對（15 折 $\times$ 3 模型種子）。
+- F-02 基底：讀取 `best_params/M5.json`，45 組配對（15 次外層評估 $\times$ 3 模型種子）。
 
 ### 5.3 實測執行時間與版本
 - 實測時間：快速模式約 52 秒；`--f02-extended` 模式約 441 秒
@@ -255,7 +261,7 @@ python labs/test_common.py
 > **數據查證與歷史成因說明**：
 > 1. **回報誤植成因**：先前 Markdown 手動整理表格時，曾誤將 S3 之 `mean_proba_mean` 寫為 0.0347（磁碟 CSV 實為 0.063861）、S0 Brier 寫為 0.0267（磁碟 CSV 實為 0.023185）。磁碟上之原始 CSV `labs/outputs/lab_04/lab_04_imbalance_strategies.csv` 與快照 CSV 本身自始至終完全一致且正確無誤。
 > 2. **S3 vs S6 在 M3 上等價機制**：經單獨驗證 5 個訓練折中 TomekLinks 實際剔除筆數，5 折剔除樣本數全數為 0 筆（Fold 0～4 均為 0 筆）。因此 S6（SMOTETomek）與 S3（SMOTE）產生的訓練矩陣完全相同，僅極微小的隨機浮點誤差造成 0.000019 的 PR-AUC 差異，兩者在工程與統計上完全等價。
-> 3. **雜訊標註標準**：依據 `lab_08` 測得之 M3 演算法隨機種子標準差（PR-AUC Std: 0.0053，AR@0.95 Std: 1.04x），凡差異未超出雜訊者，嚴格標註為「未超出雜訊」，不得隨意使用「最優」或「勝出」等定性字眼。
+> 3. **雜訊標註標準**：依據 `lab_08` 測得之 M3 演算法隨機種子標準差（PR-AUC Std: 0.0053，AR@0.95 Std: 1.04x），凡差異未超出雜訊者，嚴格標註為「未超出雜訊」，不得隨意使用「基準」或「勝出」等定性字眼。
 
 ---
 
@@ -291,21 +297,21 @@ python labs/test_common.py
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=quantile'" col=pr_auc_mean expect=0.406385 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=standard'" col=pr_auc_mean expect=0.352656 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M3' and setting_name=='Scaler=standard'" col=ar95_mean expect=9.080794 tolerance=0.01 -->
-  - **縮放器影響與 M3 AR@0.95 暴增機制（有證據的事實、推測與對照驗證分離）**：
+  - **縮放器影響與 M3 AR@0.95 退化機制（有證據的事實、推測與對照驗證分離）**：
     - M1 在 QuantileScaler 下 PR-AUC 為 0.4064（AR@0.95 為 9.15x），改為 StandardScaler 後 PR-AUC 跌至 0.3979（AR@0.95 升至 10.67x）。
     - M3 改用 StandardScaler 後 AR@0.95 均值由 9.14x 劇增至 **18.38x**（折間標準差 10.75x）。
     - **1. 有證據的事實（逐折數據與正樣本分數查驗）**：
       - 逐折實測數值：Fold 0 為 5.92x、Fold 1 為 31.17x、Fold 2 為 9.74x、Fold 3 為 31.17x、Fold 4 為 13.89x，5 折平均即為 $(5.92 + 31.17 + 9.74 + 31.17 + 13.89) / 5 = \mathbf{18.38\text{x}}$。
       - 門檻與正樣本分數查驗（Fold 1 與 Fold 3）：
-        - **Fold 1**（$P=35, N=1,091$，需抓取 $k=\lceil 0.95 \times 35 \rceil = 34$ 家）：最後 3 個正樣本的預測分數分別為 `[0.0000, 0.0000, 0.00625]`。第 34 筆正樣本分數恰為 `0.0000`，使截止門檻崩塌至 `0.0000`。依專案悲觀同分規則（`score >= cutoff`），該折全體 1,091 筆樣本全被預警，AR@0.95 退化至 $N/P = 1,091 / 35 = \mathbf{31.17\text{x}}$。
-        - **Fold 3**（$P=35, N=1,091$）：最後 3 個正樣本的預測分數分別為 `[0.0000, 0.0000, 0.0125]`。第 34 筆正樣本分數亦為 `0.0000`，截止門檻崩塌至 `0.0000`，AR@0.95 同樣退化至 $1,091 / 35 = \mathbf{31.17\text{x}}$。
-        - AR@0.90（需抓 32 家）：第 32 筆正樣本分數 $>0.0000$（Fold 1 為 0.0063, Fold 3 為 0.0125），門檻未崩塌，AR@0.90 均值維持正常的 7.07x。
+        - **Fold 1**（$P=35, N=1,091$，需抓取 $k=\lceil 0.95 \times 35 \rceil = 34$ 家）：最後 3 個正樣本的預測分數分別為 `[0.0000, 0.0000, 0.00625]`。第 34 筆正樣本分數恰為 `0.0000`，使截止門檻退化至 `0.0000`。依專案悲觀同分規則（`score >= cutoff`），該折全體 1,091 筆樣本全被預警，AR@0.95 退化至 $N/P = 1,091 / 35 = \mathbf{31.17\text{x}}$。
+        - **Fold 3**（$P=35, N=1,091$）：最後 3 個正樣本的預測分數分別為 `[0.0000, 0.0000, 0.0125]`。第 34 筆正樣本分數亦為 `0.0000`，截止門檻退化至 `0.0000`，AR@0.95 同樣退化至 $1,091 / 35 = \mathbf{31.17\text{x}}$。
+        - AR@0.90（需抓 32 家）：第 32 筆正樣本分數 $>0.0000$（Fold 1 為 0.0063, Fold 3 為 0.0125），門檻未退化，AR@0.90 均值維持正常的 7.07x。
     - **2. 推測的歸因（標註未對照驗證）**：
       - 「StandardScaler 保留長尾極端偏態，隨機特徵選取在稀疏極端區難以切出有效分割點，導致少數極端破產樣本落入純負葉節點」：**【合理推測，未做個別特徵分割點對照驗證】**。
     - **3. 驗證性補充（對照組實驗數據）**：
-      - **對照組 A（StandardScaler + 關閉截尾 `use_winsorizer=False`）**：Fold 1 最後 3 筆正樣本分數為 `[0.0000, 0.0167, 0.0208]`（僅 1 筆為 0，cutoff=0.0167，AR=8.57x）；Fold 3 為 `[0.0063, 0.0104, 0.0125]`（0 筆為 0，cutoff=0.0104，AR=9.86x），無門檻崩塌，5 折 AR 均值為 **8.16x**。
-      - **對照組 B（QuantileScaler + 開啟截尾 `use_winsorizer=True`，即 lab 基準）**：Fold 1 為 `[0.0000, 0.0125, 0.0188]`（cutoff=0.0125，AR=9.89x）；Fold 3 為 `[0.0063, 0.0063, 0.0104]`（cutoff=0.0063，AR=12.31x），亦無門檻崩塌，5 折 AR 均值為 **9.14x**。
-      - **對照組 C（QuantileScaler + 關閉截尾 `use_winsorizer=False`，即專案正式管線）**：Fold 1 為 6.89x；Fold 3 出現 2 筆正樣本分數為 0.0000，觸發單折 31.17x 崩塌，5 折 AR 均值為 **13.20x**。
+      - **對照組 A（StandardScaler + 關閉截尾 `use_winsorizer=False`）**：Fold 1 最後 3 筆正樣本分數為 `[0.0000, 0.0167, 0.0208]`（僅 1 筆為 0，cutoff=0.0167，AR=8.57x）；Fold 3 為 `[0.0063, 0.0104, 0.0125]`（0 筆為 0，cutoff=0.0104，AR=9.86x），無門檻退化，5 折 AR 均值為 **8.16x**。
+      - **對照組 B（QuantileScaler + 開啟截尾 `use_winsorizer=True`，即 lab 基準）**：Fold 1 為 `[0.0000, 0.0125, 0.0188]`（cutoff=0.0125，AR=9.89x）；Fold 3 為 `[0.0063, 0.0063, 0.0104]`（cutoff=0.0063，AR=12.31x），亦無門檻退化，5 折 AR 均值為 **9.14x**。
+      - **對照組 C（QuantileScaler + 關閉截尾 `use_winsorizer=False`，即專案正式管線）**：Fold 1 為 6.89x；Fold 3 出現 2 筆正樣本分數為 0.0000，觸發單折 31.17x 退化，5 折 AR 均值為 **13.20x**。
   - **切分雜訊參照**：M1 在更換切分種子（seed=100）後之 PR-AUC 差異為 0.0037，AR@0.95 差異為 0.75x。消融實驗中門檻 0.95 vs 0.80 之差異落於切分雜訊範圍內。
 
 ### 7.5 解讀與正式實驗對照
@@ -315,7 +321,7 @@ python labs/test_common.py
 
 ## 8. lab_06：召回率與預警率權衡曲線與門檻轉移實驗 (`M3`)
 
-- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
+- **前處理配置說明：本實驗腳本未傳遞 `--pipeline` 旗標至底層 `build_pipeline`，維持使用教學管線（開啟 Winsorizer 截尾），專注於門檻與安全邊際在驗證折轉移之核心課題。**
 
 ### 8.1 實驗目的
 1. 繪製 Recall 在 $[0.80, 1.00]$ 區間之 Recall–AR 權衡曲線，並標定隨機猜測基準線。
@@ -372,7 +378,7 @@ python labs/test_common.py
 
 ## 9. lab_07：交叉驗證折數與重複次數效應 (`M1`)
 
-- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
+- **前處理配置說明：本實驗腳本未傳遞 `--pipeline` 旗標至底層 `build_pipeline`，維持使用教學管線（開啟 Winsorizer 截尾），專注於交叉驗證折數與樣本量效應之核心課題。**
 
 ### 9.1 實驗目的
 1. 探索 $K \in \{3, 5, 10\} \times R \in \{1, 3\}$ 交叉驗證矩陣之折內正樣本數、評估標準差與計算時間。
@@ -399,13 +405,13 @@ python labs/test_common.py
   - **分層平衡單元測試**：在 $K \in \{3, 5, 10\}$ 下，各折破產企業數最大與最小差額均嚴格 $\le 1$（單元測試 100% 通過）。
 
 ### 9.5 解讀與正式實驗對照
-- 專案在 `config.py` 選擇 5 折 $\times$ 3 次重複（每折正樣本 35～36 家）是最佳實踐：若採用 10 折，每折正樣本過少（17～18 家），評估方差過大；若採用 3 折，訓練資料利用率僅 66.7%。5 折能平衡折內樣本充足性（35 家足以支持 95% 召回率之階梯劃分）與訓練集覆蓋率（80%）。
+- 專案在 `config.py` 選擇 5 折 $\times$ 3 次重複（每折正樣本 35～36 家）是權衡折衷方案：若採用 10 折，每折正樣本過少（17～18 家），評估方差過大；若採用 3 折，訓練資料利用率僅 66.7%。5 折能平衡折內樣本充足性（35 家足以支持 95% 召回率之階梯劃分）與訓練集覆蓋率（80%）。
 
 ---
 
 ## 10. lab_08：種子穩定性與隨機性分解 (`M3`)
 
-- **與專案最終管線的差異：預設 `--pipeline project` 下前處理旗標與專案最終模型一致（無差異）；`--pipeline teaching` 下則開啟 Winsorizer 截尾。**
+- **前處理配置說明：本實驗腳本未傳遞 `--pipeline` 旗標至底層 `build_pipeline`，維持使用教學管線（開啟 Winsorizer 截尾），專注於隨機種子穩定性與方差分解之核心課題。**
 
 ### 10.1 實驗目的
 將模型評估的變異來源進行正交分解，比較三種實驗條件：
@@ -450,7 +456,7 @@ python labs/test_common.py
 2. **資料抽樣變異佔據主導地位**：在正式 E7b 中，PR-AUC 的折間標準差（0.0791）是演算法種子標準差（0.0017）的 **46.5 倍**；AR@0.95 的折間標準差（2.13x）是種子標準差（0.15x）的 **14.4 倍**。
 3. **種子變異遠小於折間標準誤差**：`seed_std` 與 `fold_se`（$\text{fold\_std} / \sqrt{15}$）的比率僅 8.3%（PR-AUC）與 26.9%（AR@0.95），說明固定外層切分下，改變隨機種子引起的擾動，遠小於資料切分帶來的抽樣方差。
 4. **協定與經驗邊界宣告**：
-   - E7b 固定外層 15 折切分，輪換的是模型隨機種子（42～46）與 SMOTE 隨機種子（42～46），其評估本質是檢驗固化集成管線在固定抽樣下的數值收斂性。
+   - E7b 固定 5 折 × 3 次重複 = 15 次外層評估切分，輪換的是模型隨機種子（42～46）與 SMOTE 隨機種子（42～46），其評估本質是檢驗固化集成管線在固定抽樣下的數值收斂性。
    - 「集成模型較單一模型在隨機種子上更穩定」屬於機器學習社群之**一般經驗**，本專案未針對同架構單模型與集成進行完全受控的種子方差對比實驗，故不以此作為正式實證結論。
 
 ---
@@ -480,3 +486,32 @@ python labs/test_common.py
    - 在 R80 下，模型預警倍數（3.32x）僅為隨機猜測（31.00x）的 **10.7%**，排查效率顯著。
    - 在 R95 下，為了追求極高捕獲率（44/44 家），預警倍數攀升至 11.91x（調查全體企業之 38.4%），精確率降至 8.40%。
 4. **安全邊際 $m$ 的必要性**：在 E4a 門檻轉移實驗中，若不加邊際（$m=0$），在驗證折上的召回率達標率僅 53%～66%；加入 $m=0.04$ 安全邊際後，達標率達 86%～100%，但代價是預警倍數由 7.96x 膨脹至 12.63x。這具體體現了風險合規與審計成本之間的本質取捨。
+
+
+---
+
+## 12. lab_09：ExtraTrees (M3) 樹數消融與分數空隙退化機制
+
+- **前處理配置說明：採用專案正式管線（`--pipeline project`，Quantile 縮放、關閉 Winsorizer 截尾、開啟 CorrelationFilter 0.95）。**
+
+### 12.1 實驗目的與退化機制
+在專案模型設計中，ExtraTrees (M3) 最終超參數固化為 `n_estimators=600`。本實驗針對 `n_estimators ∈ {80, 100, 300, 600}` 進行五折受控單變量消融，深入分析樹數量對預測分數解析度與門檻同分行為的影響。
+
+- **【重要觀念澄清】預測機率非投票，而是葉節點類別比例平均**：
+  在 `scikit-learn` 的 `ExtraTreesClassifier` 中，`predict_proba` 是所有樹葉節點類別比例的均值，並非整數投票；因此「解析度為 $1/n$」的說法並不精確。
+- **分數空隙與同分退化機制**：
+  每棵樹的輸出為葉節點類別比例，樹數越少，兩個相鄰分數之間的空隙越大，模型產生的「唯一預測分數個數」越少。當正樣本在邊界分數聚集時，較少的樹數會導致門檻處發生大量樣本同分。專案實施保守判定（`score >= cutoff` Flag 全部同分樣本），一旦同分樣本包含大量正常企業，預警倍數將急遽退化。
+
+### 12.2 五折實測數據對照表（快照快取：`lab_09_tree_count_ablation_snapshot.csv`）
+
+| 樹數 (`n_estimators`) | 5 折平均唯一分數個數 | 5 折平均門檻 $t$ | 5 折平均預警家數 | 5 折平均 AR@0.95 | Fold 3 預警家數 | Fold 3 AR@0.95 |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **80 棵** | 150.4 個 | 0.4907 | 462.2 家 | **13.20x** | 1,091 家 | **31.17x** (退化) |
+| **100 棵** | 179.6 個 | 0.5376 | 321.4 家 | **9.18x** | 370 家 | **10.57x** |
+| **300 棵** | 277.6 個 | 0.5796 | 258.4 家 | **7.38x** | 363 家 | **10.37x** |
+| **600 棵（專案固化）** | **364.2 個** | 0.5960 | **248.2 家** | **7.09x** | **354 家** | **10.11x** (平滑穩定) |
+
+### 12.3 核心結論
+1. **唯一分數個數佐證解析度提升**：隨著樹數從 80 棵增至 600 棵，驗證折唯一預測分數由 150 個提升至 364 個（增幅 142%），有效縮小了相鄰分數間的空隙。
+2. **消融證實 Fold 3 退化之根因**：在 80 棵樹時，Fold 3 於門檻處發生粗同分，使 1,091 家企業（佔全體驗證集 100%）被同時判定預警，AR@0.95 退化為 31.17x（即 $N/P$ 全數預警）。而提升至專案正式之 600 棵樹後，Fold 3 預警家數平滑收斂至 354 家（AR@0.95 為 10.11x），5 折平均 AR 穩定達到 7.09x。
+3. **專案參數決策支持**：實證確認了專案將樹數固化為 600 棵之必要性，徹底避免了因粗同分導致的預警倍數退化現象。

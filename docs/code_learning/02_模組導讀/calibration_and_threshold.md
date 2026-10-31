@@ -156,7 +156,7 @@
 
 | 決策項目 | 候選方案 | 專案選擇 | 理由 | 證據 |
 |---|---|---|---|---|
-| **生產門檻設定依據** | A. 直接採用訓練折門檻（$m=0$）<br>B. 引入安全邊際（$m>0$）下調門檻 | **方案 B（安全邊際 $m$）** | $m=0$ 時跨折泛化達標率不足 80%；引入安全邊際使 R90 與 R95 達標率達到 93.3%，大幅降低漏報倒閉企業的致命風險。 | `bankruptcy/src/thresholding.py:120-250`；`outputs/tables/e4a_margin_recommendation.csv` |
+| **生產門檻設定依據** | A. 直接採用訓練折門檻（$m=0$）<br>B. 引入安全邊際（$m>0$）下調門檻 | **方案 B（安全邊際 $m$）** | $m=0$ 時跨折泛化達標率不足 80%；引入安全邊際使 R90 與 R95 達標率達到 93.3%，大幅降低漏報倒閉企業的嚴重風險。 | `bankruptcy/src/thresholding.py:120-250`；`outputs/tables/e4a_margin_recommendation.csv` |
 | **機率校準演算法** | A. Isotonic Regression<br>B. Platt Scaling (Sigmoid) | **方案 B（Platt Scaling）** | Isotonic 雖然 Brier 分數略優，但階梯同分使連續排序破裂，AR@0.95 惡化至 10.02x；Platt 嚴格保持連續排序（AR 維持 8.06x）。 | `outputs/tables/e4b_calibration_summary.csv` |
 
 ---

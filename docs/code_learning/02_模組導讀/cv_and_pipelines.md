@@ -177,7 +177,7 @@
 對應單元測試涵蓋：
 1. `bankruptcy/tests/test_cv.py`：驗證 `make_holdout_split` 與 `make_cv_splits` 的折數、樣本數、分層正樣本比例與隨機可重現性。
 2. `bankruptcy/tests/test_lock.py`：驗證未帶授權標誌呼叫 `get_test_data()` 必然拋出 `PermissionError`。
-3. `bankruptcy/tests/test_preprocessing.py:115-135`（`test_adaptive_scale_weight_classifier`）：驗證動態權重計算在訓練折上能正確生效且相容 Pipeline。
+3. `bankruptcy/tests/test_preprocessing.py:249-270`（`test_adaptive_scale_weight_classifier`）：驗證動態權重計算在訓練折上能正確生效且相容 Pipeline。
 
 ---
 

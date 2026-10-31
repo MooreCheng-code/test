@@ -8,63 +8,43 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.datasets import make_classification
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.metrics import accuracy_score, average_precision_score, recall_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, recall_score, average_precision_score
 from sklearn.model_selection import train_test_split
 
-METRIC_NAME = "PR-AUC"
+METRIC_NAME = "Accuracy vs Recall"
 
 
 def eval_single(seed: int = 42) -> tuple[float, float]:
+    # 不平衡資料：3% 破產樣本，97% 正常樣本
     X, y = make_classification(
-        n_samples=1000, n_features=12, n_informative=6,
+        n_samples=1000, n_features=12, n_informative=2,
         weights=[0.97, 0.03], random_state=seed
     )
     X_tr, X_te, y_tr, y_te = train_test_split(
         X, y, test_size=0.3, stratify=y, random_state=seed
     )
 
-    # 1. 實作 A (待檢視)：以 Accuracy 為目標的極端淺樹，幾乎將所有樣本預測為多數類
-    clf_buggy = GradientBoostingClassifier(n_estimators=10, max_depth=1, random_state=seed)
-    clf_buggy.fit(X_tr, y_tr)
-    prob_buggy = clf_buggy.predict_proba(X_te)[:, 1]
-    pr_buggy = float(average_precision_score(y_te, prob_buggy))
+    # 同一個基準模型（未調整門檻之預設閥值 0.5 羅吉斯迴歸）
+    clf = LogisticRegression(C=0.01, random_state=seed)
+    clf.fit(X_tr, y_tr)
+    pred_te = clf.predict(X_te)
 
-    # 2. 正確模型：適當調參並關注少數類排序結構
-    clf_clean = GradientBoostingClassifier(n_estimators=50, max_depth=3, subsample=0.8, random_state=seed)
-    clf_clean.fit(X_tr, y_tr)
-    prob_clean = clf_clean.predict_proba(X_te)[:, 1]
-    pr_clean = float(average_precision_score(y_te, prob_clean))
+    # 1. 軌 A（表面指標）：Accuracy，因負樣本佔 97%，全猜負樣本即可獲得 ~97% 準確率
+    acc_val = float(accuracy_score(y_te, pred_te))
 
-    return pr_buggy, pr_clean
+    # 2. 軌 B（實務檢驗）：Recall，預設閥值下少數破產樣本全數漏抓，召回率為 0.0%
+    rec_val = float(recall_score(y_te, pred_te, zero_division=0))
+
+    return acc_val, rec_val
 
 
 def run_experiment():
-    seed = 42
-    X, y = make_classification(
-        n_samples=1000, n_features=12, n_informative=6,
-        weights=[0.97, 0.03], random_state=seed
-    )
-    X_tr, X_te, y_tr, y_te = train_test_split(
-        X, y, test_size=0.3, stratify=y, random_state=seed
-    )
-    clf_buggy = GradientBoostingClassifier(n_estimators=10, max_depth=1, random_state=seed)
-    clf_buggy.fit(X_tr, y_tr)
-    pred_buggy = clf_buggy.predict(X_te)
-    acc_buggy = accuracy_score(y_te, pred_buggy)
-    rec_buggy = recall_score(y_te, pred_buggy, zero_division=0)
-    pr_buggy = average_precision_score(y_te, clf_buggy.predict_proba(X_te)[:, 1])
-
-    clf_clean = GradientBoostingClassifier(n_estimators=50, max_depth=3, subsample=0.8, random_state=seed)
-    clf_clean.fit(X_tr, y_tr)
-    pr_clean = average_precision_score(y_te, clf_clean.predict_proba(X_te)[:, 1])
-
+    acc_val, rec_val = eval_single(seed=42)
     print("=== Bug 03: Accuracy Trap ===")
-    print(f"Buggy Accuracy: {acc_buggy:.4f} (looks very high)")
-    print(f"Buggy Recall:   {rec_buggy:.4f} (fails to catch minority bankruptcies)")
-    print(f"Buggy PR-AUC:   {pr_buggy:.4f}")
-    print(f"Clean PR-AUC:   {pr_clean:.4f}")
-    print(f"Delta PR-AUC:   {pr_buggy - pr_clean:+.4f}")
+    print(f"Superficial Accuracy (Buggy Metric): {acc_val:.4f} (looks very high e.g. ~97%)")
+    print(f"True Operational Recall (Clean Metric): {rec_val:.4f} (fails to catch bankruptcies)")
+    print(f"Gap (Accuracy - Recall): {acc_val - rec_val:+.4f}")
 
 
 def run_repeats(n_repeats: int = 20):

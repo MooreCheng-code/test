@@ -8,39 +8,48 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.datasets import make_classification
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import average_precision_score
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 
 METRIC_NAME = "PR-AUC"
 
 
 def eval_single(seed: int = 42) -> tuple[float, float]:
+    # 250 筆樣本、30 維特徵（含雜訊特徵），10% 破產正樣本
     X, y = make_classification(
-        n_samples=500, n_features=20, n_informative=8,
-        weights=[0.95, 0.05], random_state=seed
+        n_samples=250, n_features=30, n_informative=5, n_redundant=5,
+        weights=[0.90, 0.10], random_state=seed
     )
-    param_grid = {"max_depth": [2, 4, 8], "min_samples_split": [2, 5]}
+    # 搜尋空間覆蓋 60 組隨機超參數，足夠大以展示多選一產生的機會性過度擬合
+    param_dist = {
+        "max_depth": [2, 3, 4, 6, 8, 12, None],
+        "min_samples_leaf": [1, 2, 4, 8, 15],
+        "max_features": ["sqrt", "log2", 0.2, 0.5, 0.8, None],
+        "criterion": ["gini", "entropy"],
+    }
 
-    # 1. 實作 A (待檢視)：非巢狀調參，直接取最佳 CV 驗證折分數作為泛化指標（樂觀選擇偏差）
+    # 1. 作法 A (犯錯版)：非巢狀調參，直接取多次搜尋的最佳 CV 驗證折分數作為泛化指標（樂觀選擇偏差）
     inner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
-    grid_buggy = GridSearchCV(
-        RandomForestClassifier(n_estimators=30, random_state=seed),
-        param_grid, cv=inner_cv, scoring="average_precision"
+    search_buggy = RandomizedSearchCV(
+        DecisionTreeClassifier(random_state=seed),
+        param_dist, n_iter=60, cv=inner_cv, scoring="average_precision",
+        random_state=seed
     )
-    grid_buggy.fit(X, y)
-    best_cv_score = float(grid_buggy.best_score_)
+    search_buggy.fit(X, y)
+    best_cv_score = float(search_buggy.best_score_)
 
-    # 2. 正確版：巢狀交叉驗證，外層折未參與超參數挑選，提供無偏泛化估計
-    outer_cv = StratifiedKFold(n_splits=4, shuffle=True, random_state=seed)
+    # 2. 作法 B (正確版)：嚴格巢狀 CV，外層折未參與內層超參數挑選，提供無偏泛化估計
+    outer_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
     nested_scores = []
     for tr, te in outer_cv.split(X, y):
-        grid_inner = GridSearchCV(
-            RandomForestClassifier(n_estimators=30, random_state=seed),
-            param_grid, cv=3, scoring="average_precision"
+        search_inner = RandomizedSearchCV(
+            DecisionTreeClassifier(random_state=seed),
+            param_dist, n_iter=60, cv=3, scoring="average_precision",
+            random_state=seed
         )
-        grid_inner.fit(X[tr], y[tr])
-        best_model = grid_inner.best_estimator_
+        search_inner.fit(X[tr], y[tr])
+        best_model = search_inner.best_estimator_
         prob = best_model.predict_proba(X[te])[:, 1]
         nested_scores.append(average_precision_score(y[te], prob))
     nested_pr_auc = float(np.mean(nested_scores))

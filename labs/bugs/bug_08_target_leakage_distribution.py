@@ -14,26 +14,25 @@ METRIC_NAME = "Alerts"
 
 
 def eval_single(seed: int = 42) -> tuple[float, float]:
-    # 訓練集盛行率約 5%
+    # 訓練集破產盛行率為 5.0%
     X_tr, y_tr = make_classification(
         n_samples=500, n_features=10, weights=[0.95, 0.05], random_state=seed
     )
-    # 測試集盛行率飄移（例如 3% 至 8% 隨機波動）
-    test_weight = 0.03 + (seed % 6) * 0.01
+    # 測試集在現實情境中盛行率偏低（2.0%），反映不同經濟週期或部署情境
     X_te, y_te = make_classification(
-        n_samples=300, n_features=10, weights=[1.0 - test_weight, test_weight], random_state=seed + 999
+        n_samples=300, n_features=10, weights=[0.98, 0.02], random_state=seed + 999
     )
 
     clf = LogisticRegression(random_state=seed)
     clf.fit(X_tr, y_tr)
     prob_te = clf.predict_proba(X_te)[:, 1]
 
-    # 1. 實作 A (待檢視)：窺探測試集真實標籤盛行率來動態設定分位數門檻（逆向洩漏）
+    # 1. 作法 A (犯錯版)：偷看未標記測試集的真實盛行率（2.0%）來動態調整門檻（資料分佈洩漏）
     test_prev_leaked = float(np.mean(y_te))
     th_leaked = float(np.quantile(prob_te, 1.0 - test_prev_leaked))
     alerts_buggy = float(np.sum(prob_te >= th_leaked))
 
-    # 2. 正確版：嚴格僅依賴訓練集先驗盛行率決定固定決策門檻
+    # 2. 作法 B (正確版)：嚴格僅依據訓練集已知先驗盛行率（5.0%）決定生產固定門檻
     train_prev_prior = float(np.mean(y_tr))
     th_clean = float(np.quantile(prob_te, 1.0 - train_prev_prior))
     alerts_clean = float(np.sum(prob_te >= th_clean))

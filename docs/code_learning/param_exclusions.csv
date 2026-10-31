@@ -90,7 +90,7 @@ cv.py:load_splits,df,資料集容器傳參：預設 None 自動載入
 cv.py:load_splits,splits_path,切分載入路徑傳參：預設 SPLITS_PATH
 cv.py:get_train_data,data_path,資料載入路徑傳參：預設 None 自動讀取 config.DATA_PATH
 cv.py:get_test_data,data_path,資料載入路徑傳參：預設 None 自動讀取 config.DATA_PATH
-cv.py:get_test_data,i_know_this_is_final_evaluation,E6 測試集物理權限解鎖旗標：預設 False 杜絕窺視，非超參數
+cv.py:get_test_data,i_know_this_is_final_evaluation,E6 測試集物理權限解鎖旗標：預設 False 防止窺視，非超參數
 cv.py:cross_validate_pipeline,n_jobs,多行程平行運算工作行程數：非模型超參數
 bankruptcy/src/explain.py,BASE_DIR,檔案系統路徑別名：指向 config.BASE_DIR，已於 CFG_BASE_DIR 登錄
 bankruptcy/src/explain.py,TABLES_DIR,檔案系統路徑別名：指向 config.TABLES_DIR，已於 CFG_TABLES_DIR 登錄

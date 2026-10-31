@@ -157,7 +157,7 @@
 
 ## 本模組的單元測試
 對應單元測試主要位於：
-1. `bankruptcy/tests/test_preprocessing.py:53-75`（`test_drop_constant_and_duplicate_real_data`）：使用真實資料驗證資料審計所發現的 1 個常數欄位與 2 個重複欄位能被前處理管線正確清除。
+1. `bankruptcy/tests/test_preprocessing.py:113-130`（`test_drop_constant_and_duplicate_real_data`）：使用真實資料驗證資料審計所發現的 1 個常數欄位與 2 個重複欄位能被前處理管線正確清除。
 2. `bankruptcy/tests/test_integrity_phase0.py:16-50`：驗證資料欄位名稱是否包含非預期空白，且是否符合審計階段宣告的 schema 規格。
 
 ---

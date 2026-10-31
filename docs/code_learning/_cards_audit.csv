@@ -107,7 +107,7 @@ CARD_13,"M2_SPACE_MAX_DEPTH, M2_FROZEN_MAX_DEPTH, M3_SPACE_MAX_DEPTH, M3_FROZEN_
 CARD_14,"M4_SPACE_LEARNING_RATE, M4_FROZEN_LEARNING_RATE, M5_SPACE_LEARNING_RATE, M5_FROZEN_LEARNING_RATE",白話意義,白話,每棵新樹加入時對預測結果修正的步長縮放因子（步子邁多大）。步長越小越穩健，但需要更多樹來累積足夠的預測力。,無,,PASS,直觀白話比喻說明,純定義
 CARD_14,"M4_SPACE_LEARNING_RATE, M4_FROZEN_LEARNING_RATE, M5_SPACE_LEARNING_RATE, M5_FROZEN_LEARNING_RATE",各處設定,設定,"涵蓋登錄 ID: M4_SPACE_LEARNING_RATE, M4_FROZEN_LEARNING_RATE, M5_SPACE_LEARNING_RATE, M5_FROZEN_LEARNING_RATE",專案設定,docs/code_learning/03a_param_registry.csv,PASS,自動同步 03a 登錄表，涵蓋 4 個參數,CSV 數字
 CARD_14,"M4_SPACE_LEARNING_RATE, M4_FROZEN_LEARNING_RATE, M5_SPACE_LEARNING_RATE, M5_FROZEN_LEARNING_RATE",證據等級,設定,【專案設定（未做對照）】,專案設定,,PASS,嚴格區分本專案實測 vs 專案設定 vs 一般經驗,架構常數
-CARD_14,"M4_SPACE_LEARNING_RATE, M4_FROZEN_LEARNING_RATE, M5_SPACE_LEARNING_RATE, M5_FROZEN_LEARNING_RATE",調大調小,調大調小,- 調大（例如 > 0.1）：【一般經驗，未經本專案驗證】（lab_03，已完成：見 labs/README.md）早期疊代收斂快，但容易在最優解附近震盪，在破產少數類上容易過度懲罰負樣本導致預警比率暴增。,一般經驗,,PASS,具體物理意義與影響,一般經驗標示
+CARD_14,"M4_SPACE_LEARNING_RATE, M4_FROZEN_LEARNING_RATE, M5_SPACE_LEARNING_RATE, M5_FROZEN_LEARNING_RATE",調大調小,調大調小,- 調大（例如 > 0.1）：【一般經驗，未經本專案驗證】（lab_03，已完成：見 labs/README.md）早期疊代收斂快，但容易在最優解附近震盪，在破產少數類上容易過度懲罰負樣本導致預警比率大幅增加。,一般經驗,,PASS,具體物理意義與影響,一般經驗標示
 CARD_14,"M4_SPACE_LEARNING_RATE, M4_FROZEN_LEARNING_RATE, M5_SPACE_LEARNING_RATE, M5_FROZEN_LEARNING_RATE",調大調小,調大調小,- 調小（例如 < 0.02）：【一般經驗，未經本專案驗證】（lab_03，已完成：見 labs/README.md）學習過程平穩且能獲得更好的泛化邊際；M4 最佳值約為 0.0468，M5 最佳值為 0.0137，均展現偏好小步慢跑特性。,一般經驗,,PASS,具體物理意義與影響,一般經驗標示
 CARD_14,"M4_SPACE_LEARNING_RATE, M4_FROZEN_LEARNING_RATE, M5_SPACE_LEARNING_RATE, M5_FROZEN_LEARNING_RATE",風險與陷阱,風險,學習率調小時，若 `n_estimators` 未相應增加，模型可能尚未收斂即提早結束訓練。,一般經驗,,PASS,工程實務陷阱防範,一般經驗標示
 CARD_14,"M4_SPACE_LEARNING_RATE, M4_FROZEN_LEARNING_RATE, M5_SPACE_LEARNING_RATE, M5_FROZEN_LEARNING_RATE",如何安全實驗,如何實驗,固定 `n_estimators=300`，於外層 CV 訓練折測試 `learning_rate` 在 0.01～0.2 對 PR-AUC 與三點損失之影響（lab_03，已完成：見 labs/README.md）。,一般經驗,,PASS,規範訓練資料內部實驗，禁止動用測試集,一般經驗標示
@@ -178,7 +178,7 @@ CARD_22,TUNE_SEED,已知限制或矛盾,已知限制,專案固定 `SEED=42`。,�
 CARD_23,TUNE_LOSS_RECALLS,白話意義,白話,"調參目標函數所關注的三個核心召回率關卡 `[0.8, 0.9, 0.95]`。演算法不是看單一閾值，而是計算在 80%、90%、95% 三個召回率下的平均 log 預警比率，要求模型全面兼顧。",無,,PASS,直觀白話比喻說明,CSV 數字
 CARD_23,TUNE_LOSS_RECALLS,各處設定,設定,涵蓋登錄 ID: TUNE_LOSS_RECALLS,專案設定,docs/code_learning/03a_param_registry.csv,PASS,自動同步 03a 登錄表，涵蓋 1 個參數,CSV 數字
 CARD_23,TUNE_LOSS_RECALLS,證據等級,設定,【專案設定（未做對照）】,專案設定,,PASS,嚴格區分本專案實測 vs 專案設定 vs 一般經驗,架構常數
-CARD_23,TUNE_LOSS_RECALLS,調大調小,調大調小,- 加入 1.0（100% 召回）：【一般經驗，未經本專案驗證】（lab_06，已完成：見 labs/README.md）要求抓出全部破產，此時預警比率暴增至極端值，會強烈主導並扭曲整體的調參損失。,一般經驗,,PASS,具體物理意義與影響,CSV 數字
+CARD_23,TUNE_LOSS_RECALLS,調大調小,調大調小,- 加入 1.0（100% 召回）：【一般經驗，未經本專案驗證】（lab_06，已完成：見 labs/README.md）要求抓出全部破產，此時預警比率大幅增加至極端值，會強烈主導並扭曲整體的調參損失。,一般經驗,,PASS,具體物理意義與影響,CSV 數字
 CARD_23,TUNE_LOSS_RECALLS,調大調小,調大調小,- 僅看 0.95 單點：【一般經驗，未經本專案驗證】（lab_06，已完成：見 labs/README.md）可能導致模型過度擬合單一分位點，在其他工作點（如 0.90）效能劣化。,一般經驗,,PASS,具體物理意義與影響,一般經驗標示
 CARD_23,TUNE_LOSS_RECALLS,風險與陷阱,風險,三點損失取對數平均 $\frac{1}{3} \sum \log(\text{AR}@R_k)$，具有幾何平均抑制作弊的效果，防止單點作弊。,一般經驗,,PASS,工程實務陷阱防範,CSV 數字
 CARD_23,TUNE_LOSS_RECALLS,如何安全實驗,如何實驗,呼叫 `bankruptcy/src/tune.py:82` 的 `compute_three_point_log_loss` 進行自訂評估（lab_06，已完成：見 labs/README.md）。,一般經驗,bankruptcy/src/tune.py:82,PASS,規範訓練資料內部實驗，禁止動用測試集,程式行號
@@ -219,7 +219,7 @@ CARD_27,"TH_CALIBRATION_METHODS, CAL_METHOD_SELECTION",已知限制或矛盾,已
 CARD_28,"CFG_TARGET_RECALLS, CFG_DEFAULT_TARGET_RECALL",白話意義,白話,"安檢門的敏感度檔位。專案提供四個檔位 `[0.8, 0.9, 0.95, 1.0]`，代表「希望攔截到 80%、90%、95% 或 100% 的破產企業」，預設檔位為 0.95（R95，即 95% 召回率）。",無,,PASS,直觀白話比喻說明,CSV 數字
 CARD_28,"CFG_TARGET_RECALLS, CFG_DEFAULT_TARGET_RECALL",各處設定,設定,"涵蓋登錄 ID: CFG_TARGET_RECALLS, CFG_DEFAULT_TARGET_RECALL",專案設定,docs/code_learning/03a_param_registry.csv,PASS,自動同步 03a 登錄表，涵蓋 2 個參數,CSV 數字
 CARD_28,"CFG_TARGET_RECALLS, CFG_DEFAULT_TARGET_RECALL",證據等級,設定,【專案設定（未做對照）】,專案設定,,PASS,嚴格區分本專案實測 vs 專案設定 vs 一般經驗,架構常數
-CARD_28,"CFG_TARGET_RECALLS, CFG_DEFAULT_TARGET_RECALL",調大調小,調大調小,- 設定為 1.0（R100，100% 召回）：【一般經驗，未經本專案驗證】（lab_06，已完成：見 labs/README.md）要求零漏報，門檻必須降至近乎全體樣本的最低分，預警比率會暴增至 80%～90%，等於對幾乎所有公司發出警報，失去預警篩選價值。,一般經驗,,PASS,具體物理意義與影響,CSV 數字
+CARD_28,"CFG_TARGET_RECALLS, CFG_DEFAULT_TARGET_RECALL",調大調小,調大調小,- 設定為 1.0（R100，100% 召回）：【一般經驗，未經本專案驗證】（lab_06，已完成：見 labs/README.md）要求零漏報，門檻必須降至近乎全體樣本的最低分，預警比率會大幅增加至 80%～90%，等於對幾乎所有公司發出警報，失去預警篩選價值。,一般經驗,,PASS,具體物理意義與影響,CSV 數字
 CARD_28,"CFG_TARGET_RECALLS, CFG_DEFAULT_TARGET_RECALL",調大調小,調大調小,- 設定為 0.8（R80，80% 召回）：【一般經驗，未經本專案驗證】（lab_06，已完成：見 labs/README.md）門檻拉高，預警名單大幅精簡（預警比率極低），調查成本最小，但代價是允許漏報 20% 的破產公司。,一般經驗,,PASS,具體物理意義與影響,CSV 數字
 CARD_28,"CFG_TARGET_RECALLS, CFG_DEFAULT_TARGET_RECALL",調大調小,調大調小,- 預設 0.95（R95）：【專案設定（未做對照）】在破產高漏報成本商業環境下，95% 召回率是在「高捕獲率」與「可控調查配額」之間的工程折衷點。,專案設定,,PASS,具體物理意義與影響,CSV 數字
 CARD_28,"CFG_TARGET_RECALLS, CFG_DEFAULT_TARGET_RECALL",風險與陷阱,風險,目標召回率直接決定門檻搜尋位置，在極端高召回率（如 0.99 或 1.0）下，門檻對尾端樣本分佈極度敏感。,一般經驗,,PASS,工程實務陷阱防範,一般經驗標示
@@ -253,7 +253,7 @@ CARD_31,"CFG_ALERT_RATIOS, E2A_ALIGN_RECALLS",已知限制或矛盾,已知限制
 CARD_32,SENS_PREVALENCES,白話意義,白話,"景氣壓力測試情境。原始資料破產率約 3.2%（`0.032`）。專案設定五種情境 `[0.005, 0.01, 0.02, 0.032, 0.05]`，模擬從經濟繁榮期（破產率僅 0.5%）到極端金融危機爆發期（破產率 5%）的環境衝擊。",無,,PASS,直觀白話比喻說明,CSV 數字
 CARD_32,SENS_PREVALENCES,各處設定,設定,涵蓋登錄 ID: SENS_PREVALENCES,專案設定,docs/code_learning/03a_param_registry.csv,PASS,自動同步 03a 登錄表，涵蓋 1 個參數,CSV 數字
 CARD_32,SENS_PREVALENCES,證據等級,設定,【本專案實測：對照實驗】（E7a 盛行率敏感度實測）,本專案實測,,PASS,嚴格區分本專案實測 vs 專案設定 vs 一般經驗,純定義
-CARD_32,SENS_PREVALENCES,調大調小,調大調小,- 盛行率從 3.2% 劇降至 0.5%：【本專案實測：對照實驗】在 E7a 實測中，E_A 於 R80 下每捕捉一家破產企業所需調查家數從 4.51 家暴增至 24.08 家（精確率從 22.18% 降至 4.15%），展現景氣極度繁榮時...,本專案實測,,PASS,具體物理意義與影響,CSV 數字
+CARD_32,SENS_PREVALENCES,調大調小,調大調小,- 盛行率從 3.2% 劇降至 0.5%：【本專案實測：對照實驗】在 E7a 實測中，E_A 於 R80 下每捕捉一家破產企業所需調查家數從 4.51 家大幅增加至 24.08 家（精確率從 22.18% 降至 4.15%），展現景氣極度繁榮時...,本專案實測,,PASS,具體物理意義與影響,CSV 數字
 CARD_32,SENS_PREVALENCES,調大調小,調大調小,- 盛行率上升（例如升至 5%）：【一般經驗，未經本專案驗證】（lab_06，已完成：見 labs/README.md）破產企業普遍增多，陽性預測值隨盛行率提升。,一般經驗,,PASS,具體物理意義與影響,CSV 數字
 CARD_32,SENS_PREVALENCES,風險與陷阱,風險,許多工程師誤以為 PR-AUC 降低代表模型泛化能力退化，實為貝氏定理在盛行率變動下的固有數學現象；專案透過貝氏機率重加權公式（`bankruptcy/src/prevalence_sensitivity.py:34`）嚴格推導。,一般經驗,,PASS,工程實務陷阱防範,一般經驗標示
 CARD_32,SENS_PREVALENCES,如何安全實驗,如何實驗,呼叫 `bankruptcy/src/prevalence_sensitivity.py:58` 的 `reweight_probabilities` 進行無偏壓力測試（lab_06，已完成：見 labs/README.md）。,一般經驗,bankruptcy/src/prevalence_sensitivity.py:58,PASS,規範訓練資料內部實驗，禁止動用測試集,程式行號

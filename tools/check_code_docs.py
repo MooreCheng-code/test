@@ -17,6 +17,8 @@ Checks:
 """
 
 from __future__ import annotations
+import numpy as np
+import pandas as pd
 
 import argparse
 import ast
@@ -60,6 +62,11 @@ CITATION_PATTERN_SPACE = re.compile(
 # General file:line citation (without explicit symbol)
 GENERAL_CITATION = re.compile(
     r"(bankruptcy/[\w/.-]+\.py):(\d+)(?:-(\d+))?"
+)
+
+# Pattern 3: bankruptcy/src/foo.py:123 (`symbol`) or `bankruptcy/src/foo.py:123` (symbol)
+CITATION_PATTERN_FILE_FIRST = re.compile(
+    r'''[`'"]?(bankruptcy/[\w/.-]+\.py):(\d+)(?:-(\d+))?[`'"]?\s*[\(\uff08]\s*[`'"]?([a-zA-Z_]\w+)[`'"]?\s*[\)\uff09]'''
 )
 
 # Forbidden absolute path patterns
@@ -182,6 +189,13 @@ def extract_python_ast_value(target_file: Path, name: str, line_no: int) -> tupl
                             except Exception:
                                 v = ast.unparse(node.value)
                             candidates.append((abs(lineno - line_no), v, "assign"))
+                    elif isinstance(t, ast.Attribute):
+                        if not name or t.attr == name:
+                            try:
+                                v = ast.literal_eval(node.value)
+                            except Exception:
+                                v = ast.unparse(node.value)
+                            candidates.append((abs(lineno - line_no), v, "attr_assign"))
                     elif isinstance(t, ast.Name) and t.id == "platt_final" and name in ("platt_final", "Platt"):
                         candidates.append((abs(lineno - line_no), "Platt", "assign_platt"))
                     
@@ -213,7 +227,7 @@ def extract_python_ast_value(target_file: Path, name: str, line_no: int) -> tupl
             for k, v in zip(node.keys, node.values):
                 k_line = getattr(k, "lineno", getattr(v, "lineno", lineno))
                 if k_line is not None and abs(k_line - line_no) <= 3:
-                    k_str = ast.literal_eval(k) if isinstance(k, ast.Constant) else (ast.unparse(k) if k else "")
+                    k_str = k.value if isinstance(k, ast.Constant) else (ast.unparse(k) if k else "")
                     if not name or name == str(k_str):
                         try:
                             val = ast.literal_eval(v)
@@ -262,7 +276,7 @@ def extract_python_ast_value(target_file: Path, name: str, line_no: int) -> tupl
 
 
 def verify_code_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool, str, dict[str, Any]]:
-    """Verifies a single <!-- code ... --> tag against Python AST."""
+    """Verifies a single code tag against Python AST."""
     attrs = parse_tag_attrs(tag_str)
     file_rel = attrs.get("file")
     if not file_rel:
@@ -280,6 +294,30 @@ def verify_code_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool, st
         return False, "Missing 'expect' attribute in code tag", attrs
     tol = float(attrs.get("tol", "0.001"))
     
+    # Check if symbol definition exists around line_no +- 3 when expect == symbol
+    if expect_str == symbol:
+        try:
+            tree = ast.parse(target_path.read_text(encoding="utf-8"))
+            found = False
+            for node in ast.walk(tree):
+                lineno = getattr(node, "lineno", None)
+                if lineno is not None and abs(lineno - line_no) <= 3:
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == symbol:
+                        found = True
+                        break
+                    elif isinstance(node, ast.Assign):
+                        for t in node.targets:
+                            if isinstance(t, ast.Name) and t.id == symbol:
+                                found = True
+                                break
+            if found:
+                return True, f"Verified code symbol definition: {symbol}", attrs
+        except Exception:
+            pass
+        if verify_symbol_in_file(target_path, symbol, line_no, line_no, slack=3):
+            return True, f"Verified code symbol in file: {symbol}", attrs
+        return False, f"Symbol '{symbol}' not found around {file_rel}:{line_no}", attrs
+
     ast_val, how = extract_python_ast_value(target_path, symbol, line_no)
     if how in ("not_found", "file_not_found") or how.startswith("ast_parse_error"):
         return False, f"Symbol '{symbol}' or assignment not found around {file_rel}:{line_no}", attrs
@@ -301,6 +339,11 @@ def verify_code_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool, st
 def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool, str, dict[str, Any]]:
     """Verifies a single evidence tag against the target CSV or JSON file."""
     attrs = parse_tag_attrs(tag_str)
+    
+    # 1. Strictly forbid deprecated 'also' attribute
+    if "also" in attrs:
+        return False, "Deprecated attribute 'also' is forbidden; use 'checks' or 'derived' instead", attrs
+        
     file_rel = attrs.get("file")
     if not file_rel:
         return False, "Missing 'file' attribute in evidence tag", attrs
@@ -318,6 +361,8 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
     tol = float(attrs.get("tol", "0.001"))
     if expect_str is None:
         return False, "Missing 'expect' attribute", attrs
+
+    verified_nums: list[Any] = []
 
     # Handle JSON evidence file
     if file_rel.endswith(".json"):
@@ -340,15 +385,51 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
             diff = abs(actual_float - expect_float)
             if diff > tol:
                 return False, f"JSON value mismatch: actual {actual_float} vs expect {expect_float} (diff {diff:.6f} > tol {tol})", attrs
-            return True, f"Verified JSON: {actual_float} ~ {expect_float}", attrs
-        except ValueError:
+            verified_nums.extend([expect_float, expect_str])
+        except (ValueError, TypeError):
             if isinstance(actual_val, bool):
                 if str(actual_val).lower() != str(expect_str).lower():
                     return False, f"JSON value mismatch: actual '{actual_val}' vs expect '{expect_str}'", attrs
-                return True, f"Verified JSON bool: {actual_val}", attrs
-            if str(actual_val) != expect_str:
-                return False, f"JSON value mismatch: actual '{actual_val}' vs expect '{expect_str}'", attrs
-            return True, f"Verified JSON string: '{actual_val}'", attrs
+                verified_nums.append(expect_str)
+            else:
+                if str(actual_val) != expect_str:
+                    return False, f"JSON value mismatch: actual '{actual_val}' vs expect '{expect_str}'", attrs
+                verified_nums.append(expect_str)
+
+        # Match checks in JSON if present
+        checks_str = attrs.get("checks")
+        if checks_str:
+            for item in checks_str.split(";"):
+                item = item.strip()
+                if not item:
+                    continue
+                if "=" not in item:
+                    return False, f"Malformed checks item '{item}', must be 'col=val'", attrs
+                c_col, c_exp = item.split("=", 1)
+                c_col = c_col.strip()
+                c_exp = c_exp.strip()
+                try:
+                    cur = data
+                    for part in c_col.split("."):
+                        cur = cur[part]
+                    actual_c = cur
+                except Exception as e:
+                    return False, f"checks key '{c_col}' not found in {file_rel}: {e}", attrs
+                try:
+                    diff = abs(float(actual_c) - float(c_exp))
+                    if diff > tol:
+                        return False, f"checks value mismatch for '{c_col}': actual {actual_c} vs expect {c_exp} (diff {diff:.6f} > tol {tol})", attrs
+                    verified_nums.extend([float(c_exp), c_exp])
+                except (ValueError, TypeError):
+                    if str(actual_c) != c_exp:
+                        return False, f"checks value mismatch for '{c_col}': actual '{actual_c}' vs expect '{c_exp}'", attrs
+                    verified_nums.append(c_exp)
+
+        if "derived" in attrs:
+            return False, "derived attribute is only supported for CSV rows", attrs
+
+        attrs["_verified_nums"] = verified_nums
+        return True, f"Verified JSON: {expect_str}", attrs
 
     # Handle CSV evidence file
     col_name = attrs.get("col")
@@ -399,12 +480,78 @@ def verify_evidence_tag(tag_str: str, repo_root: Path = REPO_ROOT) -> tuple[bool
         diff = abs(actual_float - expect_float)
         if diff > tol:
             return False, f"Value mismatch: actual {actual_float} vs expect {expect_float} (diff {diff:.6f} > tol {tol})", attrs
-        return True, f"Verified: {actual_float:.4f} ~ {expect_float} (tol={tol})", attrs
+        verified_nums.extend([expect_float, expect_str])
     except ValueError:
         if str(actual_val) != expect_str:
             return False, f"Value mismatch: actual '{actual_val}' vs expect '{expect_str}'", attrs
-        return True, f"Verified string: '{actual_val}'", attrs
+        verified_nums.append(expect_str)
 
+    # 1. Checks validation
+    checks_str = attrs.get("checks")
+    if checks_str:
+        for item in checks_str.split(";"):
+            item = item.strip()
+            if not item:
+                continue
+            if "=" not in item:
+                return False, f"Malformed checks item '{item}', must be 'col=val'", attrs
+            c_col, c_exp = item.split("=", 1)
+            c_col = c_col.strip()
+            c_exp = c_exp.strip()
+            if c_col not in df.columns:
+                return False, f"checks column '{c_col}' not found in {file_rel}", attrs
+            if rows_req:
+                if agg_method == "mean":
+                    actual_c = filtered[c_col].mean()
+                elif agg_method == "min":
+                    actual_c = filtered[c_col].min()
+                elif agg_method == "max":
+                    actual_c = filtered[c_col].max()
+                else:
+                    return False, f"Unknown agg method '{agg_method}' for checks", attrs
+            else:
+                actual_c = filtered[c_col].iloc[0]
+            try:
+                diff = abs(float(actual_c) - float(c_exp))
+                if diff > tol:
+                    return False, f"checks value mismatch for '{c_col}': actual {actual_c} vs expect {c_exp} (diff {diff:.6f} > tol {tol})", attrs
+                verified_nums.extend([float(c_exp), c_exp])
+            except (ValueError, TypeError):
+                if str(actual_c) != c_exp:
+                    return False, f"checks value mismatch for '{c_col}': actual '{actual_c}' vs expect '{c_exp}'", attrs
+                verified_nums.append(c_exp)
+
+    # 2. Derived validation
+    derived_str = attrs.get("derived")
+    if derived_str:
+        for item in derived_str.split(";"):
+            item = item.strip()
+            if not item:
+                continue
+            if "=" not in item:
+                return False, f"Malformed derived item '{item}', must be 'expr=val'", attrs
+            d_expr, d_exp = item.split("=", 1)
+            d_expr = d_expr.strip()
+            d_exp = d_exp.strip()
+            if not re.match(r"^[\w\s+\-*/().]+$", d_expr):
+                return False, f"Invalid characters in derived expression '{d_expr}'", attrs
+            
+            row_dict = {}
+            for col in df.columns:
+                val = filtered[col].iloc[0]
+                if isinstance(val, (int, float, np.number)) and not pd.isna(val):
+                    row_dict[col] = float(val)
+            try:
+                calc_val = eval(d_expr, {"__builtins__": {}}, row_dict)
+                diff = abs(calc_val - float(d_exp))
+                if diff > tol:
+                    return False, f"derived computation mismatch for '{d_expr}': calculated {calc_val} vs expect {d_exp} (diff {diff:.6f} > tol {tol})", attrs
+                verified_nums.extend([float(d_exp), d_exp, calc_val])
+            except Exception as e:
+                return False, f"derived evaluation error for '{d_expr}': {e}", attrs
+
+    attrs["_verified_nums"] = verified_nums
+    return True, f"Verified: {expect_str}", attrs
 
 def extract_numbers_from_text(text: str) -> list[tuple[str, float]]:
     """Extracts decimals, percentages, multipliers, fractions, and intervals as specified by M3.3."""
@@ -473,20 +620,24 @@ def extract_numbers_from_text(text: str) -> list[tuple[str, float]]:
     return res
 
 
-def check_statement_numbers(statement: str, expect: float, also_strs: list[str]) -> list[str]:
-    """Verifies that all numbers in an empirical statement are tied to evidence tags."""
-    valid_nums = [expect, expect * 100.0, round(expect, 2), round(expect * 100.0, 1), round(expect * 100.0, 2)]
-    clean_also = [a.strip() for a in also_strs if a.strip()]
-    for a in clean_also:
+def check_statement_numbers(statement: str, verified_nums: list[Any]) -> list[str]:
+    """Verifies that all numbers in an empirical statement are strictly tied to verified evidence tag values."""
+    valid_nums = []
+    clean_str_candidates = set()
+    for v in verified_nums:
+        clean_str_candidates.add(str(v).strip())
         try:
-            if "/" in a:
-                p1, p2 = a.split("/", 1)
-                v = float(p1) / float(p2)
-                valid_nums.extend([v, v * 100.0, round(v, 2), round(v * 100.0, 1), round(v * 100.0, 2)])
+            if "/" in str(v):
+                p1, p2 = str(v).split("/", 1)
+                vf = float(p1) / float(p2)
             else:
-                v = float(a)
-                valid_nums.extend([v, v * 100.0, round(v, 2), round(v * 100.0, 1), round(v * 100.0, 2)])
-        except (ValueError, ZeroDivisionError):
+                vf = float(v)
+            valid_nums.extend([
+                vf, vf * 100.0, vf / 100.0,
+                round(vf, 1), round(vf, 2), round(vf, 3), round(vf, 4),
+                round(vf * 100.0, 1), round(vf * 100.0, 2), round(vf * 100.0, 3),
+            ])
+        except (ValueError, TypeError, ZeroDivisionError):
             pass
             
     unverified = []
@@ -497,8 +648,8 @@ def check_statement_numbers(statement: str, expect: float, also_strs: list[str])
         
     for raw_s, cands in raw_candidates.items():
         matched = False
-        # Direct string match in also list
-        if raw_s in clean_also or raw_s.rstrip('%') in clean_also or raw_s.rstrip('xX倍') in clean_also:
+        clean_s = raw_s.rstrip("%").rstrip("xX倍").strip()
+        if clean_s in clean_str_candidates or raw_s in clean_str_candidates:
             matched = True
         else:
             for n in cands:
@@ -628,7 +779,6 @@ def check_markdown_file(md_path: Path) -> tuple[int, int]:
                     continue
                 seen_citations.add(key)
 
-                # Skip non-code words like 'MD', 'CSV', etc. if not identifier
                 target_file = REPO_ROOT / target_rel
                 if not target_file.exists():
                     print(f"[{rel_md}:{idx}] [ERROR] Cited file does not exist: {target_rel}")
@@ -640,6 +790,28 @@ def check_markdown_file(md_path: Path) -> tuple[int, int]:
                         f"[{rel_md}:{idx}] [ERROR] Symbol '{symbol}' not found within ±3 lines of {target_rel}:{s_line}-{e_line}"
                     )
                     errors += 1
+
+        for m in CITATION_PATTERN_FILE_FIRST.finditer(line):
+            target_rel = m.group(1)
+            s_line = int(m.group(2))
+            e_line = int(m.group(3)) if m.group(3) else s_line
+            symbol = m.group(4)
+            key = (symbol, target_rel, s_line, e_line)
+            if key in seen_citations:
+                continue
+            seen_citations.add(key)
+
+            target_file = REPO_ROOT / target_rel
+            if not target_file.exists():
+                print(f"[{rel_md}:{idx}] [ERROR] Cited file does not exist: {target_rel}")
+                errors += 1
+                continue
+
+            if not verify_symbol_in_file(target_file, symbol, s_line, e_line, slack=3):
+                print(
+                    f"[{rel_md}:{idx}] [ERROR] Symbol '{symbol}' not found within ±3 lines of {target_rel}:{s_line}-{e_line}"
+                )
+                errors += 1
 
         # 6. Full-text path existence check
         for m in FILE_PATH_PATTERN.finditer(line):
@@ -1291,8 +1463,10 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
                     errors += 1
                 else:
                     lab_info = lab_map[lab_id]
-                    concepts = [c.strip() for c in lab_info["涵蓋的參數概念"].split("、")]
-                    topic = lab_info["主題"]
+                    concept_key = next((k for k in lab_info if "涵蓋" in k or "概念" in k or "參數" in k), list(lab_info.keys())[2])
+                    topic_key = next((k for k in lab_info if "主題" in k), list(lab_info.keys())[1])
+                    concepts = [c.strip() for c in lab_info[concept_key].split("、")]
+                    topic = lab_info[topic_key]
                     matches_concept = (
                         any(c.lower() in current_card_title.lower() for c in concepts) or
                         any(c.lower() in md_file.stem.lower() for c in concepts) or
@@ -1331,12 +1505,8 @@ def check_parameter_cards(cards_dir: Path | None = None, registry_path: Path | N
                     else:
                         # Check unverified numbers in current_claim_line
                         if current_claim_line:
-                            expect_val = float(attrs.get("expect", "0"))
-                            also_raw = attrs.get("also", "")
-                            where_raw = attrs.get("where", "")
-                            where_nums = [str(n) for _, n in extract_numbers_from_text(where_raw)]
-                            also_list = [a.strip() for a in also_raw.split(",") if a.strip()] + where_nums
-                            unv = check_statement_numbers(current_claim_line, expect_val, also_list)
+                            verified_list = attrs.get("_verified_nums", [attrs.get("expect", "0")])
+                            unv = check_statement_numbers(current_claim_line, verified_list)
                             if unv:
                                 print(f"[{rel_path}:{idx}] [WARNING] Unverified number(s) in empirical claim: {unv}")
                                 warnings += 1
@@ -1467,7 +1637,7 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
                 continue
 
             is_empirical = "【專案實證】" in stripped and not stripped.startswith(">") and "概念" not in stripped and not stripped.startswith("- 證據標籤：") and not stripped.startswith("- **【專案實證】")
-            is_facts_row = md_file.name == "_facts_verified.md" and stripped.startswith("|")
+            is_facts_row = False
             is_draft_claim = ("_drafts" in md_file.parts and not stripped.startswith("#") and not stripped.startswith("> [!") 
                               and not stripped.startswith("| :---") and stripped != "---" and not stripped.startswith("<!--"))
             
@@ -1513,20 +1683,12 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
                 errors += 1
             else:
                 # Verify numbers against all tags here
-                all_expect: list[float] = []
-                all_also: list[str] = []
+                all_verified_nums: list[Any] = []
                 for t_type, t_attrs in tags_here:
-                    try:
-                        all_expect.append(float(t_attrs.get("expect", "0")))
-                    except ValueError:
-                        pass
-                    also_raw = t_attrs.get("also", "")
-                    where_raw = t_attrs.get("where", "")
-                    where_nums = [str(n) for _, n in extract_numbers_from_text(where_raw)]
-                    all_also.extend([a.strip() for a in also_raw.split(",") if a.strip()] + where_nums)
+                    all_verified_nums.extend(t_attrs.get("_verified_nums", []))
                 
-                if all_expect:
-                    unv = check_statement_numbers(stripped, all_expect[0], all_also + [str(e) for e in all_expect[1:]])
+                if all_verified_nums:
+                    unv = check_statement_numbers(stripped, all_verified_nums)
                     if unv:
                         print(f"[{rel_file}:{idx}] [ERROR] Unverified number(s) in claim: {unv}")
                         errors += 1

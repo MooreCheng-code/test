@@ -102,6 +102,7 @@ def run_lab(mode: str = "quick", pipeline: str = "project") -> tuple[pd.DataFram
     splitter_noise = get_cv_splitter(n_splits=PARAMS["cv_folds"], n_repeats=n_repeats, seed=noise_seed)
 
     records: list[dict[str, Any]] = []
+    fold_records: list[dict[str, Any]] = []
 
     # 輔助評估函式
     def eval_pipeline_setting(
@@ -161,6 +162,17 @@ def run_lab(mode: str = "quick", pipeline: str = "project") -> tuple[pd.DataFram
             ar90s.append(m["ar_90"])
             retained_feats.append(n_feats)
             fold_times.append(time.time() - t0)
+
+            fold_records.append({
+                "model_code": m_code,
+                "ablation_group": ablation_group,
+                "setting_name": setting_name,
+                "fold": fold_idx,
+                "ar95": float(m["ar_95"]),
+                "pr_auc": float(m["pr_auc"]),
+                "retained_features": int(n_feats),
+                "n_pos": int(np.sum(y_val == 1)),
+            })
 
         rec = {
             "model_code": m_code,
@@ -244,7 +256,12 @@ def run_lab(mode: str = "quick", pipeline: str = "project") -> tuple[pd.DataFram
     csv_path = out_dir / "lab_05_preprocessing_ablation.csv"
     df_results.to_csv(csv_path, index=False, encoding="utf-8")
 
+    df_folds = pd.DataFrame(fold_records)
+    folds_csv_path = out_dir / "lab_05_project_folds.csv"
+    df_folds.to_csv(folds_csv_path, index=False, encoding="utf-8")
+
     snap_path = save_snapshot(df_results, "lab_05_preprocessing_ablation_snapshot.csv")
+    save_snapshot(df_folds, "lab_05_project_folds_snapshot.csv")
 
     # 5. 繪圖
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
