@@ -646,3 +646,12 @@
 ### 5. N6 逐句稽核表與 N7 禁用詞排查
 - **逐句稽核表 (`09_claims_ledger.csv`)**：全面梳理 `docs/code_learning/_drafts/09_面試說明稿.draft.md`，抽取 129 筆陳述句，統計結果為：數字 99 筆、實驗結論 19 筆、一般經驗 5 筆、程式行為 4 筆、限制 2 筆。驗證狀態為 129 筆已驗證、0 筆待驗證。
 - **禁用詞排查**：全文掃描 9 個嚴格禁用詞（依 N7 規範清單），在 `docs/code_learning` 與 `labs` 範圍內出現次數全數為 0。
+
+
+---
+
+## 階段 8-fix6 查證紀錄
+
+### 1. Stacking 數字來源查證
+- 經 `git log --oneline -5 -- bankruptcy/outputs/tables/e3c_stacking_summary.csv` 查驗，該檔案在歷史中僅有單一提交（`1685b89 E4結束`），Object hash 為 `cb88c44ddb357811c928ea00b1afa4eaeee22a2f`，與 `c35f833` 之 diff 為空。
+- 前一輪回報貼出的 e3c 內容與磁碟檔案不符，原因不明，現行數字以磁碟檔案為準。

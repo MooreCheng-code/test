@@ -120,11 +120,11 @@ MISNOMER_15FOLD = re.compile(r"(?<![35\d])15\s*折(?!次)")
 LAB_MAP_CSV = REPO_ROOT / "labs" / "lab_map.csv"
 
 FILE_PATH_PATTERN = re.compile(
-    r'(?<![A-Za-z0-9_/-])((?:bankruptcy|labs|docs)[/\\][\w./\-]+\.(?:py|csv|json|txt|md|npy|joblib|png|npz|html))\b'
+    r'(?<![A-Za-z0-9_/-])((?:bankruptcy|labs|docs|tools)[/\\][\w./\-]+\.(?:py|csv|json|txt|md|npy|joblib|png|npz|html))\b'
 )
 
 AST_CITATION_PATTERN = re.compile(
-    r'[`]?((?:bankruptcy|labs|docs)[/\w.-]+\.py):(\d+)(?:-\d+)?[`]?\s*\([`]?([a-zA-Z_][a-zA-Z0-9_]*)[`]?\)[`]?'
+    r'[`]?((?:bankruptcy|labs|docs|tools)[/\w.-]+\.py):(\d+)(?:-\d+)?[`]?\s*\([`]?([a-zA-Z_][a-zA-Z0-9_]*)[`]?\)[`]?'
 )
 
 EVIDENCE_TAG_PATTERN = re.compile(
@@ -912,6 +912,10 @@ def check_docs(target_dir: Path | None = None, include_drafts: bool = False) -> 
         md_files = [check_dir]
     else:
         md_files = sorted(check_dir.rglob("*.md"))
+        if target_dir is None:
+            for l_md in sorted((REPO_ROOT / "labs").rglob("*.md")):
+                if l_md not in md_files:
+                    md_files.append(l_md)
         if not include_drafts:
             md_files = [f for f in md_files if "_drafts" not in f.parts]
 
@@ -1586,9 +1590,9 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
             md_files = sorted(target_dir.rglob("*.md"))
     else:
         md_files = sorted(DOCS_DIR.rglob("*.md"))
-        labs_readme = REPO_ROOT / "labs" / "README.md"
-        if labs_readme.is_file() and labs_readme not in md_files:
-            md_files.append(labs_readme)
+        for l_md in sorted((REPO_ROOT / "labs").rglob("*.md")):
+            if l_md not in md_files:
+                md_files.append(l_md)
 
     if not include_drafts:
         md_files = [f for f in md_files if "_drafts" not in f.parts]
@@ -1607,6 +1611,20 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
         content = md_file.read_text(encoding="utf-8")
         lines = content.splitlines()
         
+        # Check path existence on every line
+        for idx, line in enumerate(lines, 1):
+            if "<!-- planned:" in line or "planned:" in line:
+                continue
+            if md_file.name in {"_findings.md", "_stale_claims.csv"} or "negative" in line.lower() or "不存在" in line or "找不到" in line or "未建立" in line:
+                continue
+            for m in FILE_PATH_PATTERN.finditer(line):
+                raw_path = m.group(1).rstrip(":,.;)\'\"")
+                norm_path = raw_path.replace("\\", "/")
+                target_p = REPO_ROOT / norm_path
+                if not target_p.exists():
+                    print(f"[{rel_file}:{idx}] [ERROR] Cited path does not exist on filesystem: {norm_path}")
+                    errors += 1
+
         # Global file scan for no-evidence tags to record all reasons and validate them
         for idx, line in enumerate(lines, 1):
             for m in NO_EVIDENCE_PATTERN.finditer(line):
@@ -1688,8 +1706,7 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
 
             is_empirical = "【專案實證】" in stripped and not stripped.startswith(">") and "概念" not in stripped and not stripped.startswith("- 證據標籤：") and not stripped.startswith("- **【專案實證】")
             is_facts_row = False
-            is_draft_claim = ("_drafts" in md_file.parts and not stripped.startswith("#") and not stripped.startswith("> [!") 
-                              and not stripped.startswith("| :---") and stripped != "---" and not stripped.startswith("<!--"))
+            is_draft_claim = False
             
             should_check = is_empirical or is_facts_row or is_draft_claim or is_direct_target
             if not should_check:
@@ -2424,7 +2441,8 @@ def main():
         total_warn += w
     elif args.evidence or args.strict:
         target = Path(args.path) if args.path else None
-        e, w = check_evidence_tags_all(target, include_drafts=args.include_drafts)
+        inc_drafts = args.include_drafts or args.strict
+        e, w = check_evidence_tags_all(target, include_drafts=inc_drafts)
         total_err += e
         total_warn += w
     elif args.cards:

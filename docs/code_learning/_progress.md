@@ -28,7 +28,8 @@
 | **階段 8** | `00_讀我_學習路線.md`、`07_常見錯誤與除錯.md`、`08_術語表.md` (48詞)、`_drafts/09_面試說明稿.draft.md` (隔離草稿)、`--glossary` 與 `--include-drafts` 檢查模式與單元測試 | ✅ 已完成 | `docs(code-learning): stage 8 - reading paths, troubleshooting, glossary (interview draft held in _drafts)` |
 | **階段 8-fix3** | 證據檢查器加固（禁止 `also=`、`checks`、`derived`、AST ±3 行符號比對）、`09` 面試說明稿修正、Lab 09 樹數消融快照、除錯題重構、逐句稽核表 `09_claims_ledger.csv`、禁用詞排查清零 | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 8-fix3 - evidence checker hardening, interview draft corrections, committed lab evidence, bug exercise redesign`) |
 | **階段 8-fix4 & 9** | `--strict` AST 欄位比對、恰配 1 列限制、帶單位整數驗證、`render_interview.py` 數字帶入渲染器與單元測試、8 道除錯題降級封裝、`docs/code_learning/README.md`、`10_已知限制.md` 建立、全套驗證通過 | ✅ 已完成（已收斂，除使用者要求外不再修改） | 本次提交 (`docs(code-learning): stage 8-fix4 and 9 - strict evidence checker, generated interview draft, packaging`) |
-| **階段 8-fix5** | 面試說明稿 Q4/Q1/Q2/Q3/Q7/Q9/Q10 修正、Stacking 原始列與成對檢定口徑校準、除錯題 bug_03/bug_06 降級至 _wip/（正式題庫收斂為 6 題）、全套檢查模式通過、禁用詞清零 | ✅ 已收斂（除使用者要求外不再修改） | 本次提交 (`docs(code-learning): stage 8-fix5 - final corrections`) |
+| **階段 8-fix5** | 面試說明稿 Q4/Q1/Q2/Q3/Q7/Q9/Q10 修正、Stacking 原始列與成對檢定口徑校準、除錯題 bug_03/bug_06 降級至 _wip/（正式題庫收斂為 6 題）、全套檢查模式通過、禁用詞清零 | ✅ 已完成 | `5f79203` (`docs(code-learning): stage 8-fix5 - final corrections`) |
+| **階段 8-fix6** | 路徑修正（殘留 experiments/ 清除至 0）、檢查器加固（--strict 與 --include-drafts 對模板、drafts 及成品全文路徑存在性檢驗）、Stacking 數字來源查證記錄、除錯題降級原因統一收斂（bug_03/05/06/08）、全套檢查模式通過、190 項測試通過 | ✅ 已完成（除使用者要求外不再修改） | 本次提交 (`docs(code-learning): stage 8-fix6 - path fix and final notes`) |
 
 ### 1.1 過時說法清單統計（`_stale_claims.csv` 統計報告）
 
@@ -102,8 +103,11 @@
   - 階段 8 & 8-fix：面試說明稿重寫（置於 `_drafts/` 物理隔離）、`tools/check_code_docs.py` 加固（檔案路徑存在性、AST 符號驗證、草稿嚴格證據標籤檢查）、術語表 48 詞全 AST 通過、F-02 與 lab_05 project 管線實測對照、除錯題 20 次重複資料產出與校準。
   - 階段 8-fix2：除錯題全面重建與 20 次重複實驗實測（`bugs_summary.csv`、`06_解答.md` 全量綁定）、面試說明稿 M2.1～M2.13 全量修訂（物理隔離於 `_drafts/`）、檢查器 5 項負向測試全數攔截、K1 新舊管線與樹數消融實測完成、全專案修辭中立化完成。
   - 階段 8-fix3：證據檢查器加固（全面禁用 also=、引進 checks 與 derived、AST ±3 行符號匹配）、6 項負向測試全數攔截失敗、面試說明稿 N2 數值修正、Lab 09 樹數消融快照落地、除錯題重構、逐句稽核表 09_claims_ledger.csv（129 筆 0 待驗證）、禁用詞清零。
-- **當前項目**：階段 8-fix3 完成，9 大檢查模式與專案 190 項測試（已追蹤測試檔，另有未追蹤測試檔 3 項） 100% 通過（0 error, 0 warning）。
-- **下一步**：停下等待使用者審閱 09 草稿全文與 8-fix3 各項成果放行，絕不擅自進入階段 9。
+  - 階段 8-fix4 & 9：--strict AST 欄位比對、恰配 1 列限制、帶單位整數驗證、render_interview.py 數字帶入渲染器與單元測試、8 道除錯題降級封裝、docs/code_learning/README.md、10_已知限制.md 建立。
+  - 階段 8-fix5：面試說明稿核心事實校準、除錯題收斂為 6 題、禁用詞排查清零。
+  - 階段 8-fix6：殘留 experiments/ 路徑清零、--strict 與 --include-drafts 全量路徑存在性校驗加固、Stacking 來源歷史查證登錄、除錯題降級原因統一。
+- **當前項目**：階段 8-fix6 完成，全套檢查模式與已追蹤之 190 項測試全數通過（0 error, 0 warning）。
+- **下一步**：已收斂完成，停下等待使用者進一步指示（不再進行修改）。
 
 ---
 
