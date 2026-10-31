@@ -127,6 +127,9 @@ AST_CITATION_PATTERN = re.compile(
     r'[`]?((?:bankruptcy|labs|docs|tools)[/\w.-]+\.py):(\d+)(?:-\d+)?[`]?\s*\([`]?([a-zA-Z_][a-zA-Z0-9_]*)[`]?\)[`]?'
 )
 
+MD_LINK_PATTERN = re.compile(r'(?<!!)\[([^\]]*)\]\(([^)]+)\)')
+AUTOLINK_PATH_PATTERN = re.compile(r'<([^>]+)>')
+
 EVIDENCE_TAG_PATTERN = re.compile(
     r'<!--\s*evidence\s+(.+?)\s*-->'
 )
@@ -869,6 +872,46 @@ def check_markdown_file(md_path: Path) -> tuple[int, int]:
                 print(f"[{rel_md}:{idx}] [ERROR] Function/symbol '{sym}' not found in AST of {f_rel}:{l_num}")
                 errors += 1
 
+        # 8. Markdown relative links existence check
+        if md_path.name not in {"_findings.md", "_stale_claims.csv"} and "negative" not in line.lower() and "不存在" not in line and "找不到" not in line:
+            # 8a. [text](link)
+            for m in MD_LINK_PATTERN.finditer(line):
+                raw_target = m.group(2).strip()
+                target_str = raw_target.split()[0].strip("'\"")
+                if target_str.startswith(("http://", "https://", "mailto:")):
+                    continue
+                path_part = target_str.split("#")[0]
+                if not path_part:
+                    continue  # Pure anchor #section
+                clean_rel = path_part.replace("\\", "/")
+                resolved = (md_path.parent / clean_rel).resolve()
+                if not resolved.exists():
+                    print(f"[{rel_md}:{idx}] [ERROR] Broken relative link '{raw_target}': target does not exist at {clean_rel}")
+                    errors += 1
+
+            # 8b. <path> autolinks
+            for m in AUTOLINK_PATH_PATTERN.finditer(line):
+                raw_target = m.group(1).strip()
+                if " " in raw_target or "\t" in raw_target or raw_target.startswith(("http://", "https://", "mailto:", "#")):
+                    continue
+                # Ignore common HTML tags
+                if raw_target.lower().rstrip("/") in {"br", "hr", "p", "div", "span", "table", "tr", "td", "th", "details", "summary", "a", "img", "code", "pre"}:
+                    continue
+                # Must exhibit path characteristics: slash or file extension or leading dot
+                has_sep = "/" in raw_target or "\\" in raw_target
+                has_ext = any(raw_target.endswith(ext) for ext in [".md", ".py", ".csv", ".json", ".txt", ".html", ".png", ".joblib", ".npy"])
+                starts_dot = raw_target.startswith("./") or raw_target.startswith("../")
+                if not (has_sep or has_ext or starts_dot):
+                    continue
+                path_part = raw_target.split("#")[0]
+                if not path_part:
+                    continue
+                clean_rel = path_part.replace("\\", "/")
+                resolved = (md_path.parent / clean_rel).resolve()
+                if not resolved.exists():
+                    print(f"[{rel_md}:{idx}] [ERROR] Broken relative autolink '{raw_target}': target does not exist at {clean_rel}")
+                    errors += 1
+
     return errors, warnings
 
 
@@ -916,8 +959,8 @@ def check_docs(target_dir: Path | None = None, include_drafts: bool = False) -> 
             for l_md in sorted((REPO_ROOT / "labs").rglob("*.md")):
                 if l_md not in md_files:
                     md_files.append(l_md)
-        if not include_drafts:
-            md_files = [f for f in md_files if "_drafts" not in f.parts]
+        # include _drafts by default to cover full docs/code_learning
+        pass
 
     print(f"Checking {len(md_files)} markdown files in {rel_dir} (include_drafts={include_drafts})...\n")
     total_errors = 0
@@ -1623,6 +1666,42 @@ def check_evidence_tags_all(target_dir: Path | None = None, include_drafts: bool
                 target_p = REPO_ROOT / norm_path
                 if not target_p.exists():
                     print(f"[{rel_file}:{idx}] [ERROR] Cited path does not exist on filesystem: {norm_path}")
+                    errors += 1
+
+            # Relative markdown links
+            for m in MD_LINK_PATTERN.finditer(line):
+                raw_target = m.group(2).strip()
+                target_str = raw_target.split()[0].strip("'\"")
+                if target_str.startswith(("http://", "https://", "mailto:")):
+                    continue
+                path_part = target_str.split("#")[0]
+                if not path_part:
+                    continue
+                clean_rel = path_part.replace("\\", "/")
+                resolved = (md_file.parent / clean_rel).resolve()
+                if not resolved.exists():
+                    print(f"[{rel_file}:{idx}] [ERROR] Broken relative link '{raw_target}': target does not exist at {clean_rel}")
+                    errors += 1
+
+            # Autolink paths
+            for m in AUTOLINK_PATH_PATTERN.finditer(line):
+                raw_target = m.group(1).strip()
+                if " " in raw_target or "\t" in raw_target or raw_target.startswith(("http://", "https://", "mailto:", "#")):
+                    continue
+                if raw_target.lower().rstrip("/") in {"br", "hr", "p", "div", "span", "table", "tr", "td", "th", "details", "summary", "a", "img", "code", "pre"}:
+                    continue
+                has_sep = "/" in raw_target or "\\" in raw_target
+                has_ext = any(raw_target.endswith(ext) for ext in [".md", ".py", ".csv", ".json", ".txt", ".html", ".png", ".joblib", ".npy"])
+                starts_dot = raw_target.startswith("./") or raw_target.startswith("../")
+                if not (has_sep or has_ext or starts_dot):
+                    continue
+                path_part = raw_target.split("#")[0]
+                if not path_part:
+                    continue
+                clean_rel = path_part.replace("\\", "/")
+                resolved = (md_file.parent / clean_rel).resolve()
+                if not resolved.exists():
+                    print(f"[{rel_file}:{idx}] [ERROR] Broken relative autolink '{raw_target}': target does not exist at {clean_rel}")
                     errors += 1
 
         # Global file scan for no-evidence tags to record all reasons and validate them

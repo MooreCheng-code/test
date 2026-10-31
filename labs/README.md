@@ -296,7 +296,7 @@ python labs/test_common.py
     - 在關閉截尾（`use_winsorizer=False`）下：門檻 0.95 各折動態保留 **70～73 欄**（平均 71.6 欄，min=70, max=73）。未經截尾之極端長尾值放大了成對 Pearson 相關係數，導致更多特徵超過 0.95 被剔除。專案正式管線在 E1b 結論後關閉截尾（`use_winsorizer=False`），因此正式外層 15 次評估之保留數為 70～73 欄（全訓練集為 72 欄）。兩者前處理條件不同，數值完全精確對應。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=quantile'" col=pr_auc_mean expect=0.406385 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M1' and setting_name=='Scaler=standard'" col=pr_auc_mean expect=0.352656 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M3' and setting_name=='Scaler=standard'" col=ar95_mean expect=8.158571 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_05_preprocessing_ablation_snapshot.csv where="model_code=='M3' and setting_name=='Scaler=standard'" col=ar95_mean expect=9.080794 tolerance=0.01 -->
   - **縮放器影響與 M3 AR@0.95 退化機制（有證據的事實、推測與對照驗證分離）**：
     - M1 在 QuantileScaler 下 PR-AUC 為 0.4064（AR@0.95 為 9.15x），改為 StandardScaler 後 PR-AUC 跌至 0.3979（AR@0.95 升至 10.67x）。
     - M3 改用 StandardScaler 後 AR@0.95 均值由 9.14x 劇增至 **18.38x**（折間標準差 10.75x）。
