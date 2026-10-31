@@ -3,6 +3,7 @@
 # 內含一個刻意植入的錯誤，請找出來。解答見 docs/code_learning/06_解答.md
 # 只使用合成資料，不讀取專案資料。
 # ============================================================
+# 題名：除錯第 2 題：重採樣時機不當導致之合成樣本跨折滲透
 
 from pathlib import Path
 from imblearn.over_sampling import SMOTE

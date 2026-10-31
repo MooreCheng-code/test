@@ -17,7 +17,7 @@
 | **階段 2c** | `02_模組導讀/`：`explain_E5.md`, `e6_lock_and_final_eval.md`, `e7_sensitivity.md`, `experiments_E0_E7.md`, `score_new_data.md`, `app_streamlit.md`；最小版檢查器 `tools/check_code_docs.py` | ✅ 已完成 | `55c4191` (Part 1) + `3ad26f3` (Part 2) |
 | **階段 3a-fix** | `03a_param_registry.csv` v2（134 筆，T1 84 筆、T2 26 筆、T3 24 筆；12 大類別）、`param_notes.csv`、`param_exclusions.csv`（24 項排除）、`tools/build_param_registry.py`、`tools/check_code_docs.py --registry`（完整性檢查 0 未對應）、`tools/test_registry_extractor.py`（單元測試通過） | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 3a-fix - registry v2, completeness check, independent verification`) |
 | **階段 3c-fix** | F1～F9 全量事實修復、`_facts_verified.md` 機器驗證達成 0 錯誤、`03c_速查表.md` 完整重構、`check_code_docs.py` AST/證據覆蓋升級 | ✅ 已完成 | `506a535` (`docs(code-learning): stage 3c-fix - E6/Brier/margin corrections, evidence coverage, facts verification`) |
-| **階段 4a-fix** | G1～G5 修復：F-02 45 組配對深入檢定、單樹粗階梯同分機制、S3 vs S6 幾何特性證明、措辭嚴格校準、test_common 單元測試增至 10 項 | ✅ 已完成 | 本次提交 (docs(code-learning): stage 4a-fix - F-02 extended comparison, lab corrections, claims calibration) |
+| **階段 4a-fix** | G1～G5 修復：F-02 45 組配對深入檢定、單樹粗階梯同分機制、S3 vs S6 幾何特性分析、措辭嚴格校準、test_common 單元測試增至 10 項 | ✅ 已完成 | 本次提交 (docs(code-learning): stage 4a-fix - F-02 extended comparison, lab corrections, claims calibration) |
 | **階段 4b** | lab_05～lab_08 實作完成、	ools/update_lab_refs.py 替換卡片規劃中標籤為已完成、速查表對照更新、labs/README.md 包含演算法隨機性 vs 資料抽樣變異與極端召回率膨脹專門分析小節 | ✅ 已完成 | 本次提交 (docs(code-learning): stage 4b - lab_05 to lab_08, lab references updated) |
 | **階段 4b-fix** | H1～H7 事實修復：lab_04 M3 數據驗證（TomekLinks 0 剔除實測）、lab_08 與 E7b 措辭校準、E6 單次測試限制與 E4a 跨折補充、保護檔案 diff 雜湊、manifest 隔離、lab 模式縮減總表、標籤覆蓋統計 | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 4b-fix - lab_04 verification, E7b comparison wording, manifest fields, evidence coverage`) |
 | **階段 5** | 實驗操作指南：因果鏈全景 Mermaid 圖、12 步驟從零重現順序、EDA 至 MVP 13 階段全覆蓋（11 項固定模板）、四大常見重跑陷阱與排除對策、`check_code_docs.py --commands` AST 驗證通過 | ✅ 已完成 | `9748f7a` (`docs(code-learning): stage 5 - experiment operation guide`) |
@@ -28,6 +28,7 @@
 | **階段 8** | `00_讀我_學習路線.md`、`07_常見錯誤與除錯.md`、`08_術語表.md` (48詞)、`_drafts/09_面試說明稿.draft.md` (隔離草稿)、`--glossary` 與 `--include-drafts` 檢查模式與單元測試 | ✅ 已完成 | `docs(code-learning): stage 8 - reading paths, troubleshooting, glossary (interview draft held in _drafts)` |
 | **階段 8-fix3** | 證據檢查器加固（禁止 `also=`、`checks`、`derived`、AST ±3 行符號比對）、`09` 面試說明稿修正、Lab 09 樹數消融快照、除錯題重構、逐句稽核表 `09_claims_ledger.csv`、禁用詞排查清零 | ✅ 已完成 | 本次提交 (`docs(code-learning): stage 8-fix3 - evidence checker hardening, interview draft corrections, committed lab evidence, bug exercise redesign`) |
 | **階段 8-fix4 & 9** | `--strict` AST 欄位比對、恰配 1 列限制、帶單位整數驗證、`render_interview.py` 數字帶入渲染器與單元測試、8 道除錯題降級封裝、`docs/code_learning/README.md`、`10_已知限制.md` 建立、全套驗證通過 | ✅ 已完成（已收斂，除使用者要求外不再修改） | 本次提交 (`docs(code-learning): stage 8-fix4 and 9 - strict evidence checker, generated interview draft, packaging`) |
+| **階段 8-fix5** | 面試說明稿 Q4/Q1/Q2/Q3/Q7/Q9/Q10 修正、Stacking 原始列與成對檢定口徑校準、除錯題 bug_03/bug_06 降級至 _wip/（正式題庫收斂為 6 題）、全套檢查模式通過、禁用詞清零 | ✅ 已收斂（除使用者要求外不再修改） | 本次提交 (`docs(code-learning): stage 8-fix5 - final corrections`) |
 
 ### 1.1 過時說法清單統計（`_stale_claims.csv` 統計報告）
 
