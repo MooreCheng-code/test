@@ -378,7 +378,7 @@ def main():
     save_manifest(
         output_dir=OUTPUT_DIR,
         lab_id=LAB_ID,
-        params={"mode": args.mode, "outer_splits": outer_splits, "inner_splits": inner_splits},
+        params={"mode": args.mode, "pipeline": args.pipeline, "outer_splits": outer_splits, "inner_splits": inner_splits},
         elapsed_seconds=total_time,
         seed=42,
         extra={

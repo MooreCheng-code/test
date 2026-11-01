@@ -259,6 +259,9 @@ def get_git_status_info() -> tuple[bool, int]:
         labs_dirty = False
         other_count = 0
         for line in lines:
+            if line.startswith("??"):
+                other_count += 1
+                continue
             parts = line.split(maxsplit=1)
             if len(parts) == 2:
                 path = parts[1].strip('"')

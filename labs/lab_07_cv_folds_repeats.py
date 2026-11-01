@@ -296,7 +296,7 @@ def main():
     save_manifest(
         output_dir=OUTPUT_DIR,
         lab_id=LAB_ID,
-        params={"mode": args.mode, "k_list": k_list, "r_list": r_list, "ladder_iters": n_iters},
+        params={"mode": args.mode, "pipeline": args.pipeline, "k_list": k_list, "r_list": r_list, "ladder_iters": n_iters},
         elapsed_seconds=total_time,
         seed=42,
         extra={

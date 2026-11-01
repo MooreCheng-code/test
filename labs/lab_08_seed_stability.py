@@ -264,7 +264,7 @@ def main():
     save_manifest(
         output_dir=OUTPUT_DIR,
         lab_id=LAB_ID,
-        params={"mode": args.mode, "n_splits": n_splits, "seed_list": SEED_LIST},
+        params={"mode": args.mode, "pipeline": args.pipeline, "n_splits": n_splits, "seed_list": SEED_LIST},
         elapsed_seconds=total_time,
         seed=42,
         extra={

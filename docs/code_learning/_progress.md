@@ -32,6 +32,7 @@
 | **階段 8-fix6** | 路徑修正（殘留 experiments/ 清除至 0）、檢查器加固（--strict 與 --include-drafts 對模板、drafts 及成品全文路徑存在性檢驗）、Stacking 數字來源查證記錄、除錯題降級原因統一收斂（bug_03/05/06/08）、全套檢查模式通過、190 項測試通過 | ✅ 已完成（除使用者要求外不再修改） | `469c6cd` (`docs(code-learning): stage 8-fix6 - path fix and final notes`) |
 | **階段 8-fix7** | 連結檢查器加固（Markdown 相對連結存在性檢驗）、失效連結修復、重寫 `docs/code_learning/README.md`（刪除虛構說法、加入 90 分鐘路徑與不要執行警語）、還原 `lab_05` 快照與編碼重寫（utf-8-sig）、全套檢查通過、190 項測試通過 | ✅ 已完成（除使用者要求外不再修改） | `6ee3683` (`docs(code-learning): stage 8-fix7 - readme links and lab_05 snapshot`) |
 | **階段 8-fix8** | lab 可執行性與 E1a 對照修復：lab_04 排除 NaN 崩潰與平手整數排名、全體 9 支 Lab 傳遞 `--pipeline` 旗標支援、S3 vs S6 Tomek 實際剔除量量測（teaching 0 筆等價 vs project 每折 0.4 筆微幅差異）、新增 `tools/run_labs_smoke.py` 冒煙測試（18/18 全 PASS 退出碼 0）、全套檢查通過、190 項測試通過 | ✅ 已完成（除使用者要求外不再修改） | 本次提交 (`docs(code-learning): stage 8-fix8 - lab runnability and E1a comparison`) |
+| **階段 8-fix9** | 收尾：lab_06/07/08 專案管線快照重跑與數字更新、Tomek 邊界說明精確定稿（區分 M1/M3 與 teaching/project）、lab_05 快照分組與 71.6 查核、冒煙測試支援單管線與 git_dirty 檢驗、全套檢查模式通過、190 項測試通過 | ✅ 已完成（收尾定稿，除使用者要求外不再修改） | 本次提交 (`docs(code-learning): stage 8-fix9 - project-pipeline snapshots and final wording`) |
 
 ### 1.1 過時說法清單統計（`_stale_claims.csv` 統計報告）
 

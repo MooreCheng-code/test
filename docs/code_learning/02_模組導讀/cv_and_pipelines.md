@@ -142,9 +142,11 @@
 | **S5** | 邊界 SMOTE | `BorderlineSMOTE(sampling_strategy=0.3, k_neighbors=5)` | ❌ 未採用 |
 | **S6** | 混合採樣 | `SMOTETomek(sampling_strategy=0.3)` | ❌ 未採用 |
 
-> **S3 與 S6（TomekLinks）之等價性與管線敏感度**：
-> - 在 **teaching 管線（Winsorizer 啟用）** 下：高維分位數空間無孤立極端值，TomekLinks 跨 5 折每折剔除 0 筆樣本，S3 與 S6 數值完全相同（M1 PR-AUC 均為 0.3883，AR@0.95 均為 11.70x）。專案正式 E1a 表格（`e1a_imbalance_comparison.csv`）亦呈現相同的 `alert_ratio@recall_0.95_mean = 10.865926`。
-> - 在 **project 管線（Winsorizer 關閉，預設）** 下：長尾極端值使第 2 折 TomekLinks 實際剔除 2 筆邊界樣本（5,489 筆降至 5,487 筆，5 折平均每折剔除 0.4 筆），S3 與 S6 數值微幅不同（M1 S3 PR-AUC 0.3874、AR@0.95 8.95x 對比 S6 PR-AUC 0.3872、AR@0.95 9.00x，PR-AUC 差距 0.000143，AR 差距 0.0457x）。
+> **S3 與 S6（TomekLinks）之等價性、管線敏感度與模型邊界**：
+> - 在 **teaching 管線（Winsorizer 啟用）** 下：
+>   - **M1**：高維分位數空間無孤立極端值，TomekLinks 跨 5 折每折剔除 0 筆樣本，S3 與 S6 數值完全相同（M1 PR-AUC 均為 0.3883，AR@0.95 均為 11.70x）。專案正式 E1a 表格（`e1a_imbalance_comparison.csv`）亦呈現相同的 `alert_ratio@recall_0.95_mean = 10.865926`。「剔除 0 筆所以完全相同」只能用於 M1 的教學管線。
+>   - **M3**：S3 與 S6 數值並不相同（PR-AUC 0.4175 對 0.4188），**但 Tomek 剔除同樣是 0 筆**，所以 M3 的差異不是 Tomek 造成的（【合理推測，未驗證】：可能源於樹模型內部特徵切分之隨機狀態傳遞差異）。
+> - 在 **project 管線（Winsorizer 關閉，預設）** 下：長尾極端值使第 2 折 TomekLinks 實際剔除 2 筆邊界樣本（5,489 筆降至 5,487 筆，5 折平均每折剔除 0.4 筆），M1 與 M3 的 S3 與 S6 數值均略有差異（M1 S3 PR-AUC 0.3874、AR@0.95 8.95x 對比 S6 PR-AUC 0.3872、AR@0.95 9.00x，PR-AUC 差距 0.000143；M3 S3 PR-AUC 0.4075 對比 S6 0.4051）。
 
 #### 基準與候選模型清單（`bankruptcy/src/pipelines.py:131-210`）
 

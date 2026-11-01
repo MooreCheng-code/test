@@ -238,9 +238,11 @@ python labs/test_common.py
   - **M3 的 class_weight 膨脹緩和**：M3 在 S0 下為 0.0334，S1 下僅微升至 0.0391（僅 1.2 倍）。因為樹模型中 class_weight 僅改變分裂時的不純度計算，葉節點仍按樣本比例計算，多數葉節點仍為純負樣本（機率 0.0）。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S3'" col=pr_auc_mean expect=0.387373 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_04_imbalance_strategies_snapshot.csv where="model_code=='M1' and strategy=='S6'" col=pr_auc_mean expect=0.387230 tolerance=0.001 -->
-  - **M1 S3 vs S6 數值在不同管線下的表現與 Tomek 剔除實測**：
-    - 在 **teaching 管線（Winsorizer 啟用）** 下：QuantileScaler 將 76 維特徵縮放至均勻分佈且無極端長尾值，TomekLinks 跨 5 折每折剔除 0 筆樣本，故數值完全相同（PR-AUC 均為 0.3883，AR@0.95 均為 11.70x）。專案正式 E1a 表格（`e1a_imbalance_comparison.csv`，採 teaching 口徑）中 M1 的 S3 與 S6 亦共享完全相同的 `alert_ratio@recall_0.95_mean = 10.865926`。
-    - 在 **project 管線（Winsorizer 關閉，預設）** 下：極端值使第 2 折 TomekLinks 實際剔除了 2 筆邊界樣本（5,489 筆降至 5,487 筆，5 折平均每折剔除 0.4 筆），S3 與 S6 數值微幅不同（S3 PR-AUC 0.3874、AR@0.95 8.95x 對比 S6 PR-AUC 0.3872、AR@0.95 9.00x，PR-AUC 差距 0.000143，AR 差距 0.0457x）。
+  - **S3 vs S6 數值在不同管線下的表現與 Tomek 剔除實測**：
+    - 在 **teaching 管線（Winsorizer 啟用）** 下：
+      - **M1**：QuantileScaler 將 76 維特徵縮放至均勻分佈且無極端長尾值，TomekLinks 跨 5 折每折剔除 0 筆樣本，故數值完全相同（PR-AUC 均為 0.3883，AR@0.95 均為 11.70x）。專案正式 E1a 表格（`e1a_imbalance_comparison.csv`，採 teaching 口徑）中 M1 的 S3 與 S6 亦共享完全相同的 `alert_ratio@recall_0.95_mean = 10.865926`。「剔除 0 筆所以完全相同」只能用於 M1 的教學管線。
+      - **M3**：教學管線下 M3 的 S3 與 S6 數值並不相同（PR-AUC 0.4175 對 0.4188），**但 Tomek 剔除同樣是 0 筆**，所以 M3 的差異不是 Tomek 造成的（原因未驗證，標為「合理推測，未驗證」：可能源於樹模型內部特徵切分之隨機狀態傳遞差異）。
+    - 在 **project 管線（Winsorizer 關閉，預設）** 下：長尾極端值使第 2 折 TomekLinks 實際剔除了 2 筆邊界樣本（5,489 筆降至 5,487 筆，5 折平均每折剔除 0.4 筆），M1 與 M3 的 S3 與 S6 數值均略有差異（M1 S3 PR-AUC 0.3874、AR@0.95 8.95x 對比 S6 PR-AUC 0.3872、AR@0.95 9.00x；M3 S3 PR-AUC 0.4075、AR@0.95 7.37x 對比 S6 PR-AUC 0.4051、AR@0.95 7.30x）。
 
 #### M3（ExtraTrees）全策略實測對照表（`--quick --pipeline project` 模式，5 折 × 1 次重複，註：正式 E1a 無 M3，數據為 Lab 04 實測）：
 
@@ -260,8 +262,11 @@ python labs/test_common.py
 > [!NOTE]
 > **數據查證與歷史成因說明**：
 > 1. **回報誤植成因**：先前 Markdown 手動整理表格時，曾誤將 S3 之 `mean_proba_mean` 寫為 0.0347（磁碟 CSV 實為 0.063861）、S0 Brier 寫為 0.0267（磁碟 CSV 實為 0.023185）。磁碟上之原始 CSV `labs/outputs/lab_04/lab_04_imbalance_strategies.csv` 與快照 CSV 本身自始至終完全一致且正確無誤。
-> 2. **S3 vs S6 等價成立條件**：在 teaching 管線（Winsorizer 啟用）下 TomekLinks 剔除 0 筆樣本故數值完全相同；在 project 管線下每折剔除 0.4 筆（第 2 折剔除 2 筆，其餘 0 筆），數值微幅不同（M1 PR-AUC 差距 0.000143，M3 PR-AUC 差距 0.002660）。
-> 3. **雜訊標註標準**：依據 `lab_08` 測得之 M3 演算法隨機種子標準差（PR-AUC Std: 0.0053，AR@0.95 Std: 1.04x），凡差異未超出雜訊者，嚴格標註為「未超出雜訊」，不得隨意使用「基準」或「勝出」等定性字眼。
+> 2. **S3 vs S6 等價成立條件與邊界**：
+>    - 「剔除 0 筆所以完全相同」只能用於 M1 的教學管線（Winsorizer 啟用下 Tomek 剔除 0 筆，線性模型數值完全相同）。
+>    - 教學管線下 M3 的 S3 與 S6 數值並不相同（PR-AUC 0.4175 對 0.4188），但 Tomek 剔除同樣是 0 筆，差異非 Tomek 造成（合理推測，未驗證）。
+>    - 專案管線（Winsorizer 關閉）下，第 2 折 TomekLinks 實際剔除 2 筆（5 折均值 0.4 筆），M1 與 M3 的 S3 與 S6 數值均略有差異。
+> 3. **雜訊標註標準**：依據 `lab_08` 測得之 M3 演算法隨機種子標準差（PR-AUC Std: 0.0038，AR@0.95 Std: 0.23x），凡差異未超出雜訊者，嚴格標註為「未超出雜訊」，不得隨意使用「基準」或「勝出」等定性字眼。
 
 ---
 
@@ -321,7 +326,7 @@ python labs/test_common.py
 
 ## 8. lab_06：召回率與預警率權衡曲線與門檻轉移實驗 (`M3`)
 
-- **前處理配置說明：本實驗腳本未傳遞 `--pipeline` 旗標至底層 `build_pipeline`，維持使用教學管線（開啟 Winsorizer 截尾），專注於門檻與安全邊際在驗證折轉移之核心課題。**
+- **前處理配置說明：本實驗快照採用專案預設管線（`--pipeline project`，Winsorizer 關閉）。**
 
 ### 8.1 實驗目的
 1. 繪製 Recall 在 $[0.80, 1.00]$ 區間之 Recall–AR 權衡曲線，並標定隨機猜測基準線。
@@ -342,43 +347,43 @@ python labs/test_common.py
   2. **門檻轉移實際預警倍數（含安全邊際 $m$）**：由內層 OOF 分數決定運作門檻（扣除邊際 $m$），再施加於外層測試折，衡量實際營運調查負擔。
 - **實際觀察**：
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.80" col=random_guess_ar expect=30.994318 tolerance=0.01 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.80" col=alert_ratio_mean expect=3.198730 tolerance=0.01 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.95" col=alert_ratio_mean expect=7.887778 tolerance=0.01 -->
-  - **純排序指標 $AR@R$ 與隨機基準線**：隨機猜測基準線平坦固定於 $N/P = 5,455 / 176 \approx 31.00\text{x}$。M3 在 $R=0.80$ 時純排序 AR 僅 3.20x（相當於隨機猜測的 10.3%）；升至 $R=0.95$ 時純排序 AR 上升至 7.89x。
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.95 and margin==0.0" col=alert_ratio_mean expect=7.642540 tolerance=0.01 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.90 and margin==0.0" col=attainment_rate expect=0.600000 tolerance=0.01 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.90 and margin==0.06" col=attainment_rate expect=0.600000 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.80" col=alert_ratio_mean expect=3.728814 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_recall_alert_curve_snapshot.csv where="target_recall==0.95" col=alert_ratio_mean expect=8.382427 tolerance=0.01 -->
+  - **純排序指標 $AR@R$ 與隨機基準線**：隨機猜測基準線平坦固定於 $N/P = 5,455 / 176 \approx 31.00\text{x}$。M3 在 $R=0.80$ 時純排序 AR 為 3.73x（相當於隨機猜測的 12.0%）；升至 $R=0.95$ 時純排序 AR 上升至 8.38x。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.95 and margin==0.0" col=alert_ratio_mean expect=9.184395 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.90 and margin==0.0" col=attainment_rate expect=0.666667 tolerance=0.01 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.90 and margin==0.06" col=attainment_rate expect=1.000000 tolerance=0.01 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_06_threshold_transfer_snapshot.csv where="target_recall==0.95 and margin==0.04" col=attainment_rate expect=1.000000 tolerance=0.01 -->
   - **門檻轉移實際預警倍數與安全邊際 $m$ 緩衝效應**：
-    - 在 $R=0.95$ 下，若不加安全邊際（$m=0.00$），門檻轉移實際預警倍數為 7.64x（達標率僅 60.0%）；加入 $m=0.04$ 安全邊際後，達標率提升至 100.0%（實際預警倍數為 12.25x）。
-    - 在 $R=0.90$ 下，固定 $m=0.00$ 時轉移達標率為 60.0%（實際預警倍數 5.53x）；加入安全緩衝 $m=0.06$ 後實際預警倍數為 8.56x。
+    - 在 $R=0.95$ 下，若不加安全邊際（$m=0.00$），門檻轉移實際預警倍數為 9.18x（達標率為 66.7%）；加入 $m=0.04$ 安全邊際後，達標率提升至 100.0%（實際預警倍數為 12.77x）。
+    - 在 $R=0.90$ 下，固定 $m=0.00$ 時轉移達標率為 66.7%（實際預警倍數 6.13x）；加入安全緩衝 $m=0.06$ 後達標率提升至 100.0%（實際預警倍數為 9.81x）。
 
-### 8.5 Standard 模式與正式 E4a 實驗並排對照（5 折 × 3 內層折）
+### 8.5 Quick 模式（3 外層折 × 2 內層折，專案管線）與正式 E4a 實驗並排對照
 
-為避免僅依 `--quick`（3 折）下結論，以 `--standard`（5 外層折 × 3 內層折）重跑之實測結果與專案正式 E4a（15 次外層評估）並排對比如下：
+實測快照結果（3 外層折 × 2 內層折，project 管線）與專案正式 E4a（15 次外層評估，teaching 管線）並排對比如下：
 
-| 目標召回率 $R$ | 安全邊際 $m$ | Lab 06 Standard 達標率 | Lab 06 Standard 實際預警倍數 | E4a 正式達標率 | E4a 正式實際預警倍數 |
+| 目標召回率 $R$ | 安全邊際 $m$ | Lab 06 Quick 達標率 | Lab 06 Quick 實際預警倍數 | E4a 正式達標率 | E4a 正式實際預警倍數 |
 | :---: | :---: | :---: | :---: | :---: | :---: |
-| **0.80** | 0.00 | 60.0% | 3.46x | 60.0% | 3.53x |
-| **0.80** | 0.02 | 80.0% | 3.96x | 73.3% | 3.87x |
-| **0.80** | 0.04 | 80.0% | 4.36x | 86.7% | 4.32x |
-| **0.80** | 0.06 | 80.0% | 4.76x | 86.7% | 4.87x |
-| **0.90** | 0.00 | 60.0% | 5.53x | 53.3% | 5.64x |
-| **0.90** | 0.02 | 60.0% | 5.96x | 66.7% | 6.55x |
-| **0.90** | 0.04 | 60.0% | 7.15x | 86.7% | 7.59x |
-| **0.90** | 0.06 | 60.0% | 8.56x | 93.3% | 8.83x |
-| **0.95** | 0.00 | 60.0% | 7.64x | 66.7% | 7.96x |
-| **0.95** | 0.02 | 60.0% | 8.93x | 66.7% | 9.20x |
-| **0.95** | 0.04 | **100.0%** | **12.25x** | **100.0%** | **12.63x** |
-| **0.95** | 0.06 | **100.0%** | **24.00x** | **100.0%** | **23.74x** |
+| **0.80** | 0.00 | 33.3% | 3.38x | 60.0% | 3.53x |
+| **0.80** | 0.02 | 66.7% | 3.85x | 73.3% | 3.87x |
+| **0.80** | 0.04 | 66.7% | 4.62x | 86.7% | 4.32x |
+| **0.80** | 0.06 | 66.7% | 4.81x | 86.7% | 4.87x |
+| **0.90** | 0.00 | 66.7% | 6.13x | 53.3% | 5.64x |
+| **0.90** | 0.02 | 66.7% | 6.85x | 66.7% | 6.55x |
+| **0.90** | 0.04 | 100.0% | 7.81x | 86.7% | 7.59x |
+| **0.90** | 0.06 | 100.0% | 9.81x | 93.3% | 8.83x |
+| **0.95** | 0.00 | 66.7% | 9.18x | 66.7% | 7.96x |
+| **0.95** | 0.02 | 66.7% | 10.76x | 66.7% | 9.20x |
+| **0.95** | 0.04 | **100.0%** | **12.77x** | **100.0%** | **12.63x** |
+| **0.95** | 0.06 | **100.0%** | **23.02x** | **100.0%** | **23.74x** |
 
-**對照結論**：Lab 06 在 standard 模式下與正式 E4a 高度吻合：在 $R=0.95$ 下，$m=0.04$ 均精確達到 100% 達標率（實際預警倍數 12.25x vs 12.63x）；$m=0.06$ 均達到 24x 的高預警負擔。推薦邊際規則在兩者完全一致。
+**對照說明**：兩者在評估架構（Lab 06 快照為 3 外層折 × 2 內層折；E4a 為 5 折 × 3 重複 = 15 次外層評估）與前處理管線（Lab 06 快照採 project 管線關閉截尾；E4a 採 teaching 管線開啟截尾）存在設定差異。在 $R=0.80$ 下，Lab 06 於 3 折下最高達標率為 66.7%（2/3 折），未達 80% 門檻；在 $R=0.95$ 下，兩者在 $m=0.04$ 均達 100% 達標率（實際預警倍數分別為 12.77x 與 12.63x），$m=0.06$ 預警倍數均上升至 23x～24x。
 
 ---
 
 ## 9. lab_07：交叉驗證折數與重複次數效應 (`M1`)
 
-- **前處理配置說明：本實驗腳本未傳遞 `--pipeline` 旗標至底層 `build_pipeline`，維持使用教學管線（開啟 Winsorizer 截尾），專注於交叉驗證折數與樣本量效應之核心課題。**
+- **前處理配置說明：本實驗快照採用專案預設管線（`--pipeline project`，Winsorizer 關閉）。**
 
 ### 9.1 實驗目的
 1. 探索 $K \in \{3, 5, 10\} \times R \in \{1, 3\}$ 交叉驗證矩陣之折內正樣本數、評估標準差與計算時間。
@@ -397,11 +402,11 @@ python labs/test_common.py
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_cv_matrix_snapshot.csv where="n_splits_K==3 and n_repeats_R==1" col=val_positives_mean expect=58.666667 tolerance=0.1 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_cv_matrix_snapshot.csv where="n_splits_K==5 and n_repeats_R==1" col=val_positives_mean expect=35.200000 tolerance=0.1 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_cv_matrix_snapshot.csv where="n_splits_K==10 and n_repeats_R==1" col=val_positives_mean expect=17.600000 tolerance=0.1 -->
-  - **折內正樣本數與變異**：$K=3$ 時每折約 58.7 家正樣本，PR-AUC 折間標準差為 0.0356；$K=5$ 時每折 35.2 家正樣本（min 35, max 36），PR-AUC 標準差為 0.0564；$K=10$ 時每折僅 17.6 家正樣本，PR-AUC 標準差擴大至 0.0925，AR@0.95 標準差擴大至 8.99x。
+  - **折內正樣本數與變異**：$K=3$ 時每折約 58.7 家正樣本，PR-AUC 折間標準差為 0.0330；$K=5$ 時每折 35.2 家正樣本（min 35, max 36），PR-AUC 標準差為 0.0554；$K=10$ 時每折僅 17.6 家正樣本，PR-AUC 標準差擴大至 0.1129，AR@0.95 標準差擴大至 8.59x。
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_sample_size_ladder_snapshot.csv where="subsample_ratio==0.1" col=clopper_pearson_95ci_width_mean expect=0.031950 tolerance=0.001 -->
   <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_sample_size_ladder_snapshot.csv where="subsample_ratio==0.2" col=clopper_pearson_95ci_width_mean expect=0.021891 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_sample_size_ladder_snapshot.csv where="subsample_ratio==0.3" col=clopper_pearson_95ci_width_mean expect=0.017834 tolerance=0.001 -->
-  - **樣本稀少階梯化**：當子抽樣保留比例為 10%（正樣本僅約 18 家）時，Clopper-Pearson 95% 信賴區間寬度為 0.0320（AR@0.95 IQR 達 11.81x）；保留比例提升至 30%（正樣本約 53 家）時，信賴區間寬度收斂至 0.0178（AR@0.95 IQR 降至 4.15x）。
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_07_sample_size_ladder_snapshot.csv where="subsample_ratio==0.3" col=clopper_pearson_95ci_width_mean expect=0.017793 tolerance=0.001 -->
+  - **樣本稀少階梯化**：當子抽樣保留比例為 10%（正樣本僅約 18 家）時，Clopper-Pearson 95% 信賴區間寬度為 0.0319（AR@0.95 IQR 達 13.58x）；保留比例提升至 30%（正樣本約 53 家）時，信賴區間寬度收斂至 0.0178（AR@0.95 IQR 降至 1.65x）。
   - **分層平衡單元測試**：在 $K \in \{3, 5, 10\}$ 下，各折破產企業數最大與最小差額均嚴格 $\le 1$（單元測試 100% 通過）。
 
 ### 9.5 解讀與正式實驗對照
@@ -411,7 +416,7 @@ python labs/test_common.py
 
 ## 10. lab_08：種子穩定性與隨機性分解 (`M3`)
 
-- **前處理配置說明：本實驗腳本未傳遞 `--pipeline` 旗標至底層 `build_pipeline`，維持使用教學管線（開啟 Winsorizer 截尾），專注於隨機種子穩定性與方差分解之核心課題。**
+- **前處理配置說明：本實驗快照採用專案預設管線（`--pipeline project`，Winsorizer 關閉）。**
 
 ### 10.1 實驗目的
 將模型評估的變異來源進行正交分解，比較三種實驗條件：
@@ -428,13 +433,13 @@ python labs/test_common.py
 
 ### 10.4 假設與實際觀察
 - **實際觀察**：
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_08_seed_variance_summary_snapshot.csv where="condition=='1_algorithm_randomness_only'" col=pr_auc_across_runs_std expect=0.005284 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_08_seed_variance_summary_snapshot.csv where="condition=='2_data_split_variation_only'" col=pr_auc_across_runs_std expect=0.012583 tolerance=0.001 -->
-  <!-- evidence file=docs/code_learning/lab_snapshots/lab_08_seed_variance_summary_snapshot.csv where="condition=='1_algorithm_randomness_only'" col=pr_auc_within_fold_std_mean expect=0.057119 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_08_seed_variance_summary_snapshot.csv where="condition=='1_algorithm_randomness_only'" col=pr_auc_across_runs_std expect=0.003827 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_08_seed_variance_summary_snapshot.csv where="condition=='2_data_split_variation_only'" col=pr_auc_across_runs_std expect=0.014539 tolerance=0.001 -->
+  <!-- evidence file=docs/code_learning/lab_snapshots/lab_08_seed_variance_summary_snapshot.csv where="condition=='1_algorithm_randomness_only'" col=pr_auc_within_fold_std_mean expect=0.053508 tolerance=0.001 -->
   - **隨機性正交分解**：
-    - 演算法隨機性（條件 1）：PR-AUC 跨種子標準差僅 `0.0053`。
-    - 資料抽樣變異（條件 2）：PR-AUC 跨切分標準差為 `0.0126`（約為演算法隨機性的 2.4 倍）。
-    - 折間標準差（Within-fold Std）：高達 `0.0571`（為演算法隨機性的 10.8 倍）。
+    - 演算法隨機性（條件 1）：PR-AUC 跨種子標準差僅 `0.0038`。
+    - 資料抽樣變異（條件 2）：PR-AUC 跨切分標準差為 `0.0145`（約為演算法隨機性的 3.8 倍）。
+    - 折間標準差（Within-fold Std）：為 `0.0535`（為演算法隨機性的 14.0 倍）。
 
 ---
 
@@ -449,10 +454,10 @@ python labs/test_common.py
 | **正式 E7b** | **$E_A$ 集成模型**<br>（15 外層折，輪換模型與 SMOTE 種子） | **PR-AUC** | **0.001700** | **0.079081** | 0.020419 | **0.0833 (8.3%)** |
 | **正式 E7b** | **$E_A$ 集成模型**<br>（15 外層折，輪換模型與 SMOTE 種子） | **AR@0.95** | **0.147909** | **2.128618** | 0.549607 | **0.2691 (26.9%)** |
 | **正式 E7b** | **$E_A$ 集成模型**<br>（15 外層折，輪換模型與 SMOTE 種子） | **Log Loss** | **0.014713** | **0.240029** | 0.061975 | **0.2374 (23.7%)** |
-| **Lab 08** | **M3 單一模型**<br>（5 折，固定切分輪換模型種子） | **PR-AUC** | **0.005284** | **0.057119** | - | **約 9.2%** |
+| **Lab 08** | **M3 單一模型**<br>（3 折，固定切分輪換模型種子） | **PR-AUC** | **0.003827** | **0.053508** | - | **約 7.2%** |
 
 #### 關鍵工程洞察與嚴格邊界：
-1. **單模型與集成的隨機性量級差異**：M3 單一模型的種子標準差（0.0053）約為 $E_A$ 集成模型種子標準差（0.0017）的 **3.1 倍**。兩者不可直接等同，但**兩者均獨立顯示演算法隨機種子變異遠小於資料抽樣（折間）變異**。
+1. **單模型與集成的隨機性量級差異**：M3 單一模型的種子標準差（0.0038）約為 $E_A$ 集成模型種子標準差（0.0017）的 **2.2 倍**。兩者在模型架構與外層折數上不同，不可直接等同，但兩者在各自設定下均顯示演算法隨機種子變異小於資料抽樣（折間）變異。
 2. **資料抽樣變異佔據主導地位**：在正式 E7b 中，PR-AUC 的折間標準差（0.0791）是演算法種子標準差（0.0017）的 **46.5 倍**；AR@0.95 的折間標準差（2.13x）是種子標準差（0.15x）的 **14.4 倍**。
 3. **種子變異遠小於折間標準誤差**：`seed_std` 與 `fold_se`（$\text{fold\_std} / \sqrt{15}$）的比率僅 8.3%（PR-AUC）與 26.9%（AR@0.95），說明固定外層切分下，改變隨機種子引起的擾動，遠小於資料切分帶來的抽樣方差。
 4. **協定與經驗邊界宣告**：
