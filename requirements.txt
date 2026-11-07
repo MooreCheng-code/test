@@ -1,0 +1,26 @@
+# Core ML & Data
+scikit-learn
+imbalanced-learn
+xgboost
+lightgbm
+numpy
+pandas
+scipy
+joblib
+
+# Streamlit UI & Visuals
+streamlit
+altair
+pyarrow
+
+# FastAPI & Network Services
+fastapi
+starlette
+pydantic
+python-multipart
+uvicorn
+httpx
+
+# Explainability & Visualizations
+shap
+matplotlib
